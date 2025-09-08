@@ -1,0 +1,12 @@
+[server]
+maxUploadSize = 2000
+port = 8501
+enableCORS = true
+enableXsrfProtection = true
+
+[browser]
+serverAddress = "auto"
+gatherUsageStats = false
+
+[runner]
+magicEnabled = false
