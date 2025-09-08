@@ -207,7 +207,9 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         return True
     except Exception as e:
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
-        return Falsedef send_email_report(user_data, dicom_data, image_data, report_data):
+        return False  # ✅ return False CORRETO
+
+def send_email_report(user_data, dicom_data, image_data, report_data):  # ✅ FUNÇÃO NOVA LINHA
     """Envia relatório por email"""
     try:
         msg = MIMEMultipart()
