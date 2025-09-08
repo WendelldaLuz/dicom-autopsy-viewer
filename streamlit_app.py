@@ -673,21 +673,23 @@ def show_main_app():
                         }
                         
                         # Botões de relatório
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.button("📧 Enviar Relatório por Email", help="Envia relatório completo para wenndell.luz@gmail.com"):
-                                if send_email_report(st.session_state.user_data, dicom_data, image_for_report, report_data):
-                                    st.success("✅ Relatório enviado para wenndell.luz@gmail.com")
-                        
-                        with col2:
-                            pdf_report = create_pdf_report(st.session_state.user_data, dicom_data, report_data)
-                            st.download_button(
-                                label="📄 Baixar Relatório PDF",
-                                data=pdf_report,
-                                file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
-                                mime="application/pdf",
-                                help="Baixe relatório completo em PDF"
-                            )
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("📧 Enviar Relatório por Email", help="Envia relatório completo para wenndell.luz@gmail.com"):
+        if send_email_report(st.session_state.user_data, dicom_data, image_for_report, report_data):
+            st.success("✅ Relatório enviado para wenndell.luz@gmail.com")
+            st.info("📋 Uma cópia foi enviada para o administrador do sistema para auditoria e melhoria contínua")
+            log_security_event("USER_NOTIFIED", "Usuário informado sobre envio de cópia")
+
+with col2:
+    pdf_report = create_pdf_report(st.session_state.user_data, dicom_data, report_data)
+    st.download_button(
+        label="📄 Baixar Relatório PDF",
+        data=pdf_report,
+        file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
+        mime="application/pdf",
+        help="Baixe relatório completo em PDF"
+    )
                         
                         # Seção de feedback
                         show_feedback_section({
