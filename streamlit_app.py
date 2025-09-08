@@ -436,7 +436,18 @@ def show_login_page():
                     else:
                         st.error("❌ Preencha todos os campos obrigatórios")
             
-            st.markdown('</div>', unsafe_allow_html=True)def show_dashboard():
+            st.markdown('</div>', unsafe_allow_html=True)  # ✅ FIM da função show_login_page
+
+def show_dashboard():  # ✅ INÍCIO da função show_dashboard
+    """Dashboard inicial"""
+    st.markdown("""
+    <div style='text-align: center; padding: 40px 20px; background: #2d2d2d; border-radius: 15px; color: #ffffff;'>
+        <h2 style='color: #00bcd4 !important;'>🔬 Bem-vindo ao DICOM Autopsy Viewer</h2>
+        <p style='color: #b0b0b0 !important;'>Sistema profissional para análise forense de imagens DICOM</p>
+        <div style='font-size: 3rem; margin: 20px 0;'>🔬📊📧</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     """Dashboard inicial"""
     st.markdown("""
     <div style='text-align: center; padding: 40px 20px; background: #2d2d2d; border-radius: 15px; color: #ffffff;'>
