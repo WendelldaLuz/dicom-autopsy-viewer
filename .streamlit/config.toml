@@ -1,12 +1,17 @@
 [server]
 maxUploadSize = 2000
 port = 8501
-enableCORS = true
+enableCORS = false
 enableXsrfProtection = true
+enableWebsocketCompression = true
 
 [browser]
-serverAddress = "auto"
+serverAddress = "https://dicom-autopsy-viewer-e6zvbho9ja4jtjypbeckeq.streamlit.app"
 gatherUsageStats = false
 
 [runner]
 magicEnabled = false
+
+[auth]
+enable = true
+allowedEmails = ["wenndell.luz@gmail.com"]
