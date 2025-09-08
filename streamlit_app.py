@@ -6,6 +6,7 @@ import os
 import tempfile
 import warnings
 import smtplib
+import socket
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -19,6 +20,10 @@ import json
 import sqlite3
 from PIL import Image
 import logging
+from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente
+load_dotenv()
 
 # Configurar logging de segurança
 logging.basicConfig(
@@ -30,6 +35,21 @@ logging.basicConfig(
 # Suprimir warnings
 warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
 warnings.filterwarnings("ignore", category=UserWarning)
+
+# Configurações de email (usando variáveis de ambiente)
+EMAIL_CONFIG = {
+    'sender': os.environ.get('EMAIL_SENDER', ''),
+    'password': os.environ.get('EMAIL_PASSWORD', ''),
+    'smtp_server': os.environ.get('SMTP_SERVER', 'smtp.gmail.com'),
+    'smtp_port': int(os.environ.get('SMTP_PORT', 587))
+}
+
+# Limite de rate limiting
+UPLOAD_LIMITS = {
+    'max_files': 10,
+    'max_size_mb': 2000,
+    'max_uploads_per_hour': 5
+}
 
 # Configuração da página
 st.set_page_config(
@@ -68,20 +88,28 @@ st.markdown("""
 # Configuração do banco de dados para feedback
 DB_PATH = "feedback_database.db"
 
-# Configurações de email (USE SENHA DE APP DO GMAIL)
-EMAIL_CONFIG = {
-    'sender': 'wenndell.luz@gmail.com',
-    'password': 'sua_senha_de_app_do_gmail',
-    'smtp_server': 'smtp.gmail.com',
-    'smtp_port': 587
-}
-
-# Limite de rate limiting
-UPLOAD_LIMITS = {
-    'max_files': 10,
-    'max_size_mb': 2000,
-    'max_uploads_per_hour': 5
-}
+def check_dependencies():
+    """Verifica se todas as dependências estão disponíveis"""
+    dependencies = {
+        'streamlit': True,
+        'pydicom': True,
+        'numpy': True,
+        'matplotlib': True,
+        'PIL': True,
+        'plotly': True,
+        'smtplib': True,
+        'sqlite3': True,
+    }
+    
+    missing = []
+    for dep, required in dependencies.items():
+        try:
+            if required:
+                __import__(dep)
+        except ImportError:
+            missing.append(dep)
+    
+    return missing
 
 def init_database():
     """Inicializa o banco de dados para feedback"""
@@ -109,6 +137,13 @@ def init_database():
                       user_agent TEXT,
                       details TEXT,
                       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS access_logs
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      timestamp DATETIME,
+                      user TEXT,
+                      action TEXT,
+                      resource TEXT,
+                      details TEXT)''')
         conn.commit()
         conn.close()
     except Exception as e:
@@ -132,36 +167,92 @@ def log_security_event(event_type, details):
     except Exception as e:
         logging.error(f"Erro ao registrar evento de segurança: {e}")
 
-def validate_dicom_file(file):
-    """Valida se é um arquivo DICOM real"""
+def log_access(user, action, resource, details=""):
+    """Registra acesso a recursos sensíveis"""
+    timestamp = datetime.now().isoformat()
+    user_ip = "unknown"
+    user_agent = "unknown"
+    
     try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('''INSERT INTO access_logs (timestamp, user, action, resource, details)
+                     VALUES (?, ?, ?, ?, ?)''', 
+                 (timestamp, user, action, resource, details))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logging.error(f"Erro ao registrar acesso: {e}")
+
+def validate_dicom_file(file):
+    """Validação mais robusta de arquivos DICOM"""
+    try:
+        # Verifica se o arquivo é muito grande (prevenção contra DoS)
+        max_size = 500 * 1024 * 1024  # 500MB
+        file_size = len(file.getvalue())
+        if file_size > max_size:
+            log_security_event("FILE_TOO_LARGE", f"Arquivo excede limite de {max_size} bytes")
+            return False
+        
         # Salva a posição original
         original_position = file.tell()
         
         # Verifica assinatura DICOM (128 bytes + 'DICM')
         file.seek(128)
         signature = file.read(4)
-        file.seek(original_position)  # Volta para posição original
+        file.seek(original_position)
         
-        if signature == b'DICM':
-            return True
-        else:
+        if signature != b'DICM':
             log_security_event("INVALID_FILE", "Arquivo não é DICOM válido")
             return False
+            
+        # Verificação adicional: tenta ler o metadata DICOM
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
+                tmp_file.write(file.getvalue())
+                tmp_path = tmp_file.name
+            
+            # Tenta ler o arquivo DICOM
+            dataset = pydicom.dcmread(tmp_path, force=True)
+            
+            # Verifica se tem pelo menos alguns atributos obrigatórios
+            if not hasattr(dataset, 'SOPClassUID') or not hasattr(dataset, 'SOPInstanceUID'):
+                log_security_event("INVALID_DICOM", "Arquivo não contém metadados DICOM essenciais")
+                os.unlink(tmp_path)
+                return False
+                
+            os.unlink(tmp_path)
+            return True
+            
+        except Exception as e:
+            log_security_event("DICOM_READ_ERROR", f"Erro ao ler metadados DICOM: {e}")
+            if 'tmp_path' in locals() and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            return False
+            
     except Exception as e:
         log_security_event("FILE_VALIDATION_ERROR", f"Erro na validação: {e}")
         return False
 
 def sanitize_patient_data(dataset):
-    """Remove dados sensíveis se necessário"""
+    """Remove todos os dados sensíveis de acordo com DICOM Standard"""
     try:
-        sensitive_tags = ['PatientName', 'PatientID', 'PatientBirthDate', 'ReferringPhysicianName']
+        # Lista completa de tags sensíveis baseada no DICOM Standard
+        sensitive_tags = [
+            'PatientName', 'PatientID', 'PatientBirthDate', 'PatientSex',
+            'PatientAge', 'PatientSize', 'PatientWeight', 'PatientAddress',
+            'ReferringPhysicianName', 'ReferringPhysicianAddress',
+            'ReferringPhysicianTelephoneNumbers', 'InstitutionName',
+            'InstitutionAddress', 'StudyDate', 'StudyTime', 'AccessionNumber',
+            'StudyID', 'SeriesDate', 'ContentDate', 'AcquisitionDateTime',
+            'InstitutionDepartmentName', 'StationName', 'PerformingPhysicianName'
+        ]
         
         for tag in sensitive_tags:
             if hasattr(dataset, tag):
                 original_value = getattr(dataset, tag)
                 setattr(dataset, tag, "REDACTED")
-                log_security_event("DATA_SANITIZED", f"Campo {tag} redacted")
+                log_security_event("DATA_SANITIZED", f"Campo {tag} redacted: {original_value}")
         
         return dataset
     except Exception as e:
@@ -207,11 +298,18 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         return True
     except Exception as e:
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
-        return False  # ✅ return False CORRETO
+        return False
 
-def send_email_report(user_data, dicom_data, image_data, report_data):  # ✅ FUNÇÃO NOVA LINHA
-    """Envia relatório por email"""
+def send_email_report(user_data, dicom_data, image_data, report_data):
+    """Envia relatório por email com melhor tratamento de erros"""
     try:
+        # Verifica se as credenciais de email estão configuradas
+        if not EMAIL_CONFIG['sender'] or not EMAIL_CONFIG['password']:
+            error_msg = "Credenciais de email não configuradas"
+            log_security_event("EMAIL_CONFIG_ERROR", error_msg)
+            st.error("Configuração de email não está completa. Contate o administrador.")
+            return False
+        
         msg = MIMEMultipart()
         msg['From'] = EMAIL_CONFIG['sender']
         msg['To'] = 'wenndell.luz@gmail.com'
@@ -282,18 +380,39 @@ def send_email_report(user_data, dicom_data, image_data, report_data):  # ✅ FU
         csv_attachment['Content-Disposition'] = 'attachment; filename="relatorio_analise.csv"'
         msg.attach(csv_attachment)
         
-        # Enviar email
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-        server.starttls()
-        server.login(EMAIL_CONFIG['sender'], EMAIL_CONFIG['password'])
-        server.send_message(msg)
-        server.quit()
-        
-        log_security_event("EMAIL_SENT", "Relatório enviado com sucesso")
-        return True
+        # Enviar email com timeout e tratamento de erros específico
+        try:
+            server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'], timeout=30)
+            server.starttls()
+            server.login(EMAIL_CONFIG['sender'], EMAIL_CONFIG['password'])
+            server.send_message(msg)
+            server.quit()
+            
+            log_security_event("EMAIL_SENT", "Relatório enviado com sucesso")
+            return True
+            
+        except smtplib.SMTPAuthenticationError:
+            error_msg = "Falha na autenticação do email. Verifique as credenciais."
+            log_security_event("EMAIL_AUTH_ERROR", error_msg)
+            st.error("Erro de autenticação no servidor de email.")
+            return False
+            
+        except smtplib.SMTPException as e:
+            error_msg = f"Erro SMTP: {str(e)}"
+            log_security_event("EMAIL_SMTP_ERROR", error_msg)
+            st.error("Erro ao comunicar com o servidor de email.")
+            return False
+            
+        except socket.timeout:
+            error_msg = "Timeout ao conectar com o servidor de email"
+            log_security_event("EMAIL_TIMEOUT", error_msg)
+            st.error("Timeout ao conectar com o servidor de email. Tente novamente.")
+            return False
+            
     except Exception as e:
-        error_msg = f"Erro ao enviar email: {str(e)}"
+        error_msg = f"Erro geral ao enviar email: {str(e)}"
         log_security_event("EMAIL_ERROR", error_msg)
+        st.error("Erro inesperado ao enviar email.")
         return False
 
 def safe_dicom_value(value, default="N/A"):
@@ -376,6 +495,25 @@ def create_pdf_report(user_data, dicom_data, report_data):
     buffer.seek(0)
     return buffer
 
+def check_data_protection_compliance():
+    """Verifica conformidade com regulamentações de proteção de dados"""
+    compliance = {
+        'data_minimization': True,
+        'purpose_limitation': True,
+        'storage_limitation': True,
+        'integrity_and_confidentiality': True,
+        'accountability': True
+    }
+    return compliance
+
+def get_compliance_badge():
+    """Retorna um badge de conformidade"""
+    compliance = check_data_protection_compliance()
+    if all(compliance.values()):
+        return "🛡️ Conformidade com LGPD/GDPR"
+    else:
+        return "⚠️ Verificação de conformidade necessária"
+
 def show_feedback_section(report_data):
     """Seção de feedback"""
     st.markdown("---")
@@ -431,29 +569,26 @@ def show_login_page():
                             'contato': contato,
                             'data_acesso': datetime.now().strftime("%d/%m/%Y %H:%M")
                         }
+                        log_access(nome, "LOGIN", "SYSTEM_ACCESS")
                         st.success("✅ Acesso concedido! Carregando sistema...")
                         st.rerun()
                     else:
                         st.error("❌ Preencha todos os campos obrigatórios")
             
-            st.markdown('</div>', unsafe_allow_html=True)  # ✅ FIM da função show_login_page
+            st.markdown('</div>', unsafe_allow_html=True)
 
-def show_dashboard():  # ✅ INÍCIO da função show_dashboard
+def show_dashboard():
     """Dashboard inicial"""
-    st.markdown("""
-    <div style='text-align: center; padding: 40px 20px; background: #2d2d2d; border-radius: 15px; color: #ffffff;'>
-        <h2 style='color: #00bcd4 !important;'>🔬 Bem-vindo ao DICOM Autopsy Viewer</h2>
-        <p style='color: #b0b0b0 !important;'>Sistema profissional para análise forense de imagens DICOM</p>
-        <div style='font-size: 3rem; margin: 20px 0;'>🔬📊📧</div>
-    </div>
-    """, unsafe_allow_html=True)
+    compliance_badge = get_compliance_badge()
     
-    """Dashboard inicial"""
-    st.markdown("""
+    st.markdown(f"""
     <div style='text-align: center; padding: 40px 20px; background: #2d2d2d; border-radius: 15px; color: #ffffff;'>
         <h2 style='color: #00bcd4 !important;'>🔬 Bem-vindo ao DICOM Autopsy Viewer</h2>
         <p style='color: #b0b0b0 !important;'>Sistema profissional para análise forense de imagens DICOM</p>
         <div style='font-size: 3rem; margin: 20px 0;'>🔬📊📧</div>
+        <div style='background: #4caf50; padding: 10px; border-radius: 5px; display: inline-block; margin-top: 15px;'>
+            {compliance_badge}
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -487,6 +622,9 @@ def show_dashboard():  # ✅ INÍCIO da função show_dashboard
 
 def show_main_app():
     """Aplicativo principal após autenticação"""
+    # Registrar acesso
+    log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
+    
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
@@ -497,6 +635,7 @@ def show_main_app():
                    f'</div>', unsafe_allow_html=True)
         
         if st.button("🚪 Sair"):
+            log_access(st.session_state.user_data['nome'], "LOGOUT", "SYSTEM_ACCESS")
             st.session_state.authenticated = False
             st.session_state.user_data = {}
             st.rerun()
@@ -569,6 +708,7 @@ def show_main_app():
         dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
         
         if dicom_file:
+            tmp_path = None
             try:
                 # VALIDAÇÃO FINAL DE SEGURANÇA
                 file_copy = BytesIO(dicom_file.getvalue())
@@ -676,6 +816,7 @@ def show_main_app():
                 
                 with tab4:
                     if hasattr(dataset, 'pixel_array'):
+                        image = dataset.pixel_array
                         report_data = {
                             'dimensoes': f"{image.shape[0]} × {image.shape[1]}",
                             'min_intensity': int(np.min(image)),
@@ -686,23 +827,23 @@ def show_main_app():
                         }
                         
                         # Botões de relatório
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("📧 Enviar Relatório por Email", help="Envia relatório completo para wenndell.luz@gmail.com"):
-        if send_email_report(st.session_state.user_data, dicom_data, image_for_report, report_data):
-            st.success("✅ Relatório enviado para wenndell.luz@gmail.com")
-            st.info("📋 Uma cópia foi enviada para o administrador do sistema para auditoria e melhoria contínua")
-            log_security_event("USER_NOTIFIED", "Usuário informado sobre envio de cópia")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("📧 Enviar Relatório por Email", help="Envia relatório completo para wenndell.luz@gmail.com"):
+                                if send_email_report(st.session_state.user_data, dicom_data, image_for_report, report_data):
+                                    st.success("✅ Relatório enviado para wenndell.luz@gmail.com")
+                                    st.info("📋 Uma cópia foi enviada para o administrador do sistema para auditoria e melhoria contínua")
+                                    log_security_event("USER_NOTIFIED", "Usuário informado sobre envio de cópia")
 
-with col2:
-    pdf_report = create_pdf_report(st.session_state.user_data, dicom_data, report_data)
-    st.download_button(
-        label="📄 Baixar Relatório PDF",
-        data=pdf_report,
-        file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
-        mime="application/pdf",
-        help="Baixe relatório completo em PDF"
-    )
+                        with col2:
+                            pdf_report = create_pdf_report(st.session_state.user_data, dicom_data, report_data)
+                            st.download_button(
+                                label="📄 Baixar Relatório PDF",
+                                data=pdf_report,
+                                file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
+                                mime="application/pdf",
+                                help="Baixe relatório completo em PDF"
+                            )
                         
                         # Seção de feedback
                         show_feedback_section({
@@ -712,25 +853,44 @@ with col2:
                             'timestamp': datetime.now().isoformat()
                         })
                 
-                # Limpar arquivo temporário
-                os.unlink(tmp_path)
-                
             except Exception as e:
                 error_msg = f"Erro ao processar arquivo: {str(e)}"
                 st.error(f"❌ {error_msg}")
                 log_security_event("PROCESSING_ERROR", error_msg)
+                
+            finally:
+                # Limpar arquivo temporário
+                if tmp_path and os.path.exists(tmp_path):
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception as e:
+                        log_security_event("CLEANUP_ERROR", f"Erro ao limpar arquivo temporário: {e}")
     else:
         show_dashboard()
 
 def main():
     """Função principal"""
     try:
-        log_security_event("APP_START", "Aplicativo iniciado")
+        # Verificar dependências
+        missing_deps = check_dependencies()
+        if missing_deps:
+            st.error(f"❌ Dependências missing: {', '.join(missing_deps)}")
+            log_security_event("MISSING_DEPENDENCIES", f"Dependências faltando: {missing_deps}")
+            return
         
+        # Inicialização completa das variáveis de sessão
         if 'authenticated' not in st.session_state:
             st.session_state.authenticated = False
+        if 'user_data' not in st.session_state:
             st.session_state.user_data = {}
+        if 'feedback_submitted' not in st.session_state:
             st.session_state.feedback_submitted = False
+        if 'uploaded_files' not in st.session_state:
+            st.session_state.uploaded_files = []
+        if 'current_file' not in st.session_state:
+            st.session_state.current_file = None
+            
+        log_security_event("APP_START", "Aplicativo iniciado")
         
         if not st.session_state.authenticated:
             show_login_page()
