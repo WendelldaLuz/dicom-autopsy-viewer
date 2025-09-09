@@ -494,7 +494,7 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔬 Análise Preditiva e RA-Index")
     
-    st.info("A seguir, apresentamos uma análise preditiva baseada nos princípios do seu projeto de mestrado, correlacionando a dinâmica gasosa com a pontuação do Índice de Alteração Radiológica.")
+    st.info("A seguir, apresentamos uma análise preditiva, correlacionando a dinâmica gasosa com a pontuação do Índice de Alteração Radiológica.")
 
     col1, col2, col3 = st.columns(3)
     with col1:
