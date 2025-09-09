@@ -787,86 +787,88 @@ corrija a linha 791: st.markdown("---")
 
 st.markdown("---")
 
-    with st.sidebar:
-        st.markdown(f"""
-        <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0;'>&#128100; Usuário Logado</h3>
-            <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
-            <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        st.markdown(f"""
-        <div class='upload-info'>
-            <h4>&#128193; Upload de Exames</h4>
-            <p>&#8226; Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
-            <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
-            <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        uploaded_files = st.file_uploader(
-            "&#128229; Selecione os arquivos DICOM",
-            type=['dcm', 'DCM'],
-            accept_multiple_files=True,
-            help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
-        )
-        
-        if uploaded_files:
-            # VERIFICA LIMITES DE SEGURANÇA
-            is_valid, message = check_upload_limits(uploaded_files)
-            
-            if not is_valid:
-                st.error(f"&#10060; {message}")
-                log_security_event("UPLOAD_BLOCKED", message)
-            else:
-                total_size = sum(f.size for f in uploaded_files)
-                
-                # VALIDA CADA ARQUIVO
-                valid_files = []
-                for file in uploaded_files:
-                    file_copy = BytesIO(file.getvalue())  # Cria cópia para validação
-                    if validate_dicom_file(file_copy):
-                        valid_files.append(file)
-                    else:
-                        st.warning(f"&#9888;&#65039; Arquivo {file.name} não é um DICOM válido e foi ignorado")
-                
-                if valid_files:
-                    st.success(f"&#9989; {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
-                    
-                    # Mostrar tamanho de cada arquivo
-                    for file in valid_files:
-                        st.markdown(f"""
-                        <div class='uploaded-file'>
-                            &#128196; {file.name}
-                            <div class='file-size'>{get_file_size(file.size)}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.error("&#10060; Nenhum arquivo DICOM válido encontrado")
-                    log_security_event("NO_VALID_FILES", "Nenhum arquivo DICOM válido no upload")
+st.markdown("---")
 
+with st.sidebar:
+    st.markdown(f"""
+    <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
+        <h3 style='margin: 0;'>&#128100; Usuário Logado</h3>
+        <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
+        <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    st.markdown(f"""
+    <div class='upload-info'>
+        <h4>&#128193; Upload de Exames</h4>
+        <p>&#8226; Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
+        <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
+        <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    uploaded_files = st.file_uploader(
+        "&#128229; Selecione os arquivos DICOM",
+        type=['dcm', 'DCM'],
+        accept_multiple_files=True,
+        help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
+    )
+    
     if uploaded_files:
-        selected_file = st.selectbox("&#128203; Selecione o exame para análise:", [f.name for f in uploaded_files])
-        dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
+        # VERIFICA LIMITES DE SEGURANÇA
+        is_valid, message = check_upload_limits(uploaded_files)
         
-        if dicom_file:
-            tmp_path = None
-            try:
-                # VALIDAÇÃO FINAL DE SEGURANÇA
-                file_copy = BytesIO(dicom_file.getvalue())
-                if not validate_dicom_file(file_copy):
-                    st.error("&#10060; Arquivo corrompido ou inválido")
-                    log_security_event("FINAL_VALIDATION_FAILED", f"Arquivo {selected_file} falhou na validação final")
-                    return
+        if not is_valid:
+            st.error(f"&#10060; {message}")
+            log_security_event("UPLOAD_BLOCKED", message)
+        else:
+            total_size = sum(f.size for f in uploaded_files)
+            
+            # VALIDA CADA ARQUIVO
+            valid_files = []
+            for file in uploaded_files:
+                file_copy = BytesIO(file.getvalue())  # Cria cópia para validação
+                if validate_dicom_file(file_copy):
+                    valid_files.append(file)
+                else:
+                    st.warning(f"&#9888;&#65039; Arquivo {file.name} não é um DICOM válido e foi ignorado")
+            
+            if valid_files:
+                st.success(f"&#9989; {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
                 
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
-                    tmp_file.write(dicom_file.getvalue())
-                    tmp_path = tmp_file.name
-                
-                dataset = pydicom.dcmread(tmp_path)
+                # Mostrar tamanho de cada arquivo
+                for file in valid_files:
+                    st.markdown(f"""
+                    <div class='uploaded-file'>
+                        &#128196; {file.name}
+                        <div class='file-size'>{get_file_size(file.size)}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.error("&#10060; Nenhum arquivo DICOM válido encontrado")
+                log_security_event("NO_VALID_FILES", "Nenhum arquivo DICOM válido no upload")
+
+if uploaded_files:
+    selected_file = st.selectbox("&#128203; Selecione o exame para análise:", [f.name for f in uploaded_files])
+    dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
+    
+    if dicom_file:
+        tmp_path = None
+        try:
+            # VALIDAÇÃO FINAL DE SEGURANÇA
+            file_copy = BytesIO(dicom_file.getvalue())
+            if not validate_dicom_file(file_copy):
+                st.error("&#10060; Arquivo corrompido ou inválido")
+                log_security_event("FINAL_VALIDATION_FAILED", f"Arquivo {selected_file} falhou na validação final")
+                return
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
+                tmp_file.write(dicom_file.getvalue())
+                tmp_path = tmp_file.name
+            
+            dataset = pydicom.dcmread(tmp_path)
                 
                 # SANITIZA DADOS SENSÍVEIS
                 dataset = sanitize_patient_data(dataset)
