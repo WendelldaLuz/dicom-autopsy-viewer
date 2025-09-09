@@ -1011,7 +1011,6 @@ def display_info_section(title, icon_class, data_dict, card_class=""):
 def show_main_app():
     st.markdown(f"<h1>🔬 DICOM Autopsy Viewer</h1>", unsafe_allow_html=True)
     st.subheader("Análise Forense Digital e Preditiva")
-    st.success("✅ Todas as dependências foram carregadas com sucesso!")
 
     with st.sidebar:
         # Seletor de idioma
