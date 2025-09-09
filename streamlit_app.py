@@ -33,8 +33,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CORREÇÃO: Removido o bloco try/except inútil, pois a verificação de imports já foi feita
-# pela própria importação no início do script.
+# Confirmação de dependências carregadas
 st.success("✅ Todas as dependências foram carregadas com sucesso!")
 
 # CSS personalizado - Tema autópsia virtual
@@ -63,7 +62,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# CORREÇÃO: Configuração de variáveis globais que estavam faltando
+# Definições globais
 DB_PATH = "feedback_database.db"
 
 UPLOAD_LIMITS = {
@@ -78,37 +77,8 @@ EMAIL_CONFIG = {
     'smtp_port': 587
 }
 
-# Configuração do banco de dados para feedback
-DB_PATH = "feedback_database.db"
-
-def check_dependencies():
-    """Verifica se todas as dependências estão disponíveis"""
-    dependencies = {
-        'streamlit': True,
-        'pydicom': True,
-        'numpy': True,
-        'matplotlib': True,
-        'PIL': True,
-        'plotly': True,
-        'smtplib': True,
-        'sqlite3': True,
-    }
-    
-    missing = []
-    for dep, required in dependencies.items():
-        try:
-            if required:
-                __import__(dep)
-        except ImportError:
-            missing.append(dep)
-    
-    return missing
-
-# Configure o logging básico
+# Configuração do banco de dados e logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Defina o caminho do banco de dados
-DB_PATH = 'autopsy_data.db'
 
 def init_database():
     """Inicializa o banco de dados para feedback"""
@@ -157,7 +127,6 @@ def init_database():
         logging.info("Banco de dados inicializado com sucesso")
         
     except Exception as e:
-        # Fallback seguro sem criar loop de erro
         print(f"Erro ao inicializar banco: {e}")
         logging.error(f"Erro ao inicializar banco: {e}")
 
@@ -178,7 +147,6 @@ def log_security_event(event_type, details):
         logging.info(f"SECURITY - {event_type}: {details}")
         
     except Exception as e:
-        # Fallback seguro se o banco falhar
         print(f"SECURITY FALLBACK - {event_type}: {details}")
         logging.error(f"Erro ao registrar evento de segurança: {e}")
 
@@ -200,7 +168,6 @@ def log_access(user, action, resource, details=""):
         logging.info(f"ACCESS - {user} {action} {resource}")
         
     except Exception as e:
-        # Fallback seguro se o banco falhar
         print(f"ACCESS FALLBACK - {user} {action} {resource}: {details}")
         logging.error(f"Erro ao registrar acesso: {e}")
 
@@ -219,17 +186,13 @@ def safe_init_database():
 def validate_dicom_file(file):
     """Validação mais robusta de arquivos DICOM"""
     try:
-        # Verifica se o arquivo é muito grande (prevenção contra DoS)
-        max_size = 500 * 1024 * 1024  # 500MB
+        max_size = 500 * 1024 * 1024
         file_size = len(file.getvalue())
         if file_size > max_size:
             log_security_event("FILE_TOO_LARGE", f"Arquivo excede limite de {max_size} bytes")
             return False
         
-        # Salva a posição original
         original_position = file.tell()
-        
-        # Verifica assinatura DICOM (128 bytes + 'DICM')
         file.seek(128)
         signature = file.read(4)
         file.seek(original_position)
@@ -238,16 +201,13 @@ def validate_dicom_file(file):
             log_security_event("INVALID_FILE", "Arquivo não é DICOM válido")
             return False
             
-        # Verificação adicional: tenta leer o metadata DICOM
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
                 tmp_file.write(file.getvalue())
                 tmp_path = tmp_file.name
             
-            # Tenta ler o arquivo DICOM
             dataset = pydicom.dcmread(tmp_path, force=True)
             
-            # Verifica se tem pelo menos alguns atributos obrigatórios
             if not hasattr(dataset, 'SOPClassUID') or not hasattr(dataset, 'SOPInstanceUID'):
                 log_security_event("INVALID_DICOM", "Arquivo não contém metadados DICOM essenciais")
                 os.unlink(tmp_path)
@@ -269,7 +229,6 @@ def validate_dicom_file(file):
 def sanitize_patient_data(dataset):
     """Remove todos os dados sensíveis de acordo com DICOM Standard"""
     try:
-        # Lista completa de tags sensíveis baseada no DICOM Standard
         sensitive_tags = [
             'PatientName', 'PatientID', 'PatientBirthDate', 'PatientSex',
             'PatientAge', 'PatientSize', 'PatientWeight', 'PatientAddress',
@@ -335,7 +294,6 @@ def save_feedback(user_email, feedback_text, rating, report_data):
 def send_email_report(user_data, dicom_data, image_data, report_data):
     """Envia relatório por email com melhor tratamento de erros"""
     try:
-        # Verifica se as credenciais de email estão configuradas
         if not EMAIL_CONFIG['sender'] or not EMAIL_CONFIG['password']:
             error_msg = "Credenciais de email não configuradas"
             log_security_event("EMAIL_CONFIG_ERROR", error_msg)
@@ -347,7 +305,6 @@ def send_email_report(user_data, dicom_data, image_data, report_data):
         msg['To'] = 'wenndell.luz@gmail.com'
         msg['Subject'] = f'Relatório de Análise DICOM - {datetime.now().strftime("%d/%m/%Y %H:%M")}'
         
-        # Corpo do email
         body = f"""
         RELATÓRIO DE ANÁLISE DICOM - DICOM AUTOPSY VIEWER
         =================================================
@@ -378,7 +335,6 @@ def send_email_report(user_data, dicom_data, image_data, report_data):
         
         msg.attach(MIMEText(body, 'plain'))
         
-        # Anexar imagem
         if image_data:
             img_byte_arr = BytesIO()
             image_data.save(img_byte_arr, format='PNG')
@@ -386,7 +342,6 @@ def send_email_report(user_data, dicom_data, image_data, report_data):
             image_attachment = MIMEImage(img_byte_arr, name='analise_dicom.png')
             msg.attach(image_attachment)
         
-        # Anexar relatório em CSV
         report_df = pd.DataFrame([{
             'Usuario': user_data['nome'],
             'Departamento': user_data['departamento'],
@@ -412,7 +367,6 @@ def send_email_report(user_data, dicom_data, image_data, report_data):
         csv_attachment['Content-Disposition'] = 'attachment; filename="relatorio_analise.csv"'
         msg.attach(csv_attachment)
         
-        # Enviar email com timeout e tratamento de erros específico
         try:
             server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'], timeout=30)
             server.starttls()
@@ -493,10 +447,10 @@ def create_pdf_report(user_data, dicom_data, report_data):
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, 750, "DADOS DO ANALISTA:")
     c.setFont("Helvetica", 10)
-    c.drawString(50, 730, f"Nome: {user_data['nome']}")
-    c.drawString(50, 715, f"Departamento: {user_data['departamento']}")
-    c.drawString(50, 700, f"Email: {user_data['email']}")
-    c.drawString(50, 685, f"Contato: {user_data['contato']}")
+    c.drawString(50, 730, f"Nome: {user_data.get('nome', 'N/A')}")
+    c.drawString(50, 715, f"Departamento: {user_data.get('departamento', 'N/A')}")
+    c.drawString(50, 700, f"Email: {user_data.get('email', 'N/A')}")
+    c.drawString(50, 685, f"Contato: {user_data.get('contato', 'N/A')}")
     
     # Dados do exame
     c.setFont("Helvetica-Bold", 12)
@@ -515,9 +469,9 @@ def create_pdf_report(user_data, dicom_data, report_data):
     c.drawString(50, 520, f"Dimensões: {report_data.get('dimensoes', 'N/A')}")
     c.drawString(50, 505, f"Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}")
     c.drawString(50, 490, f"Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}")
-    c.drawString(50, 475, f"Média: {np.mean(image):.2f}")
-    c.drawString(50, 460, f"Desvio Padrão: {np.std(image):.2f}")
-    c.drawString(50, 445, f"Total de Pixels: {image.size:,}")
+    c.drawString(50, 475, f"Média: {report_data.get('media', 'N/A')}")
+    c.drawString(50, 460, f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}")
+    c.drawString(50, 445, f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}")
     
     c.save()
     buffer.seek(0)
@@ -632,7 +586,7 @@ def show_ra_index_section():
         3. **Interpretação radiológica**: Considerar o estado de alteração no diagnóstico por imagem
         """)
     
-    # Calculadora do RA-Index (se o usuário quiser calcular)
+    # Calculadora do RA-Index
     st.markdown("### 📊 Calculadora do RA-Index")
     st.info("Use esta calculadora para determinar o RA-Index com base nos achados de imagem")
     
@@ -649,9 +603,7 @@ def show_ra_index_section():
         vertebra = st.selectbox("Vértebra L3", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na terceira vértebra lombar", key="vertebra_ra")
         subcutaneous = st.selectbox("Tecidos Subcutâneos", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos tecidos subcutâneos peitorais", key="subcutaneous_ra")
     
-    # Botão para calcular
     if st.button("Calcular RA-Index", key="calc_ra_button"):
-        # Mapeamento de valores
         scores = {
             "Grau 0": 0,
             "Grau I": 1,
@@ -659,7 +611,6 @@ def show_ra_index_section():
             "Grau III": 3
         }
         
-        # Pontuações conforme a tabela do estudo
         ra_scores = {
             "cardiac": [0, 5, 15, 20],
             "hepatic": [0, 8, 17, 25],
@@ -670,7 +621,6 @@ def show_ra_index_section():
             "subcutaneous": [0, 8, 8, 8]
         }
         
-        # Calcular RA-Index
         total_score = (
             ra_scores["cardiac"][scores[cardiac]] +
             ra_scores["hepatic"][scores[hepatic]] +
@@ -681,7 +631,6 @@ def show_ra_index_section():
             ra_scores["subcutaneous"][scores[subcutaneous]]
         )
         
-        # Interpretação
         if total_score < 50:
             interpretation = "Alteração mínima/moderada"
             color = "green"
@@ -692,7 +641,6 @@ def show_ra_index_section():
             interpretation = "Suspeita de gás grau II ou III na cavidade craniana - Alteração avançada"
             color = "red"
         
-        # Mostrar resultado
         st.markdown(f"""
         <div style='background: #2d2d2d; padding: 20px; border-radius: 10px; border-left: 4px solid {color};'>
             <h3 style='color: {color}; margin-top: 0;'>RA-Index: {total_score}/100</h3>
@@ -700,7 +648,6 @@ def show_ra_index_section():
         </div>
         """, unsafe_allow_html=True)
         
-        # Recomendações - APENAS DENTRO DO BLOCO DO BOTÃO
         if total_score >= 50:
             st.warning("""
             **Recomendações:**
@@ -708,11 +655,12 @@ def show_ra_index_section():
             - Interpretar achados radiológicos com cautela
             - Limitar procedimentos diagnósticos adicionais
             """)
+
 def show_main_app():
-    """Aplicativo principal após autenticação"""
-    # Registrar acesso
-    log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
-    
+    """Aplicativo principal após preenchimento do formulário"""
+    # Registrar o início da sessão
+    log_access(st.session_state.user_data['nome'], "SESSAO_INICIADA", "MAIN_APP")
+
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
@@ -722,10 +670,9 @@ def show_main_app():
                     f'<span style="color: #b0b0b0; font-size: 0.8rem;">{st.session_state.user_data["departamento"]}</span>'
                     f'</div>', unsafe_allow_html=True)
     
-        if st.button("🚪 Sair"):
-            log_access(st.session_state.user_data['nome'], "LOGOUT", "SYSTEM_ACCESS")
-            st.session_state.authenticated = False
-            st.session_state.user_data = {}
+        if st.button("🚪 Encerrar Sessão"):
+            log_access(st.session_state.user_data['nome'], "SESSAO_ENCERRADA", "SYSTEM_ACCESS")
+            st.session_state.user_data = None
             st.rerun()
 
     st.markdown("---")
@@ -733,7 +680,7 @@ def show_main_app():
     with st.sidebar:
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0;'>&#128100; Usuário Logado</h3>
+            <h3 style='margin: 0;'>&#128100; Usuário Atual</h3>
             <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
             <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
         </div>
@@ -758,7 +705,6 @@ def show_main_app():
         )
         
         if uploaded_files:
-            # VERIFICA LIMITES DE SEGURANÇA
             is_valid, message = check_upload_limits(uploaded_files)
             
             if not is_valid:
@@ -767,10 +713,9 @@ def show_main_app():
             else:
                 total_size = sum(f.size for f in uploaded_files)
                 
-                # VALIDA CADA ARQUIVO
                 valid_files = []
                 for file in uploaded_files:
-                    file_copy = BytesIO(file.getvalue())  # Cria cópia para validação
+                    file_copy = BytesIO(file.getvalue())
                     if validate_dicom_file(file_copy):
                         valid_files.append(file)
                     else:
@@ -779,7 +724,6 @@ def show_main_app():
                 if valid_files:
                     st.success(f"&#9989; {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
                     
-                    # Mostrar tamanho de cada arquivo
                     for file in valid_files:
                         st.markdown(f"""
                         <div class='uploaded-file'>
@@ -798,7 +742,6 @@ def show_main_app():
         if dicom_file:
             tmp_path = None
             try:
-                # VALIDAÇÃO FINAL DE SEGURANÇA
                 file_copy = BytesIO(dicom_file.getvalue())
                 if not validate_dicom_file(file_copy):
                     st.error("&#10060; Arquivo corrompido ou inválido")
@@ -810,7 +753,6 @@ def show_main_app():
                 
                 dataset = pydicom.dcmread(tmp_path)
                     
-                # SANITIZA DADOS SENSÍVEIS
                 dataset = sanitize_patient_data(dataset)
                 
                 dicom_data = {
@@ -836,7 +778,6 @@ def show_main_app():
                         fig = create_medical_visualization(image, f"Exame: {selected_file}")
                         st.plotly_chart(fig, use_container_width=True)
                         
-                        # Salvar imagem para relatório
                         plt.figure(figsize=(8, 8))
                         plt.imshow(image, cmap='gray')
                         plt.axis('off')
@@ -913,7 +854,6 @@ def show_main_app():
                             'total_pixels': f"{image.size:,}"
                         }
                         
-                        # Botões de relatório
                         col1, col2 = st.columns(2)
                         with col1:
                             if st.button("📧 Enviar Relatório por Email", help="Envia relatório completo para wenndell.luz@gmail.com"):
@@ -932,7 +872,6 @@ def show_main_app():
                                 help="Baixe relatório completo em PDF"
                             )
                         
-                        # Seção de feedback
                         show_feedback_section({
                             'dicom_data': dicom_data,
                             'report_data': report_data,
@@ -949,49 +888,46 @@ def show_main_app():
                 log_security_event("PROCESSING_ERROR", error_msg)
             
             finally:
-                # Limpar arquivo temporário
                 if tmp_path and os.path.exists(tmp_path):
                     try:
                         os.unlink(tmp_path)
                     except Exception as e:
                         log_security_event("CLEANUP_ERROR", f"Erro ao limpar arquivo temporário: {e}")
 
-# CORREÇÃO: Nova função show_login_page()
-def show_login_page():
+# Nova função para o formulário de dados do usuário
+def show_user_form():
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    st.header("🔐 Acesso Restrito")
-    st.warning("Para continuar, por favor, faça o login.")
-    st.info("Para este exemplo, use 'admin' como nome e '1234' como senha.")
+    st.header("📝 Insira seus Dados para Iniciar")
+    st.info("Por favor, preencha os campos abaixo para acessar a ferramenta.")
     
-    with st.form("login_form"):
-        username = st.text_input("Nome de Usuário:")
-        password = st.text_input("Senha:", type="password")
+    with st.form("user_data_form"):
+        full_name = st.text_input("Nome Completo:", key="user_name")
+        department = st.text_input("Departamento/Órgão:", key="user_department")
+        email = st.text_input("Email:", key="user_email")
+        contact = st.text_input("Telefone/Contato:", key="user_contact")
         
-        submitted = st.form_submit_button("Entrar")
+        submitted = st.form_submit_button("Continuar")
         if submitted:
-            if username == "admin" and password == "1234":
-                st.session_state.authenticated = True
-                st.session_state.user_data = {
-                    'nome': 'Admin',
-                    'departamento': 'TI',
-                    'email': 'admin@autopsyviewer.com',
-                    'contato': 'N/A'
-                }
-                st.success("✅ Login bem-sucedido!")
-                st.rerun()
+            if not full_name or not department or not email or not contact:
+                st.error("❌ Todos os campos são obrigatórios.")
             else:
-                st.error("❌ Usuário ou senha incorretos.")
+                st.session_state.user_data = {
+                    'nome': full_name,
+                    'departamento': department,
+                    'email': email,
+                    'contato': contact
+                }
+                st.success("✅ Dados salvos com sucesso!")
+                st.rerun()
                 
     st.markdown('</div>', unsafe_allow_html=True)
 
 def main():
-    """Função principal"""
+    """Função principal que gerencia o fluxo da aplicação"""
     try:
         # Inicialização completa das variáveis de sessão
-        if 'authenticated' not in st.session_state:
-            st.session_state.authenticated = False
         if 'user_data' not in st.session_state:
-            st.session_state.user_data = {}
+            st.session_state.user_data = None
         if 'feedback_submitted' not in st.session_state:
             st.session_state.feedback_submitted = False
         if 'uploaded_files' not in st.session_state:
@@ -1001,8 +937,8 @@ def main():
             
         log_security_event("APP_START", "Aplicativo iniciado")
         
-        if not st.session_state.authenticated:
-            show_login_page()
+        if st.session_state.user_data is None:
+            show_user_form()
         else:
             show_main_app()
             
@@ -1011,13 +947,10 @@ def main():
         log_security_event("APP_CRASH", error_msg)
         st.error("❌ Erro crítico no aplicativo. Os administradores foram notificados.")
 
-# Inicialização segura do banco de dados
 if __name__ == "__main__":
-    # Inicializa o banco de forma segura
     db_initialized = safe_init_database()
     
     if not db_initialized:
         st.warning("⚠️ Modo offline ativado - Alguns recursos podem não estar disponíveis")
     
-    # CORREÇÃO: A chamada para a função main() foi adicionada aqui
     main()
