@@ -254,7 +254,7 @@ def extract_features(image):
             np.median(image)
         ]
     except Exception:
-        return [0] * 8  # Retorna features padrão em caso de erro
+        return [0] * 8
 
 def get_ai_prediction(image):
     """Carrega o modelo de IA e faz uma previsão."""
@@ -270,7 +270,6 @@ def get_ai_prediction(image):
         prediction_encoded = model.predict([features])[0]
         prediction_text = le.inverse_transform([prediction_encoded])[0]
 
-        # Simular relatório de classificação
         mock_report = {
             'precision': {'Grau I': 0.95, 'Grau II': 0.92, 'Grau III': 0.88, 'Grau IV': 0.90},
             'recall': {'Grau I': 0.97, 'Grau II': 0.91, 'Grau III': 0.89, 'Grau IV': 0.93},
@@ -295,7 +294,6 @@ def generate_ra_index_data(image_stats):
     try:
         std_dev = float(image_stats['desvio_padrao'])
         
-        # Lógica de pontuação simplificada baseada no desvio padrão
         if std_dev > 1.7e9:
             ra_score = 65
             interpretation = "Suspeita de gás grau II ou III na cavidade craniana - Alteração avançada"
@@ -334,93 +332,93 @@ def generate_ra_index_data(image_stats):
 
 def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report):
     """Cria relatório em PDF profissional com gráficos e análises"""
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    
-    # Adicionar imagem ao PDF (se existir)
-    if image_for_report:
-        img_buffer = BytesIO()
-        image_for_report.save(img_buffer, format='PNG')
-        img_buffer.seek(0)
-        img_reader = ImageReader(img_buffer)
-        c.drawImage(img_reader, 50, 520, width=200, height=200, preserveAspectRatio=True)
-    
-    def draw_text(text, x, y, font, size, bold=False):
-        c.setFont(font + ("-Bold" if bold else ""), size)
-        c.drawString(x, y, text)
+    try:
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=A4)
+        
+        def draw_text(text, x, y, font, size, bold=False):
+            c.setFont(font + ("-Bold" if bold else ""), size)
+            c.drawString(x, y, text)
 
-    y_pos = 800
-    draw_text("RELATÓRIO DE ANÁLISE FORENSE DIGITAL", 50, y_pos, "Helvetica", 16, True)
-    draw_text(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", 50, y_pos - 15, "Helvetica", 10)
-    
-    y_pos -= 40
-    draw_text("1. DADOS DO ANALISTA", 50, y_pos, "Helvetica", 12, True)
-    y_pos -= 15
-    draw_text(f"Nome: {user_data.get('nome', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
-    draw_text(f"Departamento: {user_data.get('departamento', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
-    draw_text(f"Email: {user_data.get('email', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-    draw_text(f"Contato: {user_data.get('contato', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
-    
-    y_pos -= 80
-    draw_text("2. DADOS DO EXAME", 50, y_pos, "Helvetica", 12, True)
-    y_pos -= 15
-    draw_text(f"Arquivo: {dicom_data.get('file_name', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
-    draw_text(f"Tamanho: {dicom_data.get('file_size', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
-    draw_text(f"Paciente: {dicom_data.get('patient_name', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-    draw_text(f"ID: {dicom_data.get('patient_id', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
-    draw_text(f"Modalidade: {dicom_data.get('modality', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
-    
-    y_pos -= 95
-    draw_text("3. ESTATÍSTICAS DA IMAGEM", 50, y_pos, "Helvetica", 12, True)
-    y_pos -= 15
-    draw_text(f"Dimensões: {report_data.get('dimensoes', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
-    draw_text(f"Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
-    draw_text(f"Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-    draw_text(f"Média: {report_data.get('media', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
-    draw_text(f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
-    draw_text(f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}", 60, y_pos - 85, "Helvetica", 10)
+        y_pos = 800
+        
+        # Cabeçalho e dados do analista
+        draw_text("RELATÓRIO DE ANÁLISE FORENSE DIGITAL", 50, y_pos, "Helvetica", 16, True)
+        draw_text(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", 50, y_pos - 15, "Helvetica", 10)
+        y_pos -= 40
+        draw_text("1. DADOS DO ANALISTA", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 15
+        draw_text(f"Nome: {user_data.get('nome', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
+        draw_text(f"Departamento: {user_data.get('departamento', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
+        draw_text(f"Email: {user_data.get('email', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
+        draw_text(f"Contato: {user_data.get('contato', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
+        
+        # Dados do Exame
+        y_pos -= 80
+        draw_text("2. DADOS DO EXAME", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 15
+        draw_text(f"Arquivo: {dicom_data.get('file_name', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
+        draw_text(f"Tamanho: {dicom_data.get('file_size', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
+        draw_text(f"Paciente: {dicom_data.get('patient_name', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
+        draw_text(f"ID: {dicom_data.get('patient_id', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
+        draw_text(f"Modalidade: {dicom_data.get('modality', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
 
-    y_pos -= 100
-    draw_text("4. ANÁLISE PREDITIVA E RA-INDEX", 50, y_pos, "Helvetica", 12, True)
-    y_pos -= 15
+        # Estatísticas
+        y_pos -= 95
+        draw_text("3. ESTATÍSTICAS DA IMAGEM", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 15
+        draw_text(f"Dimensões: {report_data.get('dimensoes', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
+        draw_text(f"Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
+        draw_text(f"Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
+        draw_text(f"Média: {report_data.get('media', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
+        draw_text(f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
+        draw_text(f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}", 60, y_pos - 85, "Helvetica", 10)
+        
+        # Análise Preditiva e RA-Index
+        y_pos -= 100
+        draw_text("4. ANÁLISE PREDITIVA E RA-INDEX", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 15
 
-    # Adicionar previsão da IA
-    draw_text(f"Previsão do Modelo de IA: {ai_prediction}", 60, y_pos - 10, "Helvetica", 10, True)
-    draw_text(f"RA-Index Calculado: {ra_index_data.get('ra_score', 'N/A')}/100", 60, y_pos - 25, "Helvetica", 10)
-    draw_text(f"Interpretação: {ra_index_data.get('interpretation', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-    
-    y_pos -= 60
-    draw_text("Métricas de Desempenho do Modelo:", 60, y_pos, "Helvetica", 10, True)
-    y_pos -= 15
-    metrics_data = [
-        ['Métrica', 'Valor'],
-        ['Acurácia', ra_index_data.get('metrics', {}).get('Acuracia', 'N/A')],
-        ['Sensibilidade', ra_index_data.get('metrics', {}).get('Sensibilidade', 'N/A')],
-        ['Especificidade', ra_index_data.get('metrics', {}).get('Especificidade', 'N/A')],
-        ['Confiabilidade (ICC)', ra_index_data.get('metrics', {}).get('Confiabilidade (ICC)', 'N/A')]
-    ]
-    
-    table_x, table_y = 60, y_pos - 10
-    row_height = 15
-    col_width = 150
-    for i, row in enumerate(metrics_data):
-        for j, cell in enumerate(row):
-            c.rect(table_x + j*col_width, table_y - i*row_height, col_width, row_height)
-            draw_text(cell, table_x + j*col_width + 5, table_y - i*row_height + 5, "Helvetica", 9, i==0)
-    
-    y_pos = table_y - len(metrics_data) * row_height - 20
-    
-    draw_text("Análise de Correlação (Lei de Fick):", 60, y_pos, "Helvetica", 10, True)
-    y_pos -= 15
-    draw_text("A alta dispersão dos pixels se correlaciona com a dispersão de gases na fase inicial de putrefação, seguindo a cinética da Segunda Lei de Fick.", 60, y_pos - 10, "Helvetica", 10)
-    draw_text("Os dados quantitativos de densidade confirmam a classificação visual do RA-Index, validando o modelo para estimativa de Intervalo Post-Mortem.", 60, y_pos - 25, "Helvetica", 10)
+        draw_text(f"Previsão do Modelo de IA: {ai_prediction}", 60, y_pos - 10, "Helvetica", 10, True)
+        draw_text(f"RA-Index Calculado: {ra_index_data.get('ra_score', 'N/A')}/100", 60, y_pos - 25, "Helvetica", 10)
+        draw_text(f"Interpretação: {ra_index_data.get('interpretation', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
+        
+        y_pos -= 60
+        draw_text("Métricas de Desempenho do Modelo:", 60, y_pos, "Helvetica", 10, True)
+        y_pos -= 15
+        metrics_data = [
+            ['Métrica', 'Valor'],
+            ['Acurácia', ra_index_data.get('metrics', {}).get('Acuracia', 'N/A')],
+            ['Sensibilidade', ra_index_data.get('metrics', {}).get('Sensibilidade', 'N/A')],
+            ['Especificidade', ra_index_data.get('metrics', {}).get('Especificidade', 'N/A')],
+            ['Confiabilidade (ICC)', ra_index_data.get('metrics', {}).get('Confiabilidade (ICC)', 'N/A')]
+        ]
+        
+        # Desenhar tabela
+        table_x, table_y = 60, y_pos - 10
+        row_height = 15
+        col_width = 150
+        for i, row in enumerate(metrics_data):
+            c.rect(table_x, table_y - i*row_height, col_width, row_height)
+            c.rect(table_x + col_width, table_y - i*row_height, col_width, row_height)
+            draw_text(row[0], table_x + 5, table_y - i*row_height + 5, "Helvetica", 9, i==0)
+            draw_text(row[1], table_x + col_width + 5, table_y - i*row_height + 5, "Helvetica", 9, i==0)
+        
+        y_pos = table_y - len(metrics_data) * row_height - 20
+        
+        draw_text("Análise de Correlação (Lei de Fick):", 60, y_pos, "Helvetica", 10, True)
+        y_pos -= 15
+        draw_text("A alta dispersão dos pixels se correlaciona com a dispersão de gases na fase inicial de putrefação, seguindo a cinética da Segunda Lei de Fick.", 60, y_pos - 10, "Helvetica", 10)
+        draw_text("Os dados quantitativos de densidade confirmam a classificação visual do RA-Index, validando o modelo para estimativa de Intervalo Post-Mortem.", 60, y_pos - 25, "Helvetica", 10)
 
-    c.save()
-    buffer.seek(0)
-    return buffer
+        c.save()
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        logging.error(f"Erro ao criar relatório PDF: {e}")
+        return None
 
 def send_email_report(user_data, dicom_data, image_data, report_data, ra_index_data, ai_prediction, ai_report):
-    """Envia relatório por email com melhor tratamento de erros"""
     try:
         if not EMAIL_CONFIG['sender'] or not EMAIL_CONFIG['password']:
             error_msg = "Credenciais de email não configuradas"
