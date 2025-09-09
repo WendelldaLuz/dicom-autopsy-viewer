@@ -1,52 +1,8 @@
-# VERIFICAÇÃO E INSTALAÇÃO DE DEPENDÊNCIAS
-import subprocess
-import sys
-import importlib
-
-# Lista de dependências necessárias com versões compatíveis
-required_packages = {
-    'streamlit': '1.49.1',
-    'pydicom': '3.0.1', 
-    'numpy': '2.2.6',
-    'pandas': '2.3.1',
-    'matplotlib': '3.10.5',
-    'Pillow': '11.3.0',
-    'plotly': '6.3.0',
-    'python-dotenv': '1.0.0'  # Adicionando explicitamente
-}
-
-for package, version in required_packages.items():
-    try:
-        importlib.import_module(package if package != 'Pillow' else 'PIL')
-        print(f"✅ {package} já está instalado")
-    except ImportError:
-        print(f"📦 Instalando {package}=={version}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", f"{package}=={version}"])
-
-# Agora importe normalmente
-from dotenv import load_dotenv
-import streamlit as st
-import pydicom
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-import tempfile
-import warnings
-import smtplib
-import socket
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.application import MIMEApplication
-import pandas as pd
-from datetime import datetime
-from io import BytesIO
-import plotly.graph_objects as go
-import plotly.express as px
-import json
-import sqlite3
-from PIL import Image
-import logging
-
-# Carregar variáveis de ambiente
-load_dotenv()
+streamlit==1.28.1
+pydicom==2.3.1
+numpy==1.23.5
+pandas==1.5.3
+matplotlib==3.6.3
+Pillow==9.5.0
+plotly==5.13.1
+python-dotenv==0.21.1
