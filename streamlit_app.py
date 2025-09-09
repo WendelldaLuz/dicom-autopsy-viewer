@@ -672,12 +672,14 @@ def show_ra_index_section():
         </div>
         """, unsafe_allow_html=True)
         
-        # Recomendações
-        if total_score >= 50:
-            st.warning("""
-            **Recomendações:**
-            - Considerar análise de composição
-            def show_main_app():
+# Recomendações
+if total_score >= 50:
+    st.warning("""
+    **Recomendações:**
+    - Considerar análise de composição gasosa (cromatografia gasosa)
+    - Interpretar achados radiológicos com cautela
+    - Limitar procedimentos diagnósticos adicionais
+    """)
     """Aplicativo principal após autenticação"""
     # Registrar acesso
     log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
