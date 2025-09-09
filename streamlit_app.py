@@ -539,8 +539,6 @@ def show_feedback_section(report_data):
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-    
-    st.markdown('</div>', unsafe_allow_html=True)   
 def show_ra_index_section():
     """Seção do RA-Index com referências bibliográficas"""
     st.markdown("---")
@@ -684,6 +682,7 @@ def show_ra_index_section():
             """)
     
     st.markdown('</div>', unsafe_allow_html=True)
+
 def show_login_page():
     """Página de login/registro"""
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -762,7 +761,7 @@ def show_dashboard():
             <p>• Envio automático por email</p>
             <p>• Relatórios em PDF</p>
         </div>
-        """, unsafe_allow_html=True)
+        ""', unsafe_allow_html=True)
 
 def show_main_app():
     """Aplicativo principal após autenticação"""
@@ -996,7 +995,12 @@ def show_main_app():
                             'user': st.session_state.user_data,
                             'timestamp': datetime.now().isoformat()
                         })
-       except Exception as e:
+                
+                with tab5:
+                    # CORREÇÃO: Chamar a função show_ra_index_section() que estava faltando
+                    show_ra_index_section()
+                    
+            except Exception as e:
                 error_msg = f"Erro ao processar arquivo: {str(e)}"
                 st.error(f"❌ {error_msg}")
                 log_security_event("PROCESSING_ERROR", error_msg)
