@@ -3,7 +3,7 @@ pydicom
 numpy
 Pillow
 matplotlib
-opencv-python
+opencv-contrib-python-headless
 pandas
 scipy
 scikit-image
