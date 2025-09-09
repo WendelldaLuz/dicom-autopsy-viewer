@@ -23,6 +23,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 import socket
 import base64
+import colorsys
 
 # Configuração inicial da página
 st.set_page_config(
@@ -39,6 +40,8 @@ if 'background_image' not in st.session_state:
     st.session_state.background_image = None
 if 'logo_image' not in st.session_state:
     st.session_state.logo_image = None
+if 'logo_preview' not in st.session_state:
+    st.session_state.logo_preview = None
 if 'user_data' not in st.session_state:
     st.session_state.user_data = None
 if 'feedback_submitted' not in st.session_state:
@@ -47,38 +50,96 @@ if 'uploaded_files' not in st.session_state:
     st.session_state.uploaded_files = []
 if 'current_file' not in st.session_state:
     st.session_state.current_file = None
+if 'color_theme' not in st.session_state:
+    st.session_state.color_theme = {
+        'primary': '#00bcd4',
+        'secondary': '#00838f',
+        'accent': '#ff9800',
+        'text': '#ffffff',
+        'background': '#0d0d0d'
+    }
+
+# Função para gerar esquema de cores harmonioso
+def generate_color_theme(base_color):
+    try:
+        # Converter HEX para RGB
+        base_color = base_color.lstrip('#')
+        r, g, b = tuple(int(base_color[i:i+2], 16) for i in (0, 2, 4))
+        
+        # Converter RGB para HSL
+        h, l, s = colorsys.rgb_to_hls(r/255, g/255, b/255)
+        
+        # Gerar cores harmoniosas
+        primary = f"#{int(r):02x}{int(g):02x}{int(b):02x}"
+        
+        # Cor secundária (tonalidade mais escura)
+        r2, g2, b2 = colorsys.hls_to_rgb(h, max(0, l-0.2), s)
+        secondary = f"#{int(r2*255):02x}{int(g2*255):02x}{int(b2*255):02x}"
+        
+        # Cor de destaque (complementar)
+        h_complement = (h + 0.5) % 1.0
+        r3, g3, b3 = colorsys.hls_to_rgb(h_complement, l, s)
+        accent = f"#{int(r3*255):02x}{int(g3*255):02x}{int(b3*255):02x}"
+        
+        # Cor de texto (contraste)
+        text_color = '#ffffff' if l < 0.6 else '#000000'
+        
+        # Cor de fundo
+        bg_r, bg_g, bg_b = colorsys.hls_to_rgb(h, max(0, l-0.8), min(1, s*0.3))
+        background = f"#{int(bg_r*255):02x}{int(bg_g*255):02x}{int(bg_b*255):02x}"
+        
+        return {
+            'primary': primary,
+            'secondary': secondary,
+            'accent': accent,
+            'text': text_color,
+            'background': background
+        }
+    except:
+        # Fallback para tema padrão
+        return {
+            'primary': '#00bcd4',
+            'secondary': '#00838f',
+            'accent': '#ff9800',
+            'text': '#ffffff',
+            'background': '#0d0d0d'
+        }
 
 # CSS personalizado - Tema autópsia virtual
-st.markdown(f"""
-<style>
-    .main {{
-        background: {st.session_state.background_color};
-        {'background-image: url("data:image/jpeg;base64,' + st.session_state.background_image + '"); background-size: cover; background-attachment: fixed;' if st.session_state.background_image else ''}
-    }}
-    .stApp {{ 
-        background: {st.session_state.background_color};
-        color: #ffffff; 
-    }}
-    .main-header {{ font-size: 2.5rem; color: #ffffff !important; text-align: center; font-weight: 700; }}
-    .sub-header {{ font-size: 1.5rem; color: #ffffff !important; font-weight: 600; }}
-    p, div, span, label {{ color: #e0e0e0 !important; }}
-    .card {{ background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #00bcd4; }}
-    .patient-card {{ border-left: 4px solid #ff5252; }}
-    .tech-card {{ border-left: 4px solid #4caf50; }}
-    .image-card {{ border-left: 4px solid #9c27b0; }}
-    .stats-card {{ border-left: 4px solid #ff9800; }}
-    .login-card {{ border-left: 4px solid #00bcd2; background: #2d2d2d; padding: 30px; border-radius: 15px; }}
-    .feedback-card {{ border-left: 4px solid #ff9800; background: #2d2d2d; padding: 20px; border-radius: 12px; }}
-    .stButton>button {{ background: linear-gradient(45deg, #00bcd4, #00838f); color: white !important; border-radius: 8px; padding: 12px 24px; }}
-    .uploaded-file {{ background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid #00bcd4; }}
-    .metric-value {{ font-size: 1.3rem; font-weight: 700; color: #00bcd4 !important; }}
-    .metric-label {{ font-size: 0.9rem; color: #b0b0b0 !important; font-weight: 500; }}
-    .file-size {{ color: #00bcd4; font-size: 0.8rem; margin-top: 5px; }}
-    .upload-info {{ background: #2d2d2d; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #4caf50; }}
-    .star-rating {{ font-size: 2rem; color: #ffd700; margin: 10px 0; }}
-    .security-alert {{ background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border-left: 4px solid #c62828; }}
-</style>
-""", unsafe_allow_html=True)
+def update_css_theme():
+    theme = st.session_state.color_theme
+    st.markdown(f"""
+    <style>
+        .main {{
+            background: {theme['background']};
+            {'background-image: url("data:image/jpeg;base64,' + st.session_state.background_image + '"); background-size: cover; background-attachment: fixed;' if st.session_state.background_image else ''}
+        }}
+        .stApp {{ 
+            background: {theme['background']};
+            color: {theme['text']}; 
+        }}
+        .main-header {{ font-size: 2.5rem; color: {theme['text']} !important; text-align: center; font-weight: 700; }}
+        .sub-header {{ font-size: 1.5rem; color: {theme['text']} !important; font-weight: 600; }}
+        p, div, span, label {{ color: {theme['text']} !important; }}
+        .card {{ background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid {theme['primary']}; }}
+        .patient-card {{ border-left: 4px solid #ff5252; }}
+        .tech-card {{ border-left: 4px solid #4caf50; }}
+        .image-card {{ border-left: 4px solid #9c27b0; }}
+        .stats-card {{ border-left: 4px solid {theme['accent']}; }}
+        .login-card {{ border-left: 4px solid {theme['primary']}; background: #2d2d2d; padding: 30px; border-radius: 15px; }}
+        .feedback-card {{ border-left: 4px solid {theme['accent']}; background: #2d2d2d; padding: 20px; border-radius: 12px; }}
+        .stButton>button {{ background: linear-gradient(45deg, {theme['primary']}, {theme['secondary']}); color: white !important; border-radius: 8px; padding: 12px 24px; }}
+        .uploaded-file {{ background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid {theme['primary']}; }}
+        .metric-value {{ font-size: 1.3rem; font-weight: 700; color: {theme['primary']} !important; }}
+        .metric-label {{ font-size: 0.9rem; color: #b0b0b0 !important; font-weight: 500; }}
+        .file-size {{ color: {theme['primary']}; font-size: 0.8rem; margin-top: 5px; }}
+        .upload-info {{ background: #2d2d2d; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #4caf50; }}
+        .star-rating {{ font-size: 2rem; color: #ffd700; margin: 10px 0; }}
+        .security-alert {{ background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border-left: 4px solid #c62828; }}
+        .theme-preview {{ width: 100%; height: 60px; border-radius: 8px; margin: 10px 0; background: linear-gradient(45deg, {theme['primary']}, {theme['secondary']}, {theme['accent']}); }}
+        .logo-preview {{ max-width: 100px; max-height: 60px; border-radius: 5px; margin: 10px 0; }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # Definições globais
 DB_PATH = "feedback_database.db"
@@ -289,20 +350,24 @@ def generate_ra_index_data(image_stats):
         if std_dev > 1.7e9:
             ra_score = 65
             interpretation = "Suspeita de gás grau II ou III na cavidade craniana - Alteração avançada"
+            post_mortem_estimate = "36-48 horas"
         elif std_dev > 1.5e9:
             ra_score = 55
             interpretation = "Suspeita de gás grau III em cavidades cardíacas"
+            post_mortem_estimate = "24-36 horas"
         else:
             ra_score = 30
             interpretation = "Alteração mínima/moderada"
+            post_mortem_estimate = "12-24 horas"
         
         post_mortem_hours = np.linspace(0, 48, 100)
         density_curve = np.log(post_mortem_hours + 1) * 1e9 + (np.random.rand(100) * 5e7)
         
         ra_curve = np.zeros_like(post_mortem_hours)
-        ra_curve[post_mortem_hours < 24] = 10
-        ra_curve[(post_mortem_hours >= 24) & (post_mortem_hours < 36)] = 50
-        ra_curve[post_mortem_hours >= 36] = 70
+        ra_curve[post_mortem_hours < 12] = 10
+        ra_curve[(post_mortem_hours >= 12) & (post_mortem_hours < 24)] = 30
+        ra_curve[(post_mortem_hours >= 24) & (post_mortem_hours < 36)] = 55
+        ra_curve[post_mortem_hours >= 36] = 65
         
         metrics = {
             'Acuracia': '92%', 'Sensibilidade': '98%',
@@ -312,6 +377,7 @@ def generate_ra_index_data(image_stats):
         return {
             'ra_score': ra_score,
             'interpretation': interpretation,
+            'post_mortem_estimate': post_mortem_estimate,
             'metrics': metrics,
             'post_mortem_hours': post_mortem_hours,
             'density_curve': density_curve,
@@ -333,64 +399,85 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
 
         y_pos = 800
 
+        # Logo no canto superior direito
         if st.session_state.logo_image:
             try:
                 logo_buffer = BytesIO(st.session_state.logo_image)
                 logo_reader = ImageReader(logo_buffer)
-                c.drawImage(logo_reader, 450, 780, width=100, height=50, preserveAspectRatio=True)
+                c.drawImage(logo_reader, 450, 750, width=80, height=40, preserveAspectRatio=True)
             except:
-                draw_text("DICOM Autopsy Viewer", 450, 790, "Helvetica", 12, True)
-        else:
-            draw_text("DICOM Autopsy Viewer", 450, 790, "Helvetica", 12, True)
+                pass
+
+        draw_text("RELATÓRIO DE ANÁLISE FORENSE DIGITAL", 50, y_pos, "Helvetica", 16, True)
+        draw_text(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", 50, y_pos - 20, "Helvetica", 10)
+        y_pos -= 40
         
+        # Dados do analista
+        draw_text("1. DADOS DO ANALISTA", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 20
+        draw_text(f"Nome: {user_data.get('nome', 'N/A')}", 60, y_pos - 15, "Helvetica", 10)
+        draw_text(f"Departamento: {user_data.get('departamento', 'N/A')}", 60, y_pos - 30, "Helvetica", 10)
+        draw_text(f"Email: {user_data.get('email', 'N/A')}", 60, y_pos - 45, "Helvetica", 10)
+        draw_text(f"Contato: {user_data.get('contato', 'N/A')}", 60, y_pos - 60, "Helvetica", 10)
+        
+        y_pos -= 80
+        
+        # Dados do exame
+        draw_text("2. DADOS DO EXAME", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 20
+        draw_text(f"Arquivo: {dicom_data.get('file_name', 'N/A')}", 60, y_pos - 15, "Helvetica", 10)
+        draw_text(f"Tamanho: {dicom_data.get('file_size', 'N/A')}", 60, y_pos - 30, "Helvetica", 10)
+        draw_text(f"Paciente: {dicom_data.get('patient_name', 'N/A')}", 60, y_pos - 45, "Helvetica", 10)
+        draw_text(f"ID: {dicom_data.get('patient_id', 'N/A')}", 60, y_pos - 60, "Helvetica", 10)
+        draw_text(f"Modalidade: {dicom_data.get('modality', 'N/A')}", 60, y_pos - 75, "Helvetica", 10)
+
+        y_pos -= 95
+        
+        # Estatísticas da imagem
+        draw_text("3. ESTATÍSTICAS DA IMAGEM", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 20
+        draw_text(f"Dimensões: {report_data.get('dimensoes', 'N/A')}", 60, y_pos - 15, "Helvetica", 10)
+        draw_text(f"Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}", 60, y_pos - 30, "Helvetica", 10)
+        draw_text(f"Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}", 60, y_pos - 45, "Helvetica", 10)
+        draw_text(f"Média: {report_data.get('media', 'N/A')}", 60, y_pos - 60, "Helvetica", 10)
+        draw_text(f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}", 60, y_pos - 75, "Helvetica", 10)
+        draw_text(f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}", 60, y_pos - 90, "Helvetica", 10)
+        
+        # Nova página para a imagem
+        c.showPage()
+        
+        # Imagem no topo da segunda página
         if image_for_report:
             try:
                 img_buffer = BytesIO()
                 image_for_report.save(img_buffer, format='PNG')
                 img_buffer.seek(0)
                 img_reader = ImageReader(img_buffer)
-                c.drawImage(img_reader, 50, 520, width=200, height=200, preserveAspectRatio=True)
+                c.drawImage(img_reader, 50, 500, width=400, height=300, preserveAspectRatio=True)
             except Exception as e:
                 logging.error(f"Erro ao adicionar imagem no PDF: {e}")
 
-        draw_text("RELATÓRIO DE ANÁLISE FORENSE DIGITAL", 50, y_pos, "Helvetica", 16, True)
-        draw_text(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", 50, y_pos - 15, "Helvetica", 10)
-        y_pos -= 40
+        y_pos = 450
         
-        draw_text("1. DADOS DO ANALISTA", 50, y_pos, "Helvetica", 12, True)
-        y_pos -= 15
-        draw_text(f"Nome: {user_data.get('nome', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
-        draw_text(f"Departamento: {user_data.get('departamento', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
-        draw_text(f"Email: {user_data.get('email', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-        draw_text(f"Contato: {user_data.get('contato', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
+        # Análise preditiva
+        draw_text("4. ANÁLISE PREDITIVA E RA-INDEX", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 20
+        draw_text(f"Previsão do Modelo de IA: {ai_prediction}", 60, y_pos - 15, "Helvetica", 10, True)
+        draw_text(f"RA-Index Calculado: {ra_index_data.get('ra_score', 'N/A')}/100", 60, y_pos - 30, "Helvetica", 10)
+        draw_text(f"Interpretação: {ra_index_data.get('interpretation', 'N/A')}", 60, y_pos - 45, "Helvetica", 10)
+        draw_text(f"Estimativa Post-Mortem: {ra_index_data.get('post_mortem_estimate', 'N/A')}", 60, y_pos - 60, "Helvetica", 10)
         
         y_pos -= 80
-        draw_text("2. DADOS DO EXAME", 50, y_pos, "Helvetica", 12, True)
-        y_pos -= 15
-        draw_text(f"Arquivo: {dicom_data.get('file_name', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
-        draw_text(f"Tamanho: {dicom_data.get('file_size', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
-        draw_text(f"Paciente: {dicom_data.get('patient_name', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-        draw_text(f"ID: {dicom_data.get('patient_id', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
-        draw_text(f"Modalidade: {dicom_data.get('modality', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
-
-        y_pos -= 95
-        draw_text("3. ESTATÍSTICAS DA IMAGEN", 50, y_pos, "Helvetica", 12, True)
-        y_pos -= 15
-        draw_text(f"Dimensões: {report_data.get('dimensoes', 'N/A')}", 60, y_pos - 10, "Helvetica", 10)
-        draw_text(f"Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}", 60, y_pos - 25, "Helvetica", 10)
-        draw_text(f"Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-        draw_text(f"Média: {report_data.get('media', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
-        draw_text(f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
-        draw_text(f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}", 60, y_pos - 85, "Helvetica", 10)
         
-        y_pos -= 100
-        draw_text("4. ANÁLISE PREDITIVA E RA-INDEX", 50, y_pos, "Helvetica", 12, True)
-        y_pos -= 15
+        # Métricas
+        draw_text("5. MÉTRICAS DE DESEMPENHO", 50, y_pos, "Helvetica", 12, True)
+        y_pos -= 20
+        metrics = ra_index_data.get('metrics', {})
+        draw_text(f"Acurácia: {metrics.get('Acuracia', 'N/A')}", 60, y_pos - 15, "Helvetica", 10)
+        draw_text(f"Sensibilidade: {metrics.get('Sensibilidade', 'N/A')}", 60, y_pos - 30, "Helvetica", 10)
+        draw_text(f"Especificidade: {metrics.get('Especificidade', 'N/A')}", 60, y_pos - 45, "Helvetica", 10)
+        draw_text(f"Confiabilidade: {metrics.get('Confiabilidade (ICC)', 'N/A')}", 60, y_pos - 60, "Helvetica", 10)
 
-        draw_text(f"Previsão do Modelo de IA: {ai_prediction}", 60, y_pos - 10, "Helvetica", 10, True)
-        draw_text(f"RA-Index Calculado: {ra_index_data.get('ra_score', 'N/A')}/100", 60, y_pos - 25, "Helvetica", 10)
-        draw_text(f"Interpretação: {ra_index_data.get('interpretation', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
-        
         c.save()
         buffer.seek(0)
         return buffer
@@ -439,6 +526,12 @@ def send_email_report(user_data, dicom_data, image_data, report_data, ra_index_d
         - Previsão do Modelo: {ai_prediction}
         - RA-Index Calculado: {ra_index_data.get('ra_score', 'N/A')}
         - Interpretação: {ra_index_data.get('interpretation', 'N/A')}
+        - Estimativa Post-Mortem: {ra_index_data.get('post_mortem_estimate', 'N/A')}
+        
+        MÉTRICAS DO MODELO:
+        - Acurácia: {ra_index_data.get('metrics', {}).get('Acuracia', 'N/A')}
+        - Sensibilidade: {ra_index_data.get('metrics', {}).get('Sensibilidade', 'N/A')}
+        - Especificidade: {ra_index_data.get('metrics', {}).get('Especificidade', 'N/A')}
         """
         
         msg.attach(MIMEText(body, 'plain'))
@@ -468,6 +561,48 @@ def create_medical_visualization(image, title):
     )
     return fig
 
+def create_advanced_histogram(image):
+    """Cria histograma avançado da imagem"""
+    fig = px.histogram(x=image.flatten(), nbins=50, 
+                      title="Distribuição de Intensidade de Pixels",
+                      labels={'x': 'Intensidade', 'y': 'Frequência'})
+    fig.update_layout(
+        plot_bgcolor='#1a1a1a',
+        paper_bgcolor='#1a1a1a',
+        font=dict(color='#ffffff'),
+        bargap=0.1,
+        showlegend=False
+    )
+    fig.update_traces(marker_color='#00bcd4')
+    return fig
+
+def create_intensity_profile(image):
+    """Cria perfil de intensidade horizontal e vertical"""
+    fig = go.Figure()
+    
+    # Perfil horizontal (linha do meio)
+    middle_row = image[image.shape[0] // 2, :]
+    fig.add_trace(go.Scatter(x=np.arange(len(middle_row)), y=middle_row,
+                            mode='lines', name='Perfil Horizontal',
+                            line=dict(color='#00bcd4')))
+    
+    # Perfil vertical (coluna do meio)
+    middle_col = image[:, image.shape[1] // 2]
+    fig.add_trace(go.Scatter(x=np.arange(len(middle_col)), y=middle_col,
+                            mode='lines', name='Perfil Vertical',
+                            line=dict(color='#ff9800')))
+    
+    fig.update_layout(
+        title='Perfil de Intensidade da Imagem',
+        xaxis_title='Posição',
+        yaxis_title='Intensidade',
+        plot_bgcolor='#1a1a1a',
+        paper_bgcolor='#1a1a1a',
+        font=dict(color='#ffffff'),
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+    )
+    return fig
+
 def show_feedback_section(report_data):
     st.markdown("---")
     st.markdown('<div class="feedback-card">', unsafe_allow_html=True)
@@ -494,15 +629,31 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔬 Análise Preditiva e RA-Index")
     
-    st.info("A seguir, apresentamos uma análise preditiva, correlacionando a dinâmica gasosa com a pontuação do Índice de Alteração Radiológica.")
+    st.info("A seguir, apresentamos uma análise preditiva baseada nos princípios do seu projeto de mestrado, correlacionando a dinâmica gasosa com a pontuação do Índice de Alteração Radiológica.")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric(label="Previsão da IA", value=ai_prediction)
     with col2:
         st.metric(label="RA-Index Calculado", value=f"{ra_index_data['ra_score']}/100")
     with col3:
         st.metric(label="Interpretação", value=ra_index_data['interpretation'])
+    with col4:
+        st.metric(label="Estimativa Post-Mortem", value=ra_index_data['post_mortem_estimate'])
+    
+    # Métricas de desempenho
+    st.markdown("---")
+    st.subheader("📊 Métricas de Desempenho do Modelo")
+    
+    metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
+    with metrics_col1:
+        st.metric(label="Acurácia", value=ra_index_data['metrics']['Acuracia'])
+    with metrics_col2:
+        st.metric(label="Sensibilidade", value=ra_index_data['metrics']['Sensibilidade'])
+    with metrics_col3:
+        st.metric(label="Especificidade", value=ra_index_data['metrics']['Especificidade'])
+    with metrics_col4:
+        st.metric(label="Confiabilidade", value=ra_index_data['metrics']['Confiabilidade (ICC)'])
     
     st.markdown("---")
     st.subheader("📈 Correlação entre Densidade Gasosa e RA-Index")
@@ -520,10 +671,44 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
         xaxis_title='Tempo Post-Mortem (Horas)',
         yaxis_title='Valor (Arbitrário)',
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='#1a1a1a', font=dict(color='#e0e0e0'),
-        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+        height=400
     )
     st.plotly_chart(fig, use_container_width=True)
 
+    # Gráfico de radar para métricas
+    st.subheader("📊 Análise de Desempenho - Radar Chart")
+    
+    metrics_radar = go.Figure()
+    
+    categories = ['Acurácia', 'Sensibilidade', 'Especificidade', 'Confiabilidade']
+    values = [
+        float(ra_index_data['metrics']['Acuracia'].strip('%'))/100,
+        float(ra_index_data['metrics']['Sensibilidade'].strip('%'))/100,
+        float(ra_index_data['metrics']['Especificidade'].strip('%'))/100,
+        float(ra_index_data['metrics']['Confiabilidade (ICC)'])
+    ]
+    
+    metrics_radar.add_trace(go.Scatterpolar(
+        r=values + [values[0]],
+        theta=categories + [categories[0]],
+        fill='toself',
+        name='Desempenho',
+        line=dict(color='#00bcd4')
+    ))
+    
+    metrics_radar.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )),
+        showlegend=False,
+        height=300
+    )
+    
+    st.plotly_chart(metrics_radar, use_container_width=True)
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_user_form():
@@ -559,7 +744,7 @@ def show_main_app():
 
     with st.sidebar:
         st.markdown(f"""
-        <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
+        <div style='background: linear-gradient(135deg, {st.session_state.color_theme['primary']}, {st.session_state.color_theme['secondary']}); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
             <h3 style='margin: 0;'>&#128100; Usuário Atual</h3>
             <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
             <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
@@ -567,25 +752,42 @@ def show_main_app():
         """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.subheader("🎨 Personalizar Visual")
-        bg_option = st.radio("Fundo do App:", ["Cor Sólida", "Imagem"], index=0, key='bg_option')
+        st.subheader("🎨 Personalizar Tema")
         
-        if bg_option == "Cor Sólida":
-            color = st.color_picker("Escolha a cor de fundo", '#0d0d0d')
-            st.session_state.background_color = color
-            st.session_state.background_image = None
-        else:
-            uploaded_bg = st.file_uploader("Envie uma imagem de fundo", type=["jpg", "jpeg", "png"])
-            if uploaded_bg:
-                bg_bytes = uploaded_bg.read()
-                st.session_state.background_image = base64.b64encode(bg_bytes).decode('utf-8')
-                st.session_state.background_color = 'transparent'
+        # Seletor de cor principal
+        base_color = st.color_picker("Escolha a cor principal do tema:", '#00bcd4', key='theme_color_picker')
         
-        uploaded_logo = st.file_uploader("Envie um logotipo para o PDF", type=["png", "jpg", "jpeg"])
+        # Preview do tema
+        st.markdown('<div class="theme-preview"></div>', unsafe_allow_html=True)
+        
+        # Botão para aplicar o tema
+        if st.button("🎨 Aplicar Tema", use_container_width=True):
+            st.session_state.color_theme = generate_color_theme(base_color)
+            st.success("✅ Tema aplicado com sucesso!")
+            st.rerun()
+        
+        st.markdown("---")
+        st.subheader("📸 Logotipo para Relatório")
+        
+        uploaded_logo = st.file_uploader("Envie um logotipo", type=["png", "jpg", "jpeg"], key="logo_uploader")
+        
         if uploaded_logo:
             st.session_state.logo_image = uploaded_logo.read()
-            st.success("✅ Logotipo carregado com sucesso!")
-
+            # Criar preview
+            try:
+                img = Image.open(BytesIO(st.session_state.logo_image))
+                img.thumbnail((100, 60))
+                buffered = BytesIO()
+                img.save(buffered, format="PNG")
+                st.session_state.logo_preview = base64.b64encode(buffered.getvalue()).decode()
+                st.success("✅ Logotipo carregado com sucesso!")
+            except:
+                st.session_state.logo_preview = None
+            
+        # Mostrar preview do logo
+        if st.session_state.logo_preview:
+            st.markdown(f'<img src="data:image/png;base64,{st.session_state.logo_preview}" class="logo-preview">', unsafe_allow_html=True)
+        
         st.markdown("---")
         st.markdown(f"""
         <div class='upload-info'>
@@ -647,7 +849,7 @@ def show_main_app():
                         'study_date': safe_dicom_value(getattr(dataset, 'StudyDate', 'N/A'))
                     }
                     
-                    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔬 Visualização", "👤 Identificação", "⚙️ Técnico", "📊 Análise", "📚 IA & RA-Index"])
+                    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🔬 Visualização", "📊 Estatísticas", "👤 Identificação", "⚙️ Técnico", "📊 Análise", "📚 IA & RA-Index"])
                     
                     report_data = {}
                     image_for_report = None
@@ -674,6 +876,36 @@ def show_main_app():
                             st.warning("⚠️ Arquivo DICOM não contém dados de imagem")
                     
                     with tab2:
+                        if hasattr(dataset, 'pixel_array'):
+                            image = dataset.pixel_array
+                            
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                # Histograma de intensidade
+                                hist_fig = create_advanced_histogram(image)
+                                st.plotly_chart(hist_fig, use_container_width=True)
+                            
+                            with col2:
+                                # Perfil de intensidade
+                                profile_fig = create_intensity_profile(image)
+                                st.plotly_chart(profile_fig, use_container_width=True)
+                            
+                            # Estatísticas básicas
+                            st.subheader("📈 Estatísticas Descritivas")
+                            stats_data = {
+                                'Mínimo': np.min(image),
+                                'Máximo': np.max(image),
+                                'Média': np.mean(image),
+                                'Mediana': np.median(image),
+                                'Desvio Padrão': np.std(image),
+                                'Variância': np.var(image)
+                            }
+                            
+                            stats_df = pd.DataFrame(list(stats_data.items()), columns=['Estatística', 'Valor'])
+                            st.dataframe(stats_df, use_container_width=True, hide_index=True)
+                    
+                    with tab3:
                         st.markdown('<div class="card patient-card">', unsafe_allow_html=True)
                         st.subheader("👤 Dados de Identificação")
                         patient_info = {
@@ -695,7 +927,7 @@ def show_main_app():
                                 """, unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
                     
-                    with tab3:
+                    with tab4:
                         st.markdown('<div class="card tech-card">', unsafe_allow_html=True)
                         st.subheader("⚙️ Informações Técnicas")
                         tech_info = {
@@ -716,7 +948,7 @@ def show_main_app():
                                 """, unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
                     
-                    with tab4:
+                    with tab5:
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
                             report_data = {
@@ -756,7 +988,7 @@ def show_main_app():
                                 'timestamp': datetime.now().isoformat()
                             })
                     
-                    with tab5:
+                    with tab6:
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
                             report_data = {
@@ -789,6 +1021,9 @@ def main():
         db_initialized = safe_init_database()
         if not db_initialized:
             st.warning("⚠️ Modo offline ativado - Alguns recursos podem não estar disponíveis")
+        
+        # Atualizar CSS com tema atual
+        update_css_theme()
         
         # Verificar se usuário já preencheu dados
         if st.session_state.user_data is None:
