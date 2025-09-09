@@ -327,7 +327,7 @@ def generate_ra_index_data(image_stats):
 def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report):
     """Cria relatório em PDF profissional com gráficos e análises"""
     try:
-        buffer = BytesIO()
+        buffer = BytesBytes()
         c = canvas.Canvas(buffer, pagesize=A4)
         
         def draw_text(text, x, y, font, size, bold=False):
