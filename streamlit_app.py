@@ -206,7 +206,7 @@ def validate_dicom_file(file):
             log_security_event("INVALID_FILE", "Arquivo não é DICOM válido")
             return False
             
-        # Verificação adicional: tenta ler o metadata DICOM
+        # Verificação adicional: tenta leer o metadata DICOM
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
                 tmp_file.write(file.getvalue())
@@ -327,7 +327,7 @@ def send_email_report(user_data, dicom_data, image_data, report_data):
         - Contato: {user_data['contato']}
         - Data da Análise: {datetime.now().strftime("%d/%m/%Y %H:%M")}
         
-        DADOS DO EXAME:
+        DADOS DO EXame:
         - Arquivo: {dicom_data.get('file_name', 'N/A')}
         - Tamanho: {dicom_data.get('file_size', 'N/A')}
         - Paciente: {dicom_data.get('patient_name', 'N/A')}
@@ -676,94 +676,8 @@ def show_ra_index_section():
         if total_score >= 50:
             st.warning("""
             **Recomendações:**
-            - Considerar análise de composição gasosa (cromatografia gasosa)
-            - Interpretar achados radiológicos com cautela
-            - Limitar procedimentos diagnósticos adicionais
-            """)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def show_login_page():
-    """Página de login/registro"""
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
-        st.markdown('<p style="text-align: center; color: #b0b0b0 !important; font-size: 1.1rem;">Sistema Profissional para Análise Forense</p>', unsafe_allow_html=True)
-        
-        with st.container():
-            st.markdown('<div class="login-card">', unsafe_allow_html=True)
-            st.subheader("📋 Acesso ao Sistema")
-            
-            with st.form("login_form"):
-                nome = st.text_input("Nome Completo", placeholder="Digite seu nome completo")
-                departamento = st.text_input("Departamento", placeholder="Departamento/Filiação")
-                email = st.text_input("Email", placeholder="seu.email@exemplo.com")
-                contato = st.text_input("Contato", placeholder="Telefone ou outro contato")
-                
-                submitted = st.form_submit_button("🔓 Acessar Sistema")
-                
-                if submitted:
-                    if nome and departamento and email and contato:
-                        st.session_state.authenticated = True
-                        st.session_state.user_data = {
-                            'nome': nome,
-                            'departamento': departamento,
-                            'email': email,
-                            'contato': contato,
-                            'data_acesso': datetime.now().strftime("%d/%m/%Y %H:%M")
-                        }
-                        log_access(nome, "LOGIN", "SYSTEM_ACCESS")
-                        st.success("✅ Acesso concedido! Carregando sistema...")
-                        st.rerun()
-                    else:
-                        st.error("❌ Preencha todos os campos obrigatórios")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-
-def show_dashboard():
-    """Dashboard inicial"""
-    compliance_badge = get_compliance_badge()
-    
-    st.markdown(f"""
-    <div style='text-align: center; padding: 40px 20px; background: #2d2d2d; border-radius: 15px; color: #ffffff;'>
-        <h2 style='color: #00bcd4 !important;'>🔬 Bem-vindo ao DICOM Autopsy Viewer</h2>
-        <p style='color: #b0b0b0 !important;'>Sistema profissional para análise forense de imagens DICOM</p>
-        <div style='font-size: 3rem; margin: 20px 0;'>🔬📊📧</div>
-        <div style='background: #4caf50; padding: 10px; border-radius: 5px; display: inline-block; margin-top: 15px;'>
-            {compliance_badge}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("""
-        <div class='card'>
-            <h4>💾 Grande Capacidade</h4>
-            <p>• 200MB por arquivo</p>
-            <p>• Até 10 arquivos por caso</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='card'>
-            <h4>📊 Análise Completa</h4>
-            <p>• Visualização avançada</p>
-            <p>• Estatísticas detalhadas</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class='card'>
-            <h4>📧 Integração Total</h4>
-            <p>• Envio automático por email</p>
-            <p>• Relatórios em PDF</p>
-        </div>
-        ""', unsafe_allow_html=True)
-
-def show_main_app():
+            - Considerar análise de composição
+            def show_main_app():
     """Aplicativo principal após autenticação"""
     # Registrar acesso
     log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
@@ -783,93 +697,90 @@ def show_main_app():
             st.session_state.user_data = {}
             st.rerun()
 
-corrija a linha 791: st.markdown("---")
-
-st.markdown("---")
-
-st.markdown("---")
-
-with st.sidebar:
-    st.markdown(f"""
-    <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
-        <h3 style='margin: 0;'>&#128100; Usuário Logado</h3>
-        <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
-        <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
+    # CORREÇÃO: Removidas as linhas duplicadas de st.markdown("---")
     st.markdown("---")
-    
-    st.markdown(f"""
-    <div class='upload-info'>
-        <h4>&#128193; Upload de Exames</h4>
-        <p>&#8226; Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
-        <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
-        <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    uploaded_files = st.file_uploader(
-        "&#128229; Selecione os arquivos DICOM",
-        type=['dcm', 'DCM'],
-        accept_multiple_files=True,
-        help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
-    )
-    
-    if uploaded_files:
-        # VERIFICA LIMITES DE SEGURANÇA
-        is_valid, message = check_upload_limits(uploaded_files)
-        
-        if not is_valid:
-            st.error(f"&#10060; {message}")
-            log_security_event("UPLOAD_BLOCKED", message)
-        else:
-            total_size = sum(f.size for f in uploaded_files)
-            
-            # VALIDA CADA ARQUIVO
-            valid_files = []
-            for file in uploaded_files:
-                file_copy = BytesIO(file.getvalue())  # Cria cópia para validação
-                if validate_dicom_file(file_copy):
-                    valid_files.append(file)
-                else:
-                    st.warning(f"&#9888;&#65039; Arquivo {file.name} não é um DICOM válido e foi ignorado")
-            
-            if valid_files:
-                st.success(f"&#9989; {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
-                
-                # Mostrar tamanho de cada arquivo
-                for file in valid_files:
-                    st.markdown(f"""
-                    <div class='uploaded-file'>
-                        &#128196; {file.name}
-                        <div class='file-size'>{get_file_size(file.size)}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.error("&#10060; Nenhum arquivo DICOM válido encontrado")
-                log_security_event("NO_VALID_FILES", "Nenhum arquivo DICOM válido no upload")
 
-if uploaded_files:
-    selected_file = st.selectbox("&#128203; Selecione o exame para análise:", [f.name for f in uploaded_files])
-    dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
-    
-    if dicom_file:
-        tmp_path = None
-        try:
-            # VALIDAÇÃO FINAL DE SEGURANÇA
-            file_copy = BytesIO(dicom_file.getvalue())
-            if not validate_dicom_file(file_copy):
-                st.error("&#10060; Arquivo corrompido ou inválido")
-                log_security_event("FINAL_VALIDATION_FAILED", f"Arquivo {selected_file} falhou na validação final")
-                return
+    with st.sidebar:
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
+            <h3 style='margin: 0;'>&#128100; Usuário Logado</h3>
+            <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
+            <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        st.markdown(f"""
+        <div class='upload-info'>
+            <h4>&#128193; Upload de Exames</h4>
+            <p>&#8226; Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
+            <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
+            <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        uploaded_files = st.file_uploader(
+            "&#128229; Selecione os arquivos DICOM",
+            type=['dcm', 'DCM'],
+            accept_multiple_files=True,
+            help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
+        )
+        
+        if uploaded_files:
+            # VERIFICA LIMITES DE SEGURANÇA
+            is_valid, message = check_upload_limits(uploaded_files)
             
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
-                tmp_file.write(dicom_file.getvalue())
-                tmp_path = tmp_file.name
-            
-            dataset = pydicom.dcmread(tmp_path)
+            if not is_valid:
+                st.error(f"&#10060; {message}")
+                log_security_event("UPLOAD_BLOCKED", message)
+            else:
+                total_size = sum(f.size for f in uploaded_files)
                 
+                # VALIDA CADA ARQUIVO
+                valid_files = []
+                for file in uploaded_files:
+                    file_copy = BytesIO(file.getvalue())  # Cria cópia para validação
+                    if validate_dicom_file(file_copy):
+                        valid_files.append(file)
+                    else:
+                        st.warning(f"&#9888;&#65039; Arquivo {file.name} não é um DICOM válido e foi ignorado")
+                
+                if valid_files:
+                    st.success(f"&#9989; {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
+                    
+                    # Mostrar tamanho de cada arquivo
+                    for file in valid_files:
+                        st.markdown(f"""
+                        <div class='uploaded-file'>
+                            &#128196; {file.name}
+                            <div class='file-size'>{get_file_size(file.size)}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.error("&#10060; Nenhum arquivo DICOM válido encontrado")
+                    log_security_event("NO_VALID_FILES", "Nenhum arquivo DICOM válido no upload")
+
+    if uploaded_files:
+        selected_file = st.selectbox("&#128203; Selecione o exame para análise:", [f.name for f in uploaded_files])
+        dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
+        
+        if dicom_file:
+            tmp_path = None
+            try:
+                # VALIDAÇÃO FINAL DE SEGURANÇA
+                file_copy = BytesIO(dicom_file.getvalue())
+                if not validate_dicom_file(file_copy):
+                    st.error("&#10060; Arquivo corrompido ou inválido")
+                    log_security_event("FINAL_VALIDATION_FAILED", f"Arquivo {selected_file} falhou na validação final")
+                    return
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
+                    tmp_file.write(dicom_file.getvalue())
+                    tmp_path = tmp_file.name
+                
+                dataset = pydicom.dcmread(tmp_path)
+                    
                 # SANITIZA DADOS SENSÍVEIS
                 dataset = sanitize_patient_data(dataset)
                 
@@ -1016,17 +927,12 @@ if uploaded_files:
                         os.unlink(tmp_path)
                     except Exception as e:
                         log_security_event("CLEANUP_ERROR", f"Erro ao limpar arquivo temporário: {e}")
-    else:
-        show_dashboard()
+        else:
+            show_dashboard()
 
-def minha_funcao():
+def main():
     """Função principal"""
-    texto = """Isso é um texto
-    que continua em múltiplas linhas
-    mas agora fechei corretamente"""
-    
-    return texto
-        
+    try:
         # Inicialização completa das variáveis de sessão
         if 'authenticated' not in st.session_state:
             st.session_state.authenticated = False
