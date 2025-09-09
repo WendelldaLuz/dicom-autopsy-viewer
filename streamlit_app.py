@@ -1,29 +1,3 @@
-# VERIFICAÇÃO E INSTALAÇÃO DE DEPENDÊNCIAS
-import subprocess
-import sys
-import importlib
-
-# Lista de dependências necessárias com versões compatíveis
-required_packages = {
-    'streamlit': '1.28.1',
-    'pydicom': '2.3.1', 
-    'numpy': '1.23.5',
-    'pandas': '1.5.3',
-    'matplotlib': '3.6.3',
-    'Pillow': '9.5.0',
-    'plotly': '5.13.1',
-    'python-dotenv': '0.21.1'
-}
-
-for package, version in required_packages.items():
-    try:
-        importlib.import_module(package if package != 'Pillow' else 'PIL')
-        print(f"✅ {package} já está instalado")
-    except ImportError:
-        print(f"📦 Instalando {package}=={version}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", f"{package}=={version}"])
-
-# Agora importe normalmente
 from dotenv import load_dotenv
 import streamlit as st
 import pydicom
