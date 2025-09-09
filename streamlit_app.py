@@ -997,11 +997,9 @@ def show_main_app():
                             'user': st.session_state.user_data,
                             'timestamp': datetime.now().isoformat()
                         })
-            with tab5:
-        # Seção do Índice RA
-        show_ra_index_section()
-
-            except Exception as e:
+       with tab5:
+            show_ra_index_section()
+except Exception as e:
                 error_msg = f"Erro ao processar arquivo: {str(e)}"
                 st.error(f"❌ {error_msg}")
                 log_security_event("PROCESSING_ERROR", error_msg)
