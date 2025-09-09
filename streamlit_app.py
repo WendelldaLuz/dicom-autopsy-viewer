@@ -655,6 +655,15 @@ def show_ra_index_section():
         </div>
         """, unsafe_allow_html=True)
         
+        # Recomendações (AGORA DENTRO DO BOTÃO)
+        if total_score >= 50:
+            st.warning("""
+            **Recomendações:**
+            - Considerar análise de composição gasosa (cromatografia gasosa)
+            - Interpretar achados radiológicos com cautela
+            - Limitar procedimentos diagnósticos adicionais
+            """)
+        
 # Recomendações
 if total_score >= 50:
     st.warning("""
