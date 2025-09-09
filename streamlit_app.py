@@ -775,7 +775,6 @@ if total_score >= 50:
                 if not validate_dicom_file(file_copy):
                     st.error("&#10060; Arquivo corrompido ou inválido")
                     log_security_event("FINAL_VALIDATION_FAILED", f"Arquivo {selected_file} falhou na validação final")
-                    return
                 
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
                     tmp_file.write(dicom_file.getvalue())
