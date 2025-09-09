@@ -77,11 +77,23 @@ def check_dependencies():
     
     return missing
 
+import sqlite3
+import logging
+from datetime import datetime
+
+# Configure o logging básico
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Defina o caminho do banco de dados
+DB_PATH = 'autopsy_data.db'
+
 def init_database():
     """Inicializa o banco de dados para feedback"""
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
+        
+        # Tabela de feedback
         c.execute('''CREATE TABLE IF NOT EXISTS feedback
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       user_email TEXT,
@@ -89,6 +101,8 @@ def init_database():
                       rating INTEGER,
                       report_data TEXT,
                       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Tabela de aprendizado do sistema
         c.execute('''CREATE TABLE IF NOT EXISTS system_learning
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       error_type TEXT,
@@ -96,6 +110,8 @@ def init_database():
                       solution_applied TEXT,
                       occurrence_count INTEGER DEFAULT 1,
                       last_occurrence DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Tabela de logs de segurança
         c.execute('''CREATE TABLE IF NOT EXISTS security_logs
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       event_type TEXT,
@@ -103,6 +119,8 @@ def init_database():
                       user_agent TEXT,
                       details TEXT,
                       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Tabela de logs de acesso
         c.execute('''CREATE TABLE IF NOT EXISTS access_logs
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       timestamp DATETIME,
@@ -110,10 +128,15 @@ def init_database():
                       action TEXT,
                       resource TEXT,
                       details TEXT)''')
+        
         conn.commit()
         conn.close()
+        logging.info("Banco de dados inicializado com sucesso")
+        
     except Exception as e:
-        log_security_event("DATABASE_ERROR", f"Erro ao inicializar banco: {e}")
+        # Fallback seguro sem criar loop de erro
+        print(f"Erro ao inicializar banco: {e}")
+        logging.error(f"Erro ao inicializar banco: {e}")
 
 def log_security_event(event_type, details):
     """Registra eventos de segurança"""
@@ -130,16 +153,19 @@ def log_security_event(event_type, details):
         conn.close()
         
         logging.info(f"SECURITY - {event_type}: {details}")
+        
     except Exception as e:
+        # Fallback seguro se o banco falhar
+        print(f"SECURITY FALLBACK - {event_type}: {details}")
         logging.error(f"Erro ao registrar evento de segurança: {e}")
 
 def log_access(user, action, resource, details=""):
     """Registra acesso a recursos sensíveis"""
-    timestamp = datetime.now().isoformat()
-    user_ip = "unknown"
-    user_agent = "unknown"
-    
     try:
+        timestamp = datetime.now().isoformat()
+        user_ip = "unknown"
+        user_agent = "unknown"
+        
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('''INSERT INTO access_logs (timestamp, user, action, resource, details)
@@ -147,8 +173,25 @@ def log_access(user, action, resource, details=""):
                  (timestamp, user, action, resource, details))
         conn.commit()
         conn.close()
+        
+        logging.info(f"ACCESS - {user} {action} {resource}")
+        
     except Exception as e:
+        # Fallback seguro se o banco falhar
+        print(f"ACCESS FALLBACK - {user} {action} {resource}: {details}")
         logging.error(f"Erro ao registrar acesso: {e}")
+
+def safe_init_database():
+    """
+    Inicialização segura do banco com fallbacks
+    """
+    try:
+        init_database()
+        return True
+    except Exception as e:
+        print(f"Falha crítica na inicialização do banco: {e}")
+        logging.critical(f"Falha na inicialização do banco: {e}")
+        return False
 
 def validate_dicom_file(file):
     """Validação mais robusta de arquivos DICOM"""
@@ -925,8 +968,13 @@ def main():
         log_security_event("APP_CRASH", error_msg)
         st.error("❌ Erro crítico no aplicativo. Os administradores foram notificados.")
 
-# Inicializar banco e executar aplicação
-init_database()
-
+# Inicialização segura do banco de dados
 if __name__ == "__main__":
+    # Inicializa o banco de forma segura
+    db_initialized = safe_init_database()
+    
+    if not db_initialized:
+        st.warning("⚠️ Modo offline ativado - Alguns recursos podem não estar disponíveis")
+    
+    # Resto do seu código principal...
     main()
