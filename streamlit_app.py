@@ -63,7 +63,7 @@ st.markdown(f"""
     .sub-header {{ font-size: 1.5rem; color: #ffffff !important; font-weight: 600; }}
     p, div, span, label {{ color: #e0e0e0 !important; }}
     .card {{ background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #00bcd4; }}
-    .patient-card {{ border-left: 4px solid #ff5252; }}
+    .patient-card {{ border-left: 4-px solid #ff5252; }}
     .tech-card {{ border-left: 4px solid #4caf50; }}
     .image-card {{ border-left: 4px solid #9c27b0; }}
     .stats-card {{ border-left: 4px solid #ff9800; }}
@@ -348,7 +348,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
 
         y_pos = 800
 
-        # Adicionar logotipo ao PDF se existir, senão usar um placeholder
         if st.session_state.logo_image:
             logo_buffer = BytesIO(st.session_state.logo_image)
             logo_reader = ImageReader(logo_buffer)
@@ -357,7 +356,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
             draw_text("DICOM Autopsy Viewer", 450, 790, "Helvetica", 12, True)
             draw_text("Logo Placeholder", 450, 780, "Helvetica", 9)
         
-        # Adicionar imagem do DICOM
         if image_for_report:
             try:
                 img_buffer = BytesIO()
@@ -368,7 +366,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
             except Exception as e:
                 logging.error(f"Erro ao adicionar imagem no PDF: {e}")
 
-        # Cabeçalho e dados do analista
         draw_text("RELATÓRIO DE ANÁLISE FORENSE DIGITAL", 50, y_pos, "Helvetica", 16, True)
         draw_text(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", 50, y_pos - 15, "Helvetica", 10)
         y_pos -= 40
@@ -379,7 +376,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
         draw_text(f"Email: {user_data.get('email', 'N/A')}", 60, y_pos - 40, "Helvetica", 10)
         draw_text(f"Contato: {user_data.get('contato', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
         
-        # Dados do Exame
         y_pos -= 80
         draw_text("2. DADOS DO EXAME", 50, y_pos, "Helvetica", 12, True)
         y_pos -= 15
@@ -389,7 +385,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
         draw_text(f"ID: {dicom_data.get('patient_id', 'N/A')}", 60, y_pos - 55, "Helvetica", 10)
         draw_text(f"Modalidade: {dicom_data.get('modality', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
 
-        # Estatísticas
         y_pos -= 95
         draw_text("3. ESTATÍSTICAS DA IMAGEM", 50, y_pos, "Helvetica", 12, True)
         y_pos -= 15
@@ -400,7 +395,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
         draw_text(f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}", 60, y_pos - 70, "Helvetica", 10)
         draw_text(f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}", 60, y_pos - 85, "Helvetica", 10)
         
-        # Análise Preditiva e RA-Index
         y_pos -= 100
         draw_text("4. ANÁLISE PREDITIVA E RA-INDEX", 50, y_pos, "Helvetica", 12, True)
         y_pos -= 15
@@ -420,7 +414,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
             ['Confiabilidade (ICC)', ra_index_data.get('metrics', {}).get('Confiabilidade (ICC)', 'N/A')]
         ]
         
-        # Desenhar tabela
         table_x, table_y = 60, y_pos - 10
         row_height = 15
         col_width = 150
