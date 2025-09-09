@@ -753,21 +753,6 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
 def show_main_app():
     log_access(st.session_state.user_data['nome'], "SESSAO_INICIADA", "MAIN_APP")
 
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
-        st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
-    with col3:
-        st.markdown(f'<div style="background: #333; padding: 10px; border-radius: 8px; text-align: center;">'
-                    f'<span style="color: #00bcd4;">👤 {st.session_state.user_data["nome"]}</span><br>'
-                    f'<span style="color: #b0b0b0; font-size: 0.8rem;">{st.session_state.user_data["departamento"]}</span>'
-                    f'</div>', unsafe_allow_html=True)
-        if st.button("🚪 Encerrar Sessão"):
-            log_access(st.session_state.user_data['nome'], "SESSAO_ENCERRADA", "SYSTEM_ACCESS")
-            st.session_state.user_data = None
-            st.rerun()
-
-    st.markdown("---")
-
     with st.sidebar:
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
