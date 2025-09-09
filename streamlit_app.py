@@ -540,6 +540,151 @@ def show_feedback_section(report_data):
     
     st.markdown('</div>', unsafe_allow_html=True)
 
+    
+    st.markdown('</div>', unsafe_allow_html=True)   
+def show_ra_index_section():
+    """Seção do RA-Index com referências bibliográficas"""
+    st.markdown("---")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("🔬 Índice de Alteração Radiológica (RA-Index)")
+    
+    with st.expander("📚 Referências Bibliográficas e Metodologia"):
+        st.markdown("""
+        ### Desenvolvimento e validação de um índice de alteração radiológica post-mortem: o RA-Index
+        
+        **Revista Brasileira de Direito (2012) 126:559–566**  
+        DOI: 10.1007/s00414-012-0686-6
+        
+        **Autores:**  
+        C. Egger, P. Vaucher, F. Doenz, C. Palmiere, P. Mangin, S. Grabherr
+        
+        **Recebido:** 11 de outubro de 2011  
+        **Aceito:** 21 de fevereiro de 2012  
+        **Publicado online:** 9 de março de 2012
+        
+        ### Resumo
+        Este estudo teve como objetivo derivar um índice quantificando o estado de alteração de cadáveres 
+        quantificando a presença de gás no corpo usando imagens de tomografia computadorizada multidetectora 
+        post-mortem (MDCT) e validar o índice definindo sua sensibilidade e especificidade.
+        """)
+        
+        st.markdown("""
+        ### Método RA-Index
+        O índice RA foi derivado de dados de MDCT post-mortem de 118 pessoas falecidas não traumáticas. 
+        Para validar o índice, 100 corpos escaneados adicionais (50% falecidos traumaticamente) foram 
+        examinados retrospectivamente por dois observadores independentes.
+        """)
+        
+        # Tabela do RA-Index
+        st.markdown("""
+        ### Pontuações do RA-Index
+        | Local Anatômico | Grau 0 | Grau I | Grau II | Grau III | Coeficiente Kappa |
+        |-----------------|--------|--------|---------|----------|-------------------|
+        | Cavidades Cardíacas | 0 | 5 | 15 | 20 | 0.41 |
+        | Parênquima Hepático e Vasos | 0 | 8 | 17 | 25 | 0.66 |
+        | Veia Inominada Esquerda | 0 | 8 | 8 | 8 | 0.78 |
+        | Aorta Abdominal | 0 | 8 | 8 | 8 | 0.49 |
+        | Parênquima Renal | 0 | 7 | 7 | 7 | 0.56 |
+        | Vértebra L3 | 0 | 5 | 10 | 25 | 0.43 |
+        | Tecidos Subcutâneos Peitorais | 0 | 8 | 8 | 8 | 0.46 |
+        """)
+        
+        st.markdown("""
+        ### Interpretação do RA-Index
+        - **RA-Index < 50**: Alteração mínima/moderada
+        - **RA-Index ≥ 50**: Suspeita de gás grau III em cavidades cardíacas
+        - **RA-Index ≥ 60**: Suspeita de gás grau II ou III na cavidade craniana
+        
+        ### Validação
+        - **Sensibilidade**: 100% (IC 95%: 51,7-100) para detectar cavidades cardíacas cheias de gás
+        - **Especificidade**: 98,8% (IC 95%: 92,6-99,9)
+        - **Confiabilidade**: ICC₂,₁ = 0,95 (IC 95%: 0,92-0,96)
+        """)
+        
+        st.markdown("""
+        ### Aplicações Práticas
+        1. **Triagem de embolia gasosa**: Valores abaixo de 50 indicam necessidade de investigação adicional
+        2. **Controle de qualidade**: Excluir casos com alteração avançada (>60) de estudos de imagem
+        3. **Interpretação radiológica**: Considerar o estado de alteração no diagnóstico por imagem
+        """)
+    
+    # Calculadora do RA-Index (se o usuário quiser calcular)
+    st.markdown("### 📊 Calculadora do RA-Index")
+    st.info("Use esta calculadora para determinar o RA-Index com base nos achados de imagem")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        cardiac = st.selectbox("Cavidades Cardíacas", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nas 4 cavidades do coração")
+        hepatic = st.selectbox("Parênquima Hepático", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás no fígado e vasos hepáticos")
+        vein = st.selectbox("Veia Inominada Esquerda", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na veia inominada esquerda")
+        aorta = st.selectbox("Aorta Abdominal", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na aorta abdominal")
+    
+    with col2:
+        renal = st.selectbox("Parênquima Renal", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos rins")
+        vertebra = st.selectbox("Vértebra L3", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na terceira vértebra lombar")
+        subcutaneous = st.selectbox("Tecidos Subcutâneos", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos tecidos subcutâneos peitorais")
+    
+    if st.button("Calcular RA-Index"):
+        # Mapeamento de valores
+        scores = {
+            "Grau 0": 0,
+            "Grau I": 1,
+            "Grau II": 2,
+            "Grau III": 3
+        }
+        
+        # Pontuações conforme a tabela do estudo
+        ra_scores = {
+            "cardiac": [0, 5, 15, 20],
+            "hepatic": [0, 8, 17, 25],
+            "vein": [0, 8, 8, 8],
+            "aorta": [0, 8, 8, 8],
+            "renal": [0, 7, 7, 7],
+            "vertebra": [0, 5, 10, 25],
+            "subcutaneous": [0, 8, 8, 8]
+        }
+        
+        # Calcular RA-Index
+        total_score = (
+            ra_scores["cardiac"][scores[cardiac]] +
+            ra_scores["hepatic"][scores[hepatic]] +
+            ra_scores["vein"][scores[vein]] +
+            ra_scores["aorta"][scores[aorta]] +
+            ra_scores["renal"][scores[renal]] +
+            ra_scores["vertebra"][scores[vertebra]] +
+            ra_scores["subcutaneous"][scores[subcutaneous]]
+        )
+        
+        # Interpretação
+        if total_score < 50:
+            interpretation = "Alteração mínima/moderada"
+            color = "green"
+        elif total_score < 60:
+            interpretation = "Suspeita de gás grau III em cavidades cardíacas"
+            color = "orange"
+        else:
+            interpretation = "Suspeita de gás grau II ou III na cavidade craniana - Alteração avançada"
+            color = "red"
+        
+        # Mostrar resultado
+        st.markdown(f"""
+        <div style='background: #2d2d2d; padding: 20px; border-radius: 10px; border-left: 4px solid {color};'>
+            <h3 style='color: {color}; margin-top: 0;'>RA-Index: {total_score}/100</h3>
+            <p style='color: #e0e0e0;'>{interpretation}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Recomendações
+        if total_score >= 50:
+            st.warning("""
+            **Recomendações:**
+            - Considerar análise de composição gasosa (cromatografia gasosa)
+            - Interpretar achados radiológicos com cautela
+            - Limitar procedimentos diagnósticos adicionais
+            """)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 def show_login_page():
     """Página de login/registro"""
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -735,7 +880,7 @@ def show_main_app():
                     'study_date': safe_dicom_value(getattr(dataset, 'StudyDate', 'N/A'))
                 }
                 
-                tab1, tab2, tab3, tab4 = st.tabs(["🔬 Visualização", "👤 Identificação", "⚙️ Técnico", "📊 Análise"])
+                tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔬 Visualização", "👤 Identificação", "⚙️ Técnico", "📊 Análise", "📚 RA-Index"])
                 
                 report_data = {}
                 image_for_report = None
@@ -852,7 +997,10 @@ def show_main_app():
                             'user': st.session_state.user_data,
                             'timestamp': datetime.now().isoformat()
                         })
-                
+            with tab5:
+        # Seção do Índice RA
+        show_ra_index_section()
+
             except Exception as e:
                 error_msg = f"Erro ao processar arquivo: {str(e)}"
                 st.error(f"❌ {error_msg}")
