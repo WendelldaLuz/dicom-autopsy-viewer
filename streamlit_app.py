@@ -24,8 +24,6 @@ from reportlab.lib.utils import ImageReader
 import socket
 from scipy.ndimage import filters
 from skimage import exposure
-
-# Novos imports para a funcionalidade de IA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
@@ -42,29 +40,40 @@ st.set_page_config(
 
 st.success("✅ Todas as dependências foram carregadas com sucesso!")
 
+# ----- Variáveis de estado para personalização de estilo -----
+if 'background_color' not in st.session_state:
+    st.session_state.background_color = '#0d0d0d'
+if 'background_image' not in st.session_state:
+    st.session_state.background_image = None
+if 'logo_image' not in st.session_state:
+    st.session_state.logo_image = None
+
 # CSS personalizado - Tema autópsia virtual
-st.markdown("""
+st.markdown(f"""
 <style>
-    .main { background: #1a1a1a; }
-    .stApp { background: #0d0d0d; color: #ffffff; }
-    .main-header { font-size: 2.5rem; color: #ffffff !important; text-align: center; font-weight: 700; }
-    .sub-header { font-size: 1.5rem; color: #ffffff !important; font-weight: 600; }
-    p, div, span, label { color: #e0e0e0 !important; }
-    .card { background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #00bcd4; }
-    .patient-card { border-left: 4px solid #ff5252; }
-    .tech-card { border-left: 4px solid #4caf50; }
-    .image-card { border-left: 4px solid #9c27b0; }
-    .stats-card { border-left: 4px solid #ff9800; }
-    .login-card { border-left: 4px solid #00bcd2; background: #2d2d2d; padding: 30px; border-radius: 15px; }
-    .feedback-card { border-left: 4px solid #ff9800; background: #2d2d2d; padding: 20px; border-radius: 12px; }
-    .stButton>button { background: linear-gradient(45deg, #00bcd4, #00838f); color: white !important; border-radius: 8px; padding: 12px 24px; }
-    .uploaded-file { background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid #00bcd4; }
-    .metric-value { font-size: 1.3rem; font-weight: 700; color: #00bcd4 !important; }
-    .metric-label { font-size: 0.9rem; color: #b0b0b0 !important; font-weight: 500; }
-    .file-size { color: #00bcd4; font-size: 0.8rem; margin-top: 5px; }
-    .upload-info { background: #2d2d2d; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #4caf50; }
-    .star-rating { font-size: 2rem; color: #ffd700; margin: 10px 0; }
-    .security-alert { background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border-left: 4px solid #c62828; }
+    .main {{
+        background: {st.session_state.background_color};
+        {'background-image: url("data:image/jpeg;base64,' + st.session_state.background_image + '"); background-size: cover; background-attachment: fixed;' if st.session_state.background_image else ''}
+    }}
+    .stApp {{ color: #ffffff; }}
+    .main-header {{ font-size: 2.5rem; color: #ffffff !important; text-align: center; font-weight: 700; }}
+    .sub-header {{ font-size: 1.5rem; color: #ffffff !important; font-weight: 600; }}
+    p, div, span, label {{ color: #e0e0e0 !important; }}
+    .card {{ background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #00bcd4; }}
+    .patient-card {{ border-left: 4px solid #ff5252; }}
+    .tech-card {{ border-left: 4px solid #4caf50; }}
+    .image-card {{ border-left: 4px solid #9c27b0; }}
+    .stats-card {{ border-left: 4px solid #ff9800; }}
+    .login-card {{ border-left: 4px solid #00bcd2; background: #2d2d2d; padding: 30px; border-radius: 15px; }}
+    .feedback-card {{ border-left: 4px solid #ff9800; background: #2d2d2d; padding: 20px; border-radius: 12px; }}
+    .stButton>button {{ background: linear-gradient(45deg, #00bcd4, #00838f); color: white !important; border-radius: 8px; padding: 12px 24px; }}
+    .uploaded-file {{ background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid #00bcd4; }}
+    .metric-value {{ font-size: 1.3rem; font-weight: 700; color: #00bcd4 !important; }}
+    .metric-label {{ font-size: 0.9rem; color: #b0b0b0 !important; font-weight: 500; }}
+    .file-size {{ color: #00bcd4; font-size: 0.8rem; margin-top: 5px; }}
+    .upload-info {{ background: #2d2d2d; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #4caf50; }}
+    .star-rating {{ font-size: 2rem; color: #ffd700; margin: 10px 0; }}
+    .security-alert {{ background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border-left: 4px solid #c62828; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -239,7 +248,6 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
         return False
 
-# ----- Funções de IA adicionadas -----
 def extract_features(image):
     try:
         return [
@@ -327,7 +335,7 @@ def generate_ra_index_data(image_stats):
 def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report):
     """Cria relatório em PDF profissional com gráficos e análises"""
     try:
-        buffer = BytesBytes()
+        buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=A4)
         
         def draw_text(text, x, y, font, size, bold=False):
@@ -335,8 +343,17 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
             c.drawString(x, y, text)
 
         y_pos = 800
+
+        # Adicionar logotipo ao PDF se existir, senão usar um placeholder
+        if st.session_state.logo_image:
+            logo_buffer = BytesIO(st.session_state.logo_image)
+            logo_reader = ImageReader(logo_buffer)
+            c.drawImage(logo_reader, 450, 780, width=100, height=50, preserveAspectRatio=True)
+        else:
+            draw_text("DICOM Autopsy Viewer", 450, 790, "Helvetica", 12, True)
+            draw_text("Logo Placeholder", 450, 780, "Helvetica", 9)
         
-        # Adicionar imagem ao PDF (se existir)
+        # Adicionar imagem do DICOM
         if image_for_report:
             try:
                 img_buffer = BytesIO()
@@ -738,20 +755,6 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
 
 def show_main_app():
     log_access(st.session_state.user_data['nome'], "SESSAO_INICIADA", "MAIN_APP")
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
-        st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
-    with col3:
-        st.markdown(f'<div style="background: #333; padding: 10px; border-radius: 8px; text-align: center;">'
-                    f'<span style="color: #00bcd4;">👤 {st.session_state.user_data["nome"]}</span><br>'
-                    f'<span style="color: #b0b0b0; font-size: 0.8rem;">{st.session_state.user_data["departamento"]}</span>'
-                    f'</div>', unsafe_allow_html=True)
-        if st.button("🚪 Encerrar Sessão"):
-            log_access(st.session_state.user_data['nome'], "SESSAO_ENCERRADA", "SYSTEM_ACCESS")
-            st.session_state.user_data = None
-            st.rerun()
-
-    st.markdown("---")
 
     with st.sidebar:
         st.markdown(f"""
@@ -761,6 +764,27 @@ def show_main_app():
             <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("---")
+        
+        st.subheader("🎨 Personalizar Visual")
+        bg_option = st.radio("Fundo do App:", ["Cor Sólida", "Imagem"], index=0, key='bg_option')
+        if bg_option == "Cor Sólida":
+            color = st.color_picker("Escolha a cor de fundo", '#0d0d0d')
+            st.session_state.background_color = color
+            st.session_state.background_image = None
+        else:
+            uploaded_bg = st.file_uploader("Envie uma imagem de fundo", type=["jpg", "jpeg", "png"])
+            if uploaded_bg:
+                bg_bytes = uploaded_bg.read()
+                st.session_state.background_image = base64.b64encode(bg_bytes).decode('utf-8')
+                st.session_state.background_color = 'transparent'
+        
+        uploaded_logo = st.file_uploader("Envie um logotipo para o PDF", type=["png", "jpg", "jpeg"])
+        if uploaded_logo:
+            st.session_state.logo_image = uploaded_logo.read()
+            st.success("✅ Logotipo carregado com sucesso!")
+
+
         st.markdown("---")
         st.markdown(f"""
         <div class='upload-info'>
@@ -799,6 +823,21 @@ def show_main_app():
                 else:
                     st.error("&#10060; Nenhum arquivo DICOM válido encontrado")
                     log_security_event("NO_VALID_FILES", "Nenhum arquivo DICOM válido no upload")
+
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<div style="background: #333; padding: 10px; border-radius: 8px; text-align: center;">'
+                    f'<span style="color: #00bcd4;">👤 {st.session_state.user_data["nome"]}</span><br>'
+                    f'<span style="color: #b0b0b0; font-size: 0.8rem;">{st.session_state.user_data["departamento"]}</span>'
+                    f'</div>', unsafe_allow_html=True)
+        if st.button("🚪 Encerrar Sessão"):
+            log_access(st.session_state.user_data['nome'], "SESSAO_ENCERRADA", "SYSTEM_ACCESS")
+            st.session_state.user_data = None
+            st.rerun()
+
+    st.markdown("---")
 
     if uploaded_files:
         selected_file = st.selectbox("&#128203; Selecione o exame para análise:", [f.name for f in uploaded_files])
