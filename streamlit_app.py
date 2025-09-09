@@ -407,8 +407,7 @@ def send_email_report(user_data, dicom_data, image_data, report_data):
             error_msg = "Timeout ao conectar com o servidor de email"
             log_security_event("EMAIL_TIMEOUT", error_msg)
             st.error("Timeout ao conectar com o servidor de email. Tente novamente.")
-            return False
-            
+            return False      
     except Exception as e:
         error_msg = f"Erro geral ao enviar email: {str(e)}"
         log_security_event("EMAIL_ERROR", error_msg)
