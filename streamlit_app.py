@@ -783,12 +783,12 @@ def show_main_app():
             st.session_state.user_data = {}
             st.rerun()
 
-    st.markdown("---")
+corrija a linha 791: st.markdown("---")
 
     with st.sidebar:
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0;'>👤 Usuário Logado</h3>
+            <h3 style='margin: 0;'>&#128100; Usuário Logado</h3>
             <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
             <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
         </div>
@@ -798,7 +798,7 @@ def show_main_app():
         
         st.markdown(f"""
         <div class='upload-info'>
-            <h4>📁 Upload de Exames</h4>
+            <h4>&#128193; Upload de Exames</h4>
             <p>• Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
             <p>• Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
             <p>• Formato: <strong>.dcm, .DCM</strong></p>
@@ -806,7 +806,7 @@ def show_main_app():
         """, unsafe_allow_html=True)
         
         uploaded_files = st.file_uploader(
-            "📤 Selecione os arquivos DICOM",
+            "&#128229; Selecione os arquivos DICOM",
             type=['dcm', 'DCM'],
             accept_multiple_files=True,
             help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
@@ -817,7 +817,7 @@ def show_main_app():
             is_valid, message = check_upload_limits(uploaded_files)
             
             if not is_valid:
-                st.error(f"❌ {message}")
+                st.error(f"&#10060; {message}")
                 log_security_event("UPLOAD_BLOCKED", message)
             else:
                 total_size = sum(f.size for f in uploaded_files)
@@ -829,25 +829,25 @@ def show_main_app():
                     if validate_dicom_file(file_copy):
                         valid_files.append(file)
                     else:
-                        st.warning(f"⚠️ Arquivo {file.name} não é um DICOM válido e foi ignorado")
+                        st.warning(f"&#9888;&#65039; Arquivo {file.name} não é um DICOM válido e foi ignorado")
                 
                 if valid_files:
-                    st.success(f"✅ {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
+                    st.success(f"&#9989; {len(valid_files)} arquivo(s) válido(s) - {get_file_size(total_size)}")
                     
                     # Mostrar tamanho de cada arquivo
                     for file in valid_files:
                         st.markdown(f"""
                         <div class='uploaded-file'>
-                            📄 {file.name}
+                            &#128196; {file.name}
                             <div class='file-size'>{get_file_size(file.size)}</div>
                         </div>
                         """, unsafe_allow_html=True)
                 else:
-                    st.error("❌ Nenhum arquivo DICOM válido encontrado")
+                    st.error("&#10060; Nenhum arquivo DICOM válido encontrado")
                     log_security_event("NO_VALID_FILES", "Nenhum arquivo DICOM válido no upload")
 
     if uploaded_files:
-        selected_file = st.selectbox("📋 Selecione o exame para análise:", [f.name for f in uploaded_files])
+        selected_file = st.selectbox("&#128203; Selecione o exame para análise:", [f.name for f in uploaded_files])
         dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
         
         if dicom_file:
@@ -856,7 +856,7 @@ def show_main_app():
                 # VALIDAÇÃO FINAL DE SEGURANÇA
                 file_copy = BytesIO(dicom_file.getvalue())
                 if not validate_dicom_file(file_copy):
-                    st.error("❌ Arquivo corrompido ou inválido")
+                    st.error("&#10060; Arquivo corrompido ou inválido")
                     log_security_event("FINAL_VALIDATION_FAILED", f"Arquivo {selected_file} falhou na validação final")
                     return
                 
