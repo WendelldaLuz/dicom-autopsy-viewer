@@ -24,6 +24,14 @@ from reportlab.lib.utils import ImageReader
 import socket
 import base64
 
+# Verificação e instalação simplificada para scikit-learn (apenas se necessário)
+try:
+    from sklearn.metrics import accuracy_score
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    st.warning("⚠️ Scikit-learn não está disponível. Usando modo de simulação para IA.")
+
 # Configuração inicial da página
 st.set_page_config(
     page_title="DICOM Autopsy Viewer",
@@ -32,7 +40,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.success("✅ Todas as dependências foram carregadas com sucesso!")
+st.success("✅ Dependências principais carregadas com sucesso!")
 
 # ----- Variáveis de estado para personalização de estilo -----
 if 'background_color' not in st.session_state:
@@ -71,7 +79,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Definições globales
+# Definições globais
 DB_PATH = "feedback_database.db"
 UPLOAD_LIMITS = {
     'max_files': 5,
@@ -83,6 +91,8 @@ EMAIL_CONFIG = {
     'smtp_server': 'smtp.gmail.com',
     'smtp_port': 587
 }
+MODEL_PATH = './modelos/modelo_ia_real.pkl'
+ENCODER_PATH = './modelos/label_encoder_real.pkl'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -240,7 +250,7 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
         return False
 
-# ----- Funções de IA simplificadas (sem scikit-learn) -----
+# ----- Funções de IA simplificadas -----
 def extract_features(image):
     try:
         return [
@@ -260,19 +270,6 @@ def get_ai_prediction(image):
     try:
         # Modo de simulação - sempre retorna resultados mock
         prediction_text = "Grau II - Alteração Moderada"
-        
-        # Simular pontuação baseada nas características da imagem
-        features = extract_features(image)
-        std_dev = features[1] if len(features) > 1 else 0
-        
-        if std_dev > 1.7e9:
-            prediction_text = "Grau IV - Alteração Avançada"
-        elif std_dev > 1.5e9:
-            prediction_text = "Grau III - Alteração Significativa"
-        elif std_dev > 1.0e9:
-            prediction_text = "Grau II - Alteração Moderada"
-        else:
-            prediction_text = "Grau I - Alteração Mínima"
         
         mock_report = {
             'precision': {'Grau I': 0.95, 'Grau II': 0.92, 'Grau III': 0.88, 'Grau IV': 0.90},
@@ -421,7 +418,7 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
         
         draw_text("Análise de Correlação (Lei de Fick):", 60, y_pos, "Helvetica", 10, True)
         y_pos -= 15
-        draw_text("A alta dispersão dos pixels se correlaciona dengan a dispersão de gases na fase inicial de putrefação, seguindo a cinética da Segunda Lei de Fick.", 60, y_pos - 10, "Helvetica", 10)
+        draw_text("A alta dispersão dos pixels se correlaciona com a dispersão de gases na fase inicial de putrefação, seguindo a cinética da Segunda Lei de Fick.", 60, y_pos - 10, "Helvetica", 10)
         draw_text("Os dados quantitativos de densidade confirmam a classificação visual do RA-Index, validando o modelo para estimativa de Intervalo Post-Mortem.", 60, y_pos - 25, "Helvetica", 10)
 
         c.save()
@@ -455,7 +452,7 @@ def send_email_report(user_data, dicom_data, image_data, report_data, ra_index_d
         - Contato: {user_data['contato']}
         - Data da Análise: {datetime.now().strftime("%d/%m/%Y %H:%M")}
         
-        DADOS DO EXame:
+        DADOS DO EXAME:
         - Arquivo: {dicom_data.get('file_name', 'N/A')}
         - Tamanho: {dicom_data.get('file_size', 'N/A')}
         - Paciente: {dicom_data.get('patient_name', 'N/A')}
@@ -793,7 +790,7 @@ def show_main_app():
             <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
             <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
         </div>
-        ""', unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
         uploaded_files = st.file_uploader(
             "&#128229; Selecione os arquivos DICOM",
