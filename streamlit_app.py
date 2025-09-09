@@ -838,22 +838,23 @@ def show_feedback_section(report_data):
             rating_cols = st.columns(5)
             
             for i in range(1, 6):
-                with rating_cols[i-1]:
-                    if st.button(f'⭐', key=f'star_{i}', help=f'{i} estrela(s)', use_container_width=True):
-                        st.session_state.rating = i
-            
-            # Mostra a avaliação selecionada
-            if 'rating' in st.session_state and st.session_state.rating > 0:
-                st.markdown(f"**Você selecionou:** {st.session_state.rating} estrela(s)")
+    with rating_cols[i-1]:
+        if st.form_submit_button(f'⭐', key=f'star_{i}', help=f'{i} estrela(s)', use_container_width=True):
+            st.session_state.rating = i
+            st.rerun()  # Adicionar esta linha
 
-            feedback_text = st.text_area("Comentários ou sugestões:", placeholder="O que achou do relatório? Como podemos melhorar?")
-            submitted = st.form_submit_button("Enviar Feedback")
-            
-            if submitted:
-                rating = st.session_state.get('rating', 0)
-                if rating == 0:
-                    st.error("Por favor, selecione uma avaliação com as estrelas.")
-                else:
+# Mostra a avaliação selecionada
+if 'rating' in st.session_state and st.session_state.rating > 0:
+    st.markdown(f"**Você selecionou:** {st.session_state.rating} estrela(s)")
+
+feedback_text = st.text_area("Comentários ou sugestões:", placeholder="O que achou do relatório? Como podemos melhorar?")
+submitted = st.form_submit_button("Enviar Feedback")
+
+if submitted:
+    rating = st.session_state.get('rating', 0)
+    if rating == 0:
+        st.error("Por favor, selecione uma avaliação com as estrelas.")
+    else:
                     # Envia feedback por email
                     feedback_data = {
                         'rating': rating,
