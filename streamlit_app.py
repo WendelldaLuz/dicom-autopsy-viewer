@@ -1,4 +1,5 @@
 import streamlit as st
+import logging
 import pydicom
 import numpy as np
 from PIL import Image
