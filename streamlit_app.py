@@ -24,6 +24,8 @@ from reportlab.lib.utils import ImageReader
 import socket
 from scipy.ndimage import filters
 from skimage import exposure
+
+# Novos imports para a funcionalidade de IA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
