@@ -52,230 +52,12 @@ if 'current_file' not in st.session_state:
     st.session_state.current_file = None
 if 'color_theme' not in st.session_state:
     st.session_state.color_theme = {
-        'primary': '#00BFFF',
-        'secondary': '#0099CC',
-        'accent': '#FF5733',
-        'text': '#E0E0E0',
-        'background': '#0d0d0d',
-        'card': '#1a1a1a'
+        'primary': '#00bcd4',
+        'secondary': '#00838f',
+        'accent': '#ff9800',
+        'text': '#ffffff',
+        'background': '#0d0d0d'
     }
-if 'current_lang' not in st.session_state:
-    st.session_state.current_lang = 'pt'
-
-# Dicionário de idiomas
-LANGUAGES = {
-    'en': {
-        'app_title': "DICOM Autopsy Viewer",
-        'app_subtitle': "Digital and Predictive Forensic Analysis",
-        'user_info_header': "Enter Your Information to Start",
-        'full_name_label': "Full Name",
-        'department_label': "Department/Agency",
-        'email_label': "Email",
-        'contact_label': "Contact Number",
-        'continue_button': "Continue",
-        'visualizer_tab': "Visualization",
-        'patient_data_tab': "Patient Data",
-        'tech_info_tab': "Technical Info",
-        'analysis_tab': "Analysis",
-        'ai_tab': "AI & RA-Index",
-        'stats_tab': "Statistics",
-        'file_upload_label': "Select DICOM Files",
-        'upload_info_title': "Exam Upload",
-        'file_limit_label': "Limit",
-        'file_size_label': "Size",
-        'file_format_label': "Format",
-        'file_upload_button': "Upload",
-        'theme_customization': "Theme Customization",
-        'logo_upload': "Logo for Report",
-        'current_user': "Current User",
-        'select_exam': "Select exam for analysis:",
-        'send_email': "Send Report by Email",
-        'download_pdf': "Download PDF Report",
-        'feedback_title': "Report Feedback",
-        'feedback_rating': "Rating (1-5 stars)",
-        'feedback_comments': "Comments or suggestions:",
-        'feedback_submit': "Submit Feedback",
-        'tech_info_title': "Technical Information",
-        'modality': "Modality",
-        'pixel_size': "Pixel Size",
-        'slice_thickness': "Slice Thickness (mm)",
-        'window_center': "Window Center (HU)",
-        'window_width': "Window Width (HU)",
-        'tube_voltage': "Tube Voltage (kVp)",
-        'tube_current': "Tube Current (mAs)",
-        'exposure_time': "Exposure Time (ms)",
-        'pixel_calibration': "Pixel Calibration (mm)",
-        'bits_per_pixel': "Bits per Pixel",
-        'patient_info_title': "Patient Data",
-        'patient_name': "Name",
-        'patient_id': "ID",
-        'patient_age': "Age",
-        'patient_sex': "Sex",
-        'study_date': "Study Date",
-        'institution': "Institution",
-        'analysis_title': "Image Analysis",
-        'dimensions': "Dimensions",
-        'min_intensity': "Min Intensity",
-        'max_intensity': "Max Intensity",
-        'mean_intensity': "Mean Intensity",
-        'std_deviation': "Standard Deviation",
-        'total_pixels': "Total Pixels",
-        'ai_analysis_title': "Predictive Analysis and RA-Index",
-        'ai_prediction': "AI Prediction",
-        'ra_index': "RA-Index",
-        'interpretation': "Interpretation",
-        'post_mortem_estimate': "Post-Mortem Estimate",
-        'performance_metrics': "Performance Metrics",
-        'accuracy': "Accuracy",
-        'sensitivity': "Sensitivity",
-        'specificity': "Specificity",
-        'reliability': "Reliability (ICC)",
-        'correlation_analysis': "Gas Density vs RA-Index Correlation",
-        'performance_analysis': "Performance Analysis - Radar Chart"
-    },
-    'pt': {
-        'app_title': "DICOM Autopsy Viewer",
-        'app_subtitle': "Análise Forense Digital e Preditiva",
-        'user_info_header': "Insira seus Dados para Iniciar",
-        'full_name_label': "Nome Completo",
-        'department_label': "Departamento/Órgão",
-        'email_label': "Email",
-        'contact_label': "Telefone/Contato",
-        'continue_button': "Continuar",
-        'visualizer_tab': "Visualização",
-        'patient_data_tab': "Identificação",
-        'tech_info_tab': "Técnico",
-        'analysis_tab': "Análise",
-        'ai_tab': "IA & RA-Index",
-        'stats_tab': "Estatísticas",
-        'file_upload_label': "Selecione os arquivos DICOM",
-        'upload_info_title': "Upload de Exames",
-        'file_limit_label': "Limite",
-        'file_size_label': "Tamanho",
-        'file_format_label': "Formato",
-        'file_upload_button': "Upload",
-        'theme_customization': "Personalizar Tema",
-        'logo_upload': "Logotipo para Relatório",
-        'current_user': "Usuário Atual",
-        'select_exam': "Selecione o exame para análise:",
-        'send_email': "Enviar Relatório por Email",
-        'download_pdf': "Baixar Relatório PDF",
-        'feedback_title': "Feedback do Relatório",
-        'feedback_rating': "Avaliação (1-5 estrelas)",
-        'feedback_comments': "Comentários ou sugestões:",
-        'feedback_submit': "Enviar Feedback",
-        'tech_info_title': "Informações Técnicas",
-        'modality': "Modalidade",
-        'pixel_size': "Tamanho (Pixels)",
-        'slice_thickness': "Espessura do Corte (mm)",
-        'window_center': "Janela Central (HU)",
-        'window_width': "Largura da Janela (HU)",
-        'tube_voltage': "Voltagem do Tubo (kVp)",
-        'tube_current': "Corrente do Tubo (mAs)",
-        'exposure_time': "Tempo de Exposição (ms)",
-        'pixel_calibration': "Calibração de Pixel (mm)",
-        'bits_per_pixel': "Bits por Pixel",
-        'patient_info_title': "Dados do Paciente",
-        'patient_name': "Nome",
-        'patient_id': "ID",
-        'patient_age': "Idade",
-        'patient_sex': "Sexo",
-        'study_date': "Data do Estudo",
-        'institution': "Instituição",
-        'analysis_title': "Análise da Imagem",
-        'dimensions': "Dimensões",
-        'min_intensity': "Intensidade Mínima",
-        'max_intensity': "Intensidade Máxima",
-        'mean_intensity': "Média de Intensidade",
-        'std_deviation': "Desvio Padrão",
-        'total_pixels': "Total de Pixels",
-        'ai_analysis_title': "Análise Preditiva e RA-Index",
-        'ai_prediction': "Previsão da IA",
-        'ra_index': "RA-Index Calculado",
-        'interpretation': "Interpretação",
-        'post_mortem_estimate': "Estimativa Post-Mortem",
-        'performance_metrics': "Métricas de Desempenho",
-        'accuracy': "Acurácia",
-        'sensitivity': "Sensibilidade",
-        'specificity': "Especificidade",
-        'reliability': "Confiabilidade (ICC)",
-        'correlation_analysis': "Correlação entre Densidade Gasosa e RA-Index",
-        'performance_analysis': "Análise de Desempenho - Radar Chart"
-    },
-    'es': {
-        'app_title': "Visor de Autopsia DICOM",
-        'app_subtitle': "Análisis Forense Digital y Predictivo",
-        'user_info_header': "Ingrese sus datos para comenzar",
-        'full_name_label': "Nombre completo",
-        'department_label': "Departamento/Organismo",
-        'email_label': "Email",
-        'contact_label': "Teléfono/Contacto",
-        'continue_button': "Continuar",
-        'visualizer_tab': "Visualización",
-        'patient_data_tab': "Identificación",
-        'tech_info_tab': "Técnico",
-        'analysis_tab': "Análisis",
-        'ai_tab': "IA y RA-Index",
-        'stats_tab': "Estadísticas",
-        'file_upload_label': "Seleccionar archivos DICOM",
-        'upload_info_title': "Carga de Exámenes",
-        'file_limit_label': "Límite",
-        'file_size_label': "Tamaño",
-        'file_format_label': "Formato",
-        'file_upload_button': "Cargar",
-        'theme_customization': "Personalizar Tema",
-        'logo_upload': "Logotipo para Informe",
-        'current_user': "Usuario Actual",
-        'select_exam': "Seleccione el examen para análisis:",
-        'send_email': "Enviar Informe por Email",
-        'download_pdf': "Descargar Informe PDF",
-        'feedback_title': "Comentarios del Informe",
-        'feedback_rating': "Calificación (1-5 estrellas)",
-        'feedback_comments': "Comentarios o sugerencias:",
-        'feedback_submit': "Enviar Comentarios",
-        'tech_info_title': "Información Técnica",
-        'modality': "Modalidad",
-        'pixel_size': "Tamaño (Píxeles)",
-        'slice_thickness': "Espesor de Corte (mm)",
-        'window_center': "Centro de Ventana (HU)",
-        'window_width': "Ancho de Ventana (HU)",
-        'tube_voltage': "Voltaje del Tubo (kVp)",
-        'tube_current': "Corriente del Tubo (mAs)",
-        'exposure_time': "Tiempo de Exposición (ms)",
-        'pixel_calibration': "Calibración de Píxel (mm)",
-        'bits_per_pixel': "Bits por Píxel",
-        'patient_info_title': "Datos del Paciente",
-        'patient_name': "Nombre",
-        'patient_id': "ID",
-        'patient_age': "Edad",
-        'patient_sex': "Sexo",
-        'study_date': "Fecha de Estudio",
-        'institution': "Institución",
-        'analysis_title': "Análisis de Imagen",
-        'dimensions': "Dimensiones",
-        'min_intensity': "Intensidad Mínima",
-        'max_intensity': "Intensidad Máxima",
-        'mean_intensity': "Intensidad Media",
-        'std_deviation': "Desviación Estándar",
-        'total_pixels': "Total de Píxeles",
-        'ai_analysis_title': "Análisis Predictivo y RA-Index",
-        'ai_prediction': "Predicción de IA",
-        'ra_index': "RA-Index Calculado",
-        'interpretation': "Interpretación",
-        'post_mortem_estimate': "Estimación Post-Mortem",
-        'performance_metrics': "Métricas de Rendimiento",
-        'accuracy': "Precisión",
-        'sensitivity': "Sensibilidad",
-        'specificity': "Especificidad",
-        'reliability': "Confiabilidad (ICC)",
-        'correlation_analysis': "Correlación entre Densidad de Gas y RA-Index",
-        'performance_analysis': "Análisis de Rendimiento - Gráfico de Radar"
-    }
-}
-
-def get_text(key):
-    """Retorna o texto traduzido para o idioma atual"""
-    return LANGUAGES[st.session_state.current_lang].get(key, key)
 
 # Função para gerar esquema de cores harmonioso
 def generate_color_theme(base_color):
@@ -311,124 +93,51 @@ def generate_color_theme(base_color):
             'secondary': secondary,
             'accent': accent,
             'text': text_color,
-            'background': background,
-            'card': '#1a1a1a'
+            'background': background
         }
     except:
         # Fallback para tema padrão
         return {
-            'primary': '#00BFFF',
-            'secondary': '#0099CC',
-            'accent': '#FF5733',
-            'text': '#E0E0E0',
-            'background': '#0d0d0d',
-            'card': '#1a1a1a'
+            'primary': '#00bcd4',
+            'secondary': '#00838f',
+            'accent': '#ff9800',
+            'text': '#ffffff',
+            'background': '#0d0d0d'
         }
 
-# CSS personalizado - Tema moderno e profissional
+# CSS personalizado - Tema autópsia virtual
 def update_css_theme():
     theme = st.session_state.color_theme
     st.markdown(f"""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-        html, body, .stApp, .main, .sidebar .st-bb {{ 
-            font-family: 'Poppins', sans-serif; 
-        }}
-        .main {{ 
-            background-color: {theme['background']};
+        .main {{
+            background: {theme['background']};
             {'background-image: url("data:image/jpeg;base64,' + st.session_state.background_image + '"); background-size: cover; background-attachment: fixed;' if st.session_state.background_image else ''}
         }}
         .stApp {{ 
-            background-color: {theme['background']};
+            background: {theme['background']};
             color: {theme['text']}; 
         }}
-        h1, h2, h3, h4, h5, h6 {{ 
-            color: #ffffff !important; 
-            font-weight: 600; 
-        }}
-        .card {{ 
-            background-color: {theme['card']}; 
-            border-radius: 12px; 
-            padding: 20px; 
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
-            border: 1px solid #2d2d2d; 
-            margin-bottom: 20px;
-        }}
-        .patient-card {{ 
-            border-left: 5px solid #00BFFF; 
-        }}
-        .tech-card {{ 
-            border-left: 5px solid #FF5733; 
-        }}
-        .stats-card {{ 
-            border-left: 5px solid #FFC300; 
-        }}
-        .ra-index-card {{ 
-            border-left: 5px solid #9B59B6; 
-        }}
-        .feedback-card {{ 
-            border-left: 5px solid {theme['accent']}; 
-        }}
-        .stButton>button {{
-            background: {theme['primary']};
-            color: white !important;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }}
-        .stButton>button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 191, 255, 0.3);
-        }}
-        .metric-value {{ 
-            font-size: 1.8rem; 
-            color: {theme['primary']} !important; 
-            font-weight: 700; 
-        }}
-        .metric-label {{ 
-            font-size: 0.9rem; 
-            color: #b0b0b0 !important; 
-            font-weight: 500; 
-            text-transform: uppercase; 
-        }}
-        .uploaded-file {{
-            background: {theme['card']};
-            padding: 15px;
-            border-radius: 10px;
-            margin: 10px 0;
-            border: 1px dashed {theme['primary']};
-        }}
-        .upload-info {{ 
-            background: {theme['card']}; 
-            padding: 15px; 
-            border-radius: 10px; 
-            margin: 10px 0; 
-            border-left: 4px solid #4caf50; 
-        }}
-        .star-rating {{ 
-            font-size: 2rem; 
-            color: #ffd700; 
-            margin: 10px 0; 
-        }}
-        .theme-preview {{ 
-            width: 100%; 
-            height: 60px; 
-            border-radius: 8px; 
-            margin: 10px 0; 
-            background: linear-gradient(45deg, {theme['primary']}, {theme['secondary']}, {theme['accent']}); 
-        }}
-        .logo-preview {{ 
-            max-width: 100px; 
-            max-height: 60px; 
-            border-radius: 5px; 
-            margin: 10px 0; 
-        }}
-        .language-selector {{
-            margin-bottom: 20px;
-        }}
+        .main-header {{ font-size: 2.5rem; color: {theme['text']} !important; text-align: center; font-weight: 700; }}
+        .sub-header {{ font-size: 1.5rem; color: {theme['text']} !important; font-weight: 600; }}
+        p, div, span, label {{ color: {theme['text']} !important; }}
+        .card {{ background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid {theme['primary']}; }}
+        .patient-card {{ border-left: 4px solid #ff5252; }}
+        .tech-card {{ border-left: 4px solid #4caf50; }}
+        .image-card {{ border-left: 4px solid #9c27b0; }}
+        .stats-card {{ border-left: 4px solid {theme['accent']}; }}
+        .login-card {{ border-left: 4px solid {theme['primary']}; background: #2d2d2d; padding: 30px; border-radius: 15px; }}
+        .feedback-card {{ border-left: 4px solid {theme['accent']}; background: #2d2d2d; padding: 20px; border-radius: 12px; }}
+        .stButton>button {{ background: linear-gradient(45deg, {theme['primary']}, {theme['secondary']}); color: white !important; border-radius: 8px; padding: 12px 24px; }}
+        .uploaded-file {{ background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid {theme['primary']}; }}
+        .metric-value {{ font-size: 1.3rem; font-weight: 700; color: {theme['primary']} !important; }}
+        .metric-label {{ font-size: 0.9rem; color: #b0b0b0 !important; font-weight: 500; }}
+        .file-size {{ color: {theme['primary']}; font-size: 0.8rem; margin-top: 5px; }}
+        .upload-info {{ background: #2d2d2d; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #4caf50; }}
+        .star-rating {{ font-size: 2rem; color: #ffd700; margin: 10px 0; }}
+        .security-alert {{ background: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border-left: 4px solid #c62828; }}
+        .theme-preview {{ width: 100%; height: 60px; border-radius: 8px; margin: 10px 0; background: linear-gradient(45deg, {theme['primary']}, {theme['secondary']}, {theme['accent']}); }}
+        .logo-preview {{ max-width: 100px; max-height: 60px; border-radius: 5px; margin: 10px 0; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -864,7 +573,7 @@ def create_advanced_histogram(image):
         bargap=0.1,
         showlegend=False
     )
-    fig.update_traces(marker_color='#00BFFF')
+    fig.update_traces(marker_color='#00bcd4')
     return fig
 
 def create_intensity_profile(image):
@@ -875,13 +584,13 @@ def create_intensity_profile(image):
     middle_row = image[image.shape[0] // 2, :]
     fig.add_trace(go.Scatter(x=np.arange(len(middle_row)), y=middle_row,
                             mode='lines', name='Perfil Horizontal',
-                            line=dict(color='#00BFFF')))
+                            line=dict(color='#00bcd4')))
     
     # Perfil vertical (coluna do meio)
     middle_col = image[:, image.shape[1] // 2]
     fig.add_trace(go.Scatter(x=np.arange(len(middle_col)), y=middle_col,
                             mode='lines', name='Perfil Vertical',
-                            line=dict(color='#FF5733')))
+                            line=dict(color='#ff9800')))
     
     fig.update_layout(
         title='Perfil de Intensidade da Imagem',
@@ -896,15 +605,15 @@ def create_intensity_profile(image):
 
 def show_feedback_section(report_data):
     st.markdown("---")
-    st.markdown('<div class="card feedback-card">', unsafe_allow_html=True)
-    st.subheader(f"💬 {get_text('feedback_title')}")
+    st.markdown('<div class="feedback-card">', unsafe_allow_html=True)
+    st.subheader("💬 Feedback do Relatório")
     
     if not st.session_state.get('feedback_submitted', False):
         with st.form("feedback_form"):
             st.markdown('<div class="star-rating">⭐⭐⭐⭐⭐</div>', unsafe_allow_html=True)
-            rating = st.slider(get_text('feedback_rating'), 1, 5, 5)
-            feedback_text = st.text_area(get_text('feedback_comments'), placeholder="O que achou do relatório? Como podemos melhorar?")
-            submitted = st.form_submit_button(get_text('feedback_submit'))
+            rating = st.slider("Avaliação (1-5 estrelas)", 1, 5, 5)
+            feedback_text = st.text_area("Comentários ou sugestões:", placeholder="O que achou do relatório? Como podemos melhorar?")
+            submitted = st.form_submit_button("📤 Enviar Feedback")
             if submitted:
                 if save_feedback(st.session_state.user_data['email'], feedback_text, rating, report_data):
                     st.session_state.feedback_submitted = True
@@ -917,45 +626,45 @@ def show_feedback_section(report_data):
 
 def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
     st.markdown("---")
-    st.markdown('<div class="card ra-index-card">', unsafe_allow_html=True)
-    st.subheader(f"🔬 {get_text('ai_analysis_title')}")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("🔬 Análise Preditiva e RA-Index")
     
     st.info("A seguir, apresentamos uma análise preditiva baseada nos princípios do seu projeto de mestrado, correlacionando a dinâmica gasosa com a pontuação do Índice de Alteração Radiológica.")
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric(label=get_text('ai_prediction'), value=ai_prediction)
+        st.metric(label="Previsão da IA", value=ai_prediction)
     with col2:
-        st.metric(label=get_text('ra_index'), value=f"{ra_index_data['ra_score']}/100")
+        st.metric(label="RA-Index Calculado", value=f"{ra_index_data['ra_score']}/100")
     with col3:
-        st.metric(label=get_text('interpretation'), value=ra_index_data['interpretation'])
+        st.metric(label="Interpretação", value=ra_index_data['interpretation'])
     with col4:
-        st.metric(label=get_text('post_mortem_estimate'), value=ra_index_data['post_mortem_estimate'])
+        st.metric(label="Estimativa Post-Mortem", value=ra_index_data['post_mortem_estimate'])
     
     # Métricas de desempenho
     st.markdown("---")
-    st.subheader(f"📊 {get_text('performance_metrics')}")
+    st.subheader("📊 Métricas de Desempenho do Modelo")
     
     metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
     with metrics_col1:
-        st.metric(label=get_text('accuracy'), value=ra_index_data['metrics']['Acuracia'])
+        st.metric(label="Acurácia", value=ra_index_data['metrics']['Acuracia'])
     with metrics_col2:
-        st.metric(label=get_text('sensitivity'), value=ra_index_data['metrics']['Sensibilidade'])
+        st.metric(label="Sensibilidade", value=ra_index_data['metrics']['Sensibilidade'])
     with metrics_col3:
-        st.metric(label=get_text('specificity'), value=ra_index_data['metrics']['Especificidade'])
+        st.metric(label="Especificidade", value=ra_index_data['metrics']['Especificidade'])
     with metrics_col4:
-        st.metric(label=get_text('reliability'), value=ra_index_data['metrics']['Confiabilidade (ICC)'])
+        st.metric(label="Confiabilidade", value=ra_index_data['metrics']['Confiabilidade (ICC)'])
     
     st.markdown("---")
-    st.subheader(f"📈 {get_text('correlation_analysis')}")
+    st.subheader("📈 Correlação entre Densidade Gasosa e RA-Index")
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=ra_index_data['post_mortem_hours'], y=ra_index_data['density_curve'],
                              mode='lines+markers', name='Densidade de Gases (Modelo Fick)',
-                             line=dict(color='#FF5733')))
+                             line=dict(color='#ff9800')))
     fig.add_trace(go.Scatter(x=ra_index_data['post_mortem_hours'], y=ra_index_data['ra_curve'],
                              mode='lines+markers', name='Grau RA-Index (Avaliação Visual)',
-                             line=dict(color='#00BFFF', dash='dash')))
+                             line=dict(color='#00bcd4', dash='dash')))
 
     fig.update_layout(
         title='Dinâmica de Dispersão Gasosa vs. Classificação do RA-Index',
@@ -968,11 +677,11 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
     st.plotly_chart(fig, use_container_width=True)
 
     # Gráfico de radar para métricas
-    st.subheader(f"📊 {get_text('performance_analysis')}")
+    st.subheader("📊 Análise de Desempenho - Radar Chart")
     
     metrics_radar = go.Figure()
     
-    categories = [get_text('accuracy'), get_text('sensitivity'), get_text('specificity'), get_text('reliability')]
+    categories = ['Acurácia', 'Sensibilidade', 'Especificidade', 'Confiabilidade']
     values = [
         float(ra_index_data['metrics']['Acuracia'].strip('%'))/100,
         float(ra_index_data['metrics']['Sensibilidade'].strip('%'))/100,
@@ -985,7 +694,7 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
         theta=categories + [categories[0]],
         fill='toself',
         name='Desempenho',
-        line=dict(color='#00BFFF')
+        line=dict(color='#00bcd4')
     ))
     
     metrics_radar.update_layout(
@@ -1003,16 +712,16 @@ def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_user_form():
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.header(f"📝 {get_text('user_info_header')}")
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    st.header("📝 Insira seus Dados para Iniciar")
     st.info("Por favor, preencha os campos abaixo para acessar a ferramenta.")
     
     with st.form("user_data_form"):
-        full_name = st.text_input(get_text('full_name_label'), key="user_name")
-        department = st.text_input(get_text('department_label'), key="user_department")
-        email = st.text_input(get_text('email_label'), key="user_email")
-        contact = st.text_input(get_text('contact_label'), key="user_contact")
-        submitted = st.form_submit_button(get_text('continue_button'))
+        full_name = st.text_input("Nome Completo:", key="user_name")
+        department = st.text_input("Departamento/Órgão:", key="user_department")
+        email = st.text_input("Email:", key="user_email")
+        contact = st.text_input("Telefone/Contato:", key="user_contact")
+        submitted = st.form_submit_button("Continuar")
         
         if submitted:
             if not full_name or not department or not email or not contact:
@@ -1030,37 +739,23 @@ def show_user_form():
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_main_app():
-    st.title(f"🔬 {get_text('app_title')}")
-    st.subheader(get_text('app_subtitle'))
+    st.title("🔬 DICOM Autopsy Viewer")
     st.success("✅ Todas as dependências foram carregadas com sucesso!")
 
     with st.sidebar:
-        # Seletor de idioma
-        st.markdown('<div class="language-selector">', unsafe_allow_html=True)
-        st.subheader("🌐 Idioma / Language")
-        lang_options = {'en': 'English', 'pt': 'Português', 'es': 'Español'}
-        selected_lang = st.selectbox("", options=list(lang_options.keys()), 
-                                   format_func=lambda x: lang_options[x],
-                                   index=list(lang_options.keys()).index(st.session_state.current_lang))
-        
-        if selected_lang != st.session_state.current_lang:
-            st.session_state.current_lang = selected_lang
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-        
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, {st.session_state.color_theme['primary']}, {st.session_state.color_theme['secondary']}); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0;'>&#128100; {get_text('current_user')}</h3>
+            <h3 style='margin: 0;'>&#128100; Usuário Atual</h3>
             <p style='margin: 5px 0; font-size: 0.9rem;'>{st.session_state.user_data['nome']}</p>
             <p style='margin: 0; font-size: 0.8rem;'>{st.session_state.user_data['departamento']}</p>
         </div>
         """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.subheader(f"🎨 {get_text('theme_customization')}")
+        st.subheader("🎨 Personalizar Tema")
         
         # Seletor de cor principal
-        base_color = st.color_picker("Escolha a cor principal do tema:", '#00BFFF', key='theme_color_picker')
+        base_color = st.color_picker("Escolha a cor principal do tema:", '#00bcd4', key='theme_color_picker')
         
         # Preview do tema
         st.markdown('<div class="theme-preview"></div>', unsafe_allow_html=True)
@@ -1072,9 +767,9 @@ def show_main_app():
             st.rerun()
         
         st.markdown("---")
-        st.subheader(f"📸 {get_text('logo_upload')}")
+        st.subheader("📸 Logotipo para Relatório")
         
-        uploaded_logo = st.file_uploader("", type=["png", "jpg", "jpeg"], key="logo_uploader")
+        uploaded_logo = st.file_uploader("Envie um logotipo", type=["png", "jpg", "jpeg"], key="logo_uploader")
         
         if uploaded_logo:
             st.session_state.logo_image = uploaded_logo.read()
@@ -1096,15 +791,15 @@ def show_main_app():
         st.markdown("---")
         st.markdown(f"""
         <div class='upload-info'>
-            <h4>&#128193; {get_text('upload_info_title')}</h4>
-            <p>&#8226; {get_text('file_limit_label')}: <strong>{UPLOAD_LIMITS['max_files']} {get_text('file_upload_button').lower()}</strong></p>
-            <p>&#8226; {get_text('file_size_label')}: <strong>{UPLOAD_LIMITS['max_size_mb']}MB {get_text('file_upload_button').lower()}</strong></p>
-            <p>&#8226; {get_text('file_format_label')}: <strong>.dcm, .DCM</strong></p>
+            <h4>&#128193; Upload de Exames</h4>
+            <p>&#8226; Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
+            <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
+            <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
         uploaded_files = st.file_uploader(
-            get_text('file_upload_label'),
+            "Selecione os arquivos DICOM",
             type=['dcm', 'DCM'],
             accept_multiple_files=True,
             help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
@@ -1126,7 +821,7 @@ def show_main_app():
                     """, unsafe_allow_html=True)
 
     if uploaded_files:
-        selected_file = st.selectbox(get_text('select_exam'), [f.name for f in uploaded_files])
+        selected_file = st.selectbox("Selecione o exame para análise:", [f.name for f in uploaded_files])
         dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
         
         if dicom_file:
@@ -1154,14 +849,7 @@ def show_main_app():
                         'study_date': safe_dicom_value(getattr(dataset, 'StudyDate', 'N/A'))
                     }
                     
-                    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-                        f"🔬 {get_text('visualizer_tab')}",
-                        f"📊 {get_text('stats_tab')}",
-                        f"👤 {get_text('patient_data_tab')}",
-                        f"⚙️ {get_text('tech_info_tab')}",
-                        f"📊 {get_text('analysis_tab')}",
-                        f"📚 {get_text('ai_tab')}"
-                    ])
+                    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🔬 Visualização", "📊 Estatísticas", "👤 Identificação", "⚙️ Técnico", "📊 Análise", "📚 IA & RA-Index"])
                     
                     report_data = {}
                     image_for_report = None
@@ -1219,14 +907,14 @@ def show_main_app():
                     
                     with tab3:
                         st.markdown('<div class="card patient-card">', unsafe_allow_html=True)
-                        st.subheader(f"👤 {get_text('patient_info_title')}")
+                        st.subheader("👤 Dados de Identificação")
                         patient_info = {
-                            get_text('patient_name'): safe_dicom_value(getattr(dataset, 'PatientName', 'N/A')),
-                            get_text('patient_id'): safe_dicom_value(getattr(dataset, 'PatientID', 'N/A')),
-                            get_text('patient_age'): safe_dicom_value(getattr(dataset, 'PatientAge', 'N/A')),
-                            get_text('patient_sex'): safe_dicom_value(getattr(dataset, 'PatientSex', 'N/A')),
-                            get_text('study_date'): safe_dicom_value(getattr(dataset, 'StudyDate', 'N/A')),
-                            get_text('institution'): safe_dicom_value(getattr(dataset, 'InstitutionName', 'N/A'))
+                            'Nome': safe_dicom_value(getattr(dataset, 'PatientName', 'N/A')),
+                            'ID': safe_dicom_value(getattr(dataset, 'PatientID', 'N/A')),
+                            'Idade': safe_dicom_value(getattr(dataset, 'PatientAge', 'N/A')),
+                            'Sexo': safe_dicom_value(getattr(dataset, 'PatientSex', 'N/A')),
+                            'Data do Estudo': safe_dicom_value(getattr(dataset, 'StudyDate', 'N/A')),
+                            'Modalidade': safe_dicom_value(getattr(dataset, 'Modality', 'N/A'))
                         }
                         cols = st.columns(2)
                         for i, (key, value) in enumerate(patient_info.items()):
@@ -1241,23 +929,14 @@ def show_main_app():
                     
                     with tab4:
                         st.markdown('<div class="card tech-card">', unsafe_allow_html=True)
-                        st.subheader(f"⚙️ {get_text('tech_info_title')}")
-                        
-                        # Dicionário de informações técnicas completas
+                        st.subheader("⚙️ Informações Técnicas")
                         tech_info = {
-                            get_text('modality'): safe_dicom_value(getattr(dataset, 'Modality', 'N/A')),
-                            get_text('pixel_size'): f"{safe_dicom_value(getattr(dataset, 'Rows', 'N/A'))} × {safe_dicom_value(getattr(dataset, 'Columns', 'N/A'))}",
-                            get_text('slice_thickness'): safe_dicom_value(getattr(dataset, 'SliceThickness', 'N/A')),
-                            get_text('window_center'): safe_dicom_value(getattr(dataset, 'WindowCenter', 'N/A')),
-                            get_text('window_width'): safe_dicom_value(getattr(dataset, 'WindowWidth', 'N/A')),
-                            get_text('tube_voltage'): safe_dicom_value(getattr(dataset, 'KVP', 'N/A')),
-                            get_text('tube_current'): safe_dicom_value(getattr(dataset, 'ExposureInmAs', 'N/A')),
-                            get_text('exposure_time'): safe_dicom_value(getattr(dataset, 'ExposureTime', 'N/A')),
-                            get_text('pixel_calibration'): safe_dicom_value(getattr(dataset, 'PixelSpacing', 'N/A')),
-                            get_text('bits_per_pixel'): safe_dicom_value(getattr(dataset, 'BitsAllocated', 'N/A')),
+                            'Modalidade': safe_dicom_value(getattr(dataset, 'Modality', 'N/A')),
+                            'Tamanho': f"{safe_dicom_value(getattr(dataset, 'Rows', 'N/A'))} × {safe_dicom_value(getattr(dataset, 'Columns', 'N/A'))}",
+                            'Bits por Pixel': safe_dicom_value(getattr(dataset, 'BitsAllocated', 'N/A')),
+                            'Janela Central': safe_dicom_value(getattr(dataset, 'WindowCenter', 'N/A')),
+                            'Largura da Janela': safe_dicom_value(getattr(dataset, 'WindowWidth', 'N/A'))
                         }
-                        
-                        # Exibir as informações em 2 colunas para melhor organização
                         cols = st.columns(2)
                         for i, (key, value) in enumerate(tech_info.items()):
                             with cols[i % 2]:
@@ -1267,19 +946,18 @@ def show_main_app():
                                     <span class='metric-value'>{value}</span>
                                 </div>
                                 """, unsafe_allow_html=True)
-                                
                         st.markdown('</div>', unsafe_allow_html=True)
                     
                     with tab5:
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
                             report_data = {
-                                get_text('dimensions'): f"{image.shape[0]} × {image.shape[1]}",
-                                get_text('min_intensity'): int(np.min(image)),
-                                get_text('max_intensity'): int(np.max(image)),
-                                get_text('mean_intensity'): f"{np.mean(image):.2f}",
-                                get_text('std_deviation'): f"{np.std(image):.2f}",
-                                get_text('total_pixels'): f"{image.size:,}"
+                                'dimensoes': f"{image.shape[0]} × {image.shape[1]}",
+                                'min_intensity': int(np.min(image)),
+                                'max_intensity': int(np.max(image)),
+                                'media': f"{np.mean(image):.2f}",
+                                'desvio_padrao': f"{np.std(image):.2f}",
+                                'total_pixels': f"{image.size:,}"
                             }
                             
                             ra_index_data = generate_ra_index_data(report_data)
@@ -1287,14 +965,14 @@ def show_main_app():
 
                             col1, col2 = st.columns(2)
                             with col1:
-                                if st.button(f"📧 {get_text('send_email')}", help="Envia relatório completo para wenndell.luz@gmail.com"):
+                                if st.button("📧 Enviar Relatório por Email", help="Envia relatório completo para wenndell.luz@gmail.com"):
                                     if send_email_report(st.session_state.user_data, dicom_data, image_for_report, report_data, ra_index_data, ai_prediction, ai_report):
                                         st.success("✅ Relatório enviado para wenndell.luz@gmail.com")
                             with col2:
                                 pdf_report = create_pdf_report(st.session_state.user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report)
                                 if pdf_report:
                                     st.download_button(
-                                        label=f"📄 {get_text('download_pdf')}",
+                                        label="📄 Baixar Relatório PDF",
                                         data=pdf_report,
                                         file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
                                         mime="application/pdf",
@@ -1314,12 +992,12 @@ def show_main_app():
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
                             report_data = {
-                                get_text('dimensions'): f"{image.shape[0]} × {image.shape[1]}",
-                                get_text('min_intensity'): int(np.min(image)),
-                                get_text('max_intensity'): int(np.max(image)),
-                                get_text('mean_intensity'): f"{np.mean(image):.2f}",
-                                get_text('std_deviation'): f"{np.std(image):.2f}",
-                                get_text('total_pixels'): f"{image.size:,}"
+                                'dimensoes': f"{image.shape[0]} × {image.shape[1]}",
+                                'min_intensity': int(np.min(image)),
+                                'max_intensity': int(np.max(image)),
+                                'media': f"{np.mean(image):.2f}",
+                                'desvio_padrao': f"{np.std(image):.2f}",
+                                'total_pixels': f"{image.size:,}"
                             }
                             ra_index_data = generate_ra_index_data(report_data)
                             ai_prediction, ai_accuracy, ai_report = get_ai_prediction(image)
@@ -1359,3 +1037,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
