@@ -969,7 +969,15 @@ def show_main_app():
                         show_ra_index_section(ra_index_data, ai_prediction, ai_report)
                     else:
                          st.warning("⚠️ Arquivo DICOM não contém dados de imagem")
-
+            except Exception as e:
+                st.error(f"Erro ao processar arquivo DICOM: {e}")
+                log_security_event("DICOM_PROCESSING_ERROR", f"Erro: {e}")
+            finally:
+                if tmp_path and os.path.exists(tmp_path):
+                    try:
+                        os.unlink(tmp_path)
+                    except:
+                        pass
 
 def show_user_form():
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
