@@ -24,8 +24,6 @@ from reportlab.lib.utils import ImageReader
 import socket
 from scipy.ndimage import filters
 from skimage import exposure
-
-# Novos imports para a funcionalidade de IA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
@@ -239,9 +237,7 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
         return False
 
-# ----- Funções de IA adicionadas -----
 def extract_features(image):
-    """Extrai features simples da imagem para o modelo de IA."""
     try:
         return [
             np.mean(image),
@@ -257,7 +253,6 @@ def extract_features(image):
         return [0] * 8
 
 def get_ai_prediction(image):
-    """Carrega o modelo de IA e faz uma previsão."""
     try:
         if not os.path.exists(MODEL_PATH) or not os.path.exists(ENCODER_PATH):
             st.warning("⚠️ Modelo de IA não encontrado. A previsão não será executada. Por favor, treine o modelo.")
@@ -287,10 +282,6 @@ def get_ai_prediction(image):
         return "Erro", "N/A", {}
 
 def generate_ra_index_data(image_stats):
-    """
-    Gera dados sintéticos de correlação para o RA-Index baseados nas estatísticas da imagem.
-    Simula um aumento de gases com o tempo post-mortem.
-    """
     try:
         std_dev = float(image_stats['desvio_padrao'])
         
