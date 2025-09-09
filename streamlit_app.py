@@ -587,7 +587,7 @@ def show_ra_index_section():
         3. **Interpretação radiológica**: Considerar o estado de alteração no diagnóstico por imagem
         """)
     
-    # Calculadora do RA-Index (se o usuário quiser calcular)
+        # Calculadora do RA-Index (se o usuário quiser calcular)
     st.markdown("### 📊 Calculadora do RA-Index")
     st.info("Use esta calculadora para determinar o RA-Index com base nos achados de imagem")
     
@@ -654,7 +654,7 @@ def show_ra_index_section():
         </div>
         """, unsafe_allow_html=True)
         
-        # Recomendações - AGORA DENTRO DO BLOCO DO BOTÃO
+        # Recomendações - APENAS DENTRO DO BLOCO DO BOTÃO
         if total_score >= 50:
             st.warning("""
             **Recomendações:**
@@ -662,15 +662,7 @@ def show_ra_index_section():
             - Interpretar achados radiológicos com cautela
             - Limitar procedimentos diagnósticos adicionais
             """)
-        
-# Recomendações
-if total_score >= 50:
-    st.warning("""
-    **Recomendações:**
-    - Considerar análise de composição gasosa (cromatografia gasosa)
-    - Interpretar achados radiológicos com cautela
-    - Limitar procedimentos diagnósticos adicionais
-    """)
+            
     """Aplicativo principal após autenticação"""
     # Registrar acesso
     log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
