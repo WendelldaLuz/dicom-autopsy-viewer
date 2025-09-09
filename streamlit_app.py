@@ -1310,14 +1310,15 @@ def show_main_app():
                         'study_date': safe_dicom_value(dataset, 'StudyDate')
                     }
                     
-                    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-                        f"<i class='fa-solid fa-eye'></i> {get_text('visualizer_tab')}",
-                        f"<i class='fa-solid fa-chart-bar'></i> {get_text('stats_tab')}",
-                        f"<i class='fa-solid fa-user'></i> {get_text('patient_data_tab')}",
-                        f"<i class='fa-solid fa-gears'></i> {get_text('tech_info_tab')}",
-                        f"<i class='fa-solid fa-chart-line'></i> {get_text('analysis_tab')}",
-                        f"<i class='fa-solid fa-brain'></i> {get_text('ai_tab')}"
-                    ], unsafe_allow_html=True)
+# Cria as abas sem HTML
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    f"👁️ {get_text('visualizer_tab')}",
+    f"📊 {get_text('stats_tab')}",
+    f"👤 {get_text('patient_data_tab')}",
+    f"⚙️ {get_text('tech_info_tab')}",
+    f"📈 {get_text('analysis_tab')}",
+    f"🤖 {get_text('ai_tab')}"
+])
                     
                     report_data = {}
                     image_for_report = None
