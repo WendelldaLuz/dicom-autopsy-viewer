@@ -785,6 +785,8 @@ def show_main_app():
 
 corrija a linha 791: st.markdown("---")
 
+st.markdown("---")
+
     with st.sidebar:
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, #1a237e, #283593); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
@@ -799,9 +801,9 @@ corrija a linha 791: st.markdown("---")
         st.markdown(f"""
         <div class='upload-info'>
             <h4>&#128193; Upload de Exames</h4>
-            <p>• Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
-            <p>• Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
-            <p>• Formato: <strong>.dcm, .DCM</strong></p>
+            <p>&#8226; Limite: <strong>{UPLOAD_LIMITS['max_files']} arquivos</strong></p>
+            <p>&#8226; Tamanho: <strong>{UPLOAD_LIMITS['max_size_mb']}MB por arquivo</strong></p>
+            <p>&#8226; Formato: <strong>.dcm, .DCM</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
