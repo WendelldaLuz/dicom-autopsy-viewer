@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
 import logging
-import logging
 import pydicom
 import numpy as np
 from PIL import Image
@@ -11,6 +10,20 @@ import pandas as pd
 from scipy import ndimage
 from skimage import exposure, filters
 import plotly.express as px
+import plotly.graph_objects as go
+import tempfile
+import os
+import json
+from datetime import datetime
+from io import BytesIO
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.application import MIMEApplication
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+import socket
 
 # Configuração inicial da página
 st.set_page_config(
@@ -20,11 +33,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Verificação de imports
-try:
-    st.success("✅ Todas as dependências foram carregadas com sucesso!")
-except Exception as e:
-    st.error(f"❌ Erro ao carregar dependências: {e}")
+# CORREÇÃO: Removido o bloco try/except inútil, pois a verificação de imports já foi feita
+# pela própria importação no início do script.
+st.success("✅ Todas as dependências foram carregadas com sucesso!")
+
 # CSS personalizado - Tema autópsia virtual
 st.markdown("""
 <style>
@@ -51,6 +63,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# CORREÇÃO: Configuração de variáveis globais que estavam faltando
+DB_PATH = "feedback_database.db"
+
+UPLOAD_LIMITS = {
+    'max_files': 5,
+    'max_size_mb': 500
+}
+
+EMAIL_CONFIG = {
+    'sender': 'seu-email@gmail.com',  # SUBSTITUA PELO SEU EMAIL
+    'password': 'sua-senha-de-app',  # SUBSTITUA PELA SENHA DE APP DO GOOGLE
+    'smtp_server': 'smtp.gmail.com',
+    'smtp_port': 587
+}
+
 # Configuração do banco de dados para feedback
 DB_PATH = "feedback_database.db"
 
@@ -76,10 +103,6 @@ def check_dependencies():
             missing.append(dep)
     
     return missing
-
-import sqlite3
-import logging
-from datetime import datetime
 
 # Configure o logging básico
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -148,7 +171,7 @@ def log_security_event(event_type, details):
         c = conn.cursor()
         c.execute('''INSERT INTO security_logs (event_type, user_ip, user_agent, details)
                      VALUES (?, ?, ?, ?)''', 
-                 (event_type, user_ip, user_agent, details))
+                   (event_type, user_ip, user_agent, details))
         conn.commit()
         conn.close()
         
@@ -170,7 +193,7 @@ def log_access(user, action, resource, details=""):
         c = conn.cursor()
         c.execute('''INSERT INTO access_logs (timestamp, user, action, resource, details)
                      VALUES (?, ?, ?, ?, ?)''', 
-                 (timestamp, user, action, resource, details))
+                   (timestamp, user, action, resource, details))
         conn.commit()
         conn.close()
         
@@ -301,7 +324,7 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         c = conn.cursor()
         c.execute('''INSERT INTO feedback (user_email, feedback_text, rating, report_data)
                      VALUES (?, ?, ?, ?)''', 
-                 (user_email, feedback_text, rating, json.dumps(report_data)))
+                   (user_email, feedback_text, rating, json.dumps(report_data)))
         conn.commit()
         conn.close()
         return True
@@ -456,9 +479,6 @@ def create_advanced_histogram(image):
 
 def create_pdf_report(user_data, dicom_data, report_data):
     """Cria relatório em PDF"""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from io import BytesIO
     
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -495,9 +515,9 @@ def create_pdf_report(user_data, dicom_data, report_data):
     c.drawString(50, 520, f"Dimensões: {report_data.get('dimensoes', 'N/A')}")
     c.drawString(50, 505, f"Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}")
     c.drawString(50, 490, f"Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}")
-    c.drawString(50, 475, f"Média: {report_data.get('media', 'N/A')}")
-    c.drawString(50, 460, f"Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}")
-    c.drawString(50, 445, f"Total de Pixels: {report_data.get('total_pixels', 'N/A')}")
+    c.drawString(50, 475, f"Média: {np.mean(image):.2f}")
+    c.drawString(50, 460, f"Desvio Padrão: {np.std(image):.2f}")
+    c.drawString(50, 445, f"Total de Pixels: {image.size:,}")
     
     c.save()
     buffer.seek(0)
@@ -558,11 +578,9 @@ def show_ra_index_section():
         st.markdown("""
         ### Desenvolvimento e validação de um índice de alteração radiológica post-mortem: o RA-Index
         
-        **Revista Brasileira de Direito (2012) 126:559–566**  
-        DOI: 10.1007/s00414-012-0686-6
+        **Revista Brasileira de Direito (2012) 126:559–566** DOI: 10.1007/s00414-012-0686-6
         
-        **Autores:**  
-        C. Egger, P. Vaucher, F. Doenz, C. Palmiere, P. Mangin, S. Grabherr
+        **Autores:** C. Egger, P. Vaucher, F. Doenz, C. Palmiere, P. Mangin, S. Grabherr
         
         **Recebido:** 11 de outubro de 2011  
         **Aceito:** 21 de fevereiro de 2012  
@@ -690,6 +708,7 @@ def show_ra_index_section():
             - Interpretar achados radiológicos com cautela
             - Limitar procedimentos diagnósticos adicionais
             """)
+def show_main_app():
     """Aplicativo principal após autenticação"""
     # Registrar acesso
     log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
@@ -699,17 +718,16 @@ def show_ra_index_section():
         st.markdown('<h1 class="main-header">🔬 DICOM Autopsy Viewer</h1>', unsafe_allow_html=True)
     with col3:
         st.markdown(f'<div style="background: #333; padding: 10px; border-radius: 8px; text-align: center;">'
-                   f'<span style="color: #00bcd4;">👤 {st.session_state.user_data["nome"]}</span><br>'
-                   f'<span style="color: #b0b0b0; font-size: 0.8rem;">{st.session_state.user_data["departamento"]}</span>'
-                   f'</div>', unsafe_allow_html=True)
-        
+                    f'<span style="color: #00bcd4;">👤 {st.session_state.user_data["nome"]}</span><br>'
+                    f'<span style="color: #b0b0b0; font-size: 0.8rem;">{st.session_state.user_data["departamento"]}</span>'
+                    f'</div>', unsafe_allow_html=True)
+    
         if st.button("🚪 Sair"):
             log_access(st.session_state.user_data['nome'], "LOGOUT", "SYSTEM_ACCESS")
             st.session_state.authenticated = False
             st.session_state.user_data = {}
             st.rerun()
 
-    # CORREÇÃO: Removidas as linhas duplicadas de st.markdown("---")
     st.markdown("---")
 
     with st.sidebar:
@@ -923,14 +941,13 @@ def show_ra_index_section():
                         })
                 
                 with tab5:
-                    # CORREÇÃO: Chamar a função show_ra_index_section() que estava faltando
                     show_ra_index_section()
                     
             except Exception as e:
                 error_msg = f"Erro ao processar arquivo: {str(e)}"
                 st.error(f"❌ {error_msg}")
                 log_security_event("PROCESSING_ERROR", error_msg)
-                
+            
             finally:
                 # Limpar arquivo temporário
                 if tmp_path and os.path.exists(tmp_path):
@@ -938,8 +955,34 @@ def show_ra_index_section():
                         os.unlink(tmp_path)
                     except Exception as e:
                         log_security_event("CLEANUP_ERROR", f"Erro ao limpar arquivo temporário: {e}")
-        else:
-            show_dashboard()
+
+# CORREÇÃO: Nova função show_login_page()
+def show_login_page():
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    st.header("🔐 Acesso Restrito")
+    st.warning("Para continuar, por favor, faça o login.")
+    st.info("Para este exemplo, use 'admin' como nome e '1234' como senha.")
+    
+    with st.form("login_form"):
+        username = st.text_input("Nome de Usuário:")
+        password = st.text_input("Senha:", type="password")
+        
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            if username == "admin" and password == "1234":
+                st.session_state.authenticated = True
+                st.session_state.user_data = {
+                    'nome': 'Admin',
+                    'departamento': 'TI',
+                    'email': 'admin@autopsyviewer.com',
+                    'contato': 'N/A'
+                }
+                st.success("✅ Login bem-sucedido!")
+                st.rerun()
+            else:
+                st.error("❌ Usuário ou senha incorretos.")
+                
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def main():
     """Função principal"""
@@ -976,5 +1019,5 @@ if __name__ == "__main__":
     if not db_initialized:
         st.warning("⚠️ Modo offline ativado - Alguns recursos podem não estar disponíveis")
     
-    # Resto do seu código principal...
+    # CORREÇÃO: A chamada para a função main() foi adicionada aqui
     main()
