@@ -24,6 +24,9 @@ from reportlab.lib.utils import ImageReader
 import socket
 from scipy.ndimage import filters
 from skimage import exposure
+import base64
+
+# Novos imports para a funcionalidade de IA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
@@ -248,6 +251,7 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
         return False
 
+# ----- Funções de IA adicionadas -----
 def extract_features(image):
     try:
         return [
