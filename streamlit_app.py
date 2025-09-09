@@ -1037,4 +1037,3 @@ if __name__ == "__main__":
     db_initialized = safe_init_database()
     if not db_initialized: st.warning("⚠️ Modo offline ativado - Alguns recursos podem não estar disponíveis")
     main()
-```
