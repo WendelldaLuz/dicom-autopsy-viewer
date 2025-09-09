@@ -237,6 +237,7 @@ def save_feedback(user_email, feedback_text, rating, report_data):
         log_security_event("FEEDBACK_ERROR", f"Erro ao salvar feedback: {e}")
         return False
 
+# ----- Funções de IA adicionadas -----
 def extract_features(image):
     try:
         return [
