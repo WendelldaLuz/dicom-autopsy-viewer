@@ -1,39 +1,15 @@
-import os
 import streamlit as st
 import pydicom
 import numpy as np
-import matplotlib.pyplot as plt
-import tempfile
-import warnings
-import smtplib
-import socket
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.application import MIMEApplication
-import pandas as pd
-from datetime import datetime
-from io import BytesIO
-import plotly.graph_objects as go
-import plotly.express as px
-import json
-import sqlite3
 from PIL import Image
-import logging
+import matplotlib.pyplot as plt
+import cv2
+import pandas as pd
+from scipy import ndimage
+from skimage import exposure, filters
+import plotly.express as px
 
-# Configurações de email (sem dotenv)
-EMAIL_CONFIG = {
-    'sender': os.environ.get('EMAIL_SENDER', ''),
-    'password': os.environ.get('EMAIL_PASSWORD', ''),
-    'smtp_server': os.environ.get('SMTP_SERVER', 'smtp.gmail.com'),
-    'smtp_port': int(os.environ.get('SMTP_PORT', 587))
-}
-
-# Suprimir warnings
-warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
-warnings.filterwarnings("ignore", category=UserWarning)
-
-# Configuração da página
+# Configuração inicial da página
 st.set_page_config(
     page_title="DICOM Autopsy Viewer",
     page_icon="🔬",
@@ -41,6 +17,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Verificação de imports
+try:
+    st.success("✅ Todas as dependências foram carregadas com sucesso!")
+except Exception as e:
+    st.error(f"❌ Erro ao carregar dependências: {e}")
 # CSS personalizado - Tema autópsia virtual
 st.markdown("""
 <style>
