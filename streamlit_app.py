@@ -1,9 +1,9 @@
-from dotenv import load_dotenv
+# REMOVA COMPLETAMENTE O DOTENV E USE OS.ENVIRON DIRETAMENTE
+import os
 import streamlit as st
 import pydicom
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 import tempfile
 import warnings
 import smtplib
@@ -22,21 +22,7 @@ import sqlite3
 from PIL import Image
 import logging
 
-# Carregar variáveis de ambiente
-load_dotenv()
-
-# Configurar logging de segurança
-logging.basicConfig(
-    filename='security.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-# Suprimir warnings
-warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
-warnings.filterwarnings("ignore", category=UserWarning)
-
-# Configurações de email (usando variáveis de ambiente)
+# Configurações de email (sem dotenv)
 EMAIL_CONFIG = {
     'sender': os.environ.get('EMAIL_SENDER', ''),
     'password': os.environ.get('EMAIL_PASSWORD', ''),
@@ -44,12 +30,9 @@ EMAIL_CONFIG = {
     'smtp_port': int(os.environ.get('SMTP_PORT', 587))
 }
 
-# Limite de rate limiting
-UPLOAD_LIMITS = {
-    'max_files': 10,
-    'max_size_mb': 2000,
-    'max_uploads_per_hour': 5
-}
+# Suprimir warnings
+warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # Configuração da página
 st.set_page_config(
