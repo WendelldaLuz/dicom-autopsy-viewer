@@ -342,6 +342,17 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
 
         y_pos = 800
         
+        # Adicionar imagem ao PDF (se existir)
+        if image_for_report:
+            try:
+                img_buffer = BytesIO()
+                image_for_report.save(img_buffer, format='PNG')
+                img_buffer.seek(0)
+                img_reader = ImageReader(img_buffer)
+                c.drawImage(img_reader, 50, 520, width=200, height=200, preserveAspectRatio=True)
+            except Exception as e:
+                logging.error(f"Erro ao adicionar imagem no PDF: {e}")
+
         # Cabeçalho e dados do analista
         draw_text("RELATÓRIO DE ANÁLISE FORENSE DIGITAL", 50, y_pos, "Helvetica", 16, True)
         draw_text(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", 50, y_pos - 15, "Helvetica", 10)
@@ -913,13 +924,16 @@ def show_main_app():
                                     log_security_event("USER_NOTIFIED", "Usuário informado sobre envio de cópia")
                         with col2:
                             pdf_report = create_pdf_report(st.session_state.user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report)
-                            st.download_button(
-                                label="📄 Baixar Relatório PDF",
-                                data=pdf_report,
-                                file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
-                                mime="application/pdf",
-                                help="Baixe relatório completo em PDF"
-                            )
+                            if pdf_report:
+                                st.download_button(
+                                    label="📄 Baixar Relatório PDF",
+                                    data=pdf_report,
+                                    file_name=f"relatorio_{selected_file.split('.')[0]}.pdf",
+                                    mime="application/pdf",
+                                    help="Baixe relatório completo em PDF"
+                                )
+                            else:
+                                st.error("❌ Não foi possível gerar o relatório PDF.")
                         
                         show_feedback_section({
                             'dicom_data': dicom_data, 'report_data': report_data,
