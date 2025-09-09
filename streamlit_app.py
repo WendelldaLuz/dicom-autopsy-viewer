@@ -587,24 +587,25 @@ def show_ra_index_section():
         3. **Interpretação radiológica**: Considerar o estado de alteração no diagnóstico por imagem
         """)
     
-        # Calculadora do RA-Index (se o usuário quiser calcular)
+    # Calculadora do RA-Index (se o usuário quiser calcular)
     st.markdown("### 📊 Calculadora do RA-Index")
     st.info("Use esta calculadora para determinar o RA-Index com base nos achados de imagem")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        cardiac = st.selectbox("Cavidades Cardíacas", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nas 4 cavidades do coração")
-        hepatic = st.selectbox("Parênquima Hepático", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás no fígado e vasos hepáticos")
-        vein = st.selectbox("Veia Inominada Esquerda", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na veia inominada esquerda")
-        aorta = st.selectbox("Aorta Abdominal", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na aorta abdominal")
+        cardiac = st.selectbox("Cavidades Cardíacas", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nas 4 cavidades do coração", key="cardiac_ra")
+        hepatic = st.selectbox("Parênquima Hepático", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás no fígado e vasos hepáticos", key="hepatic_ra")
+        vein = st.selectbox("Veia Inominada Esquerda", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na veia inominada esquerda", key="vein_ra")
+        aorta = st.selectbox("Aorta Abdominal", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na aorta abdominal", key="aorta_ra")
     
     with col2:
-        renal = st.selectbox("Parênquima Renal", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos rins")
-        vertebra = st.selectbox("Vértebra L3", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na terceira vértebra lombar")
-        subcutaneous = st.selectbox("Tecidos Subcutâneos", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos tecidos subcutâneos peitorais")
+        renal = st.selectbox("Parênquima Renal", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos rins", key="renal_ra")
+        vertebra = st.selectbox("Vértebra L3", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás na terceira vértebra lombar", key="vertebra_ra")
+        subcutaneous = st.selectbox("Tecidos Subcutâneos", ["Grau 0", "Grau I", "Grau II", "Grau III"], help="Presença de gás nos tecidos subcutâneos peitorais", key="subcutaneous_ra")
     
-    if st.button("Calcular RA-Index"):
+    # Botão para calcular
+    if st.button("Calcular RA-Index", key="calc_ra_button"):
         # Mapeamento de valores
         scores = {
             "Grau 0": 0,
@@ -662,7 +663,6 @@ def show_ra_index_section():
             - Interpretar achados radiológicos com cautela
             - Limitar procedimentos diagnósticos adicionais
             """)
-            
     """Aplicativo principal após autenticação"""
     # Registrar acesso
     log_access(st.session_state.user_data['nome'], "LOGIN", "MAIN_APP")
