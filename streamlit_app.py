@@ -831,22 +831,35 @@ def show_feedback_section(report_data):
     st.subheader("💬 Feedback do Relatório")
     
     if not st.session_state.get('feedback_submitted', False):
+        # Primeiro, mostrar as estrelas para seleção (fora do formulário)
+        st.write("**Avalie a sua experiência:**")
+        
+        rating_cols = st.columns(5)
+        current_rating = st.session_state.get('rating', 0)
+        
+        for i in range(1, 6):
+            with rating_cols[i-1]:
+                if st.button(
+                    f'{"⭐" if i <= current_rating else "☆"}', 
+                    key=f'star_btn_{i}',
+                    help=f'{i} estrela(s)',
+                    use_container_width=True
+                ):
+                    st.session_state.rating = i
+                    st.rerun()
+        
+        # Mostrar a avaliação selecionada
+        if st.session_state.get('rating', 0) > 0:
+            st.markdown(f"**Você selecionou:** {st.session_state.rating} estrela(s)")
+        
+        # Agora o formulário para o comentário e envio
         with st.form("feedback_form"):
-            st.write("**Avalie a sua experiência:**")
+            feedback_text = st.text_area(
+                "Comentários ou sugestões:", 
+                placeholder="O que achou do relatório? Como podemos melhorar?"
+            )
             
-            # Sistema de estrelas interativo
-            rating_cols = st.columns(5)
-            
-            for i in range(1, 6):
-                with rating_cols[i-1]:
-                    if st.button(f'⭐', key=f'star_{i}', help=f'{i} estrela(s)', use_container_width=True):
-                        st.session_state.rating = i
-            
-            # Mostra a avaliação selecionada
-            if 'rating' in st.session_state and st.session_state.rating > 0:
-                st.markdown(f"**Você selecionou:** {st.session_state.rating} estrela(s)")
-
-            feedback_text = st.text_area("Comentários ou sugestões:", placeholder="O que achou do relatório? Como podemos melhorar?")
+            # Botão de submit dentro do formulário
             submitted = st.form_submit_button("Enviar Feedback")
             
             if submitted:
@@ -864,10 +877,12 @@ def show_feedback_section(report_data):
                     if send_email_report(st.session_state.user_data, {}, {}, {}, {}, "", {}):
                         st.session_state.feedback_submitted = True
                         st.success("✅ Feedback enviado com sucesso! Obrigado por contribuir com a melhoria do sistema.")
+                        st.rerun()
                     else:
                         st.error("❌ Erro ao enviar feedback.")
     else:
         st.success("📝 Obrigado pelo seu feedback! Sua contribuição ajuda a melhorar o sistema.")
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_ra_index_section(ra_index_data, ai_prediction, ai_report):
