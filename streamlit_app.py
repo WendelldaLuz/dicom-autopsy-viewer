@@ -1,4 +1,3 @@
-# REMOVA COMPLETAMENTE O DOTENV E USE OS.ENVIRON DIRETAMENTE
 import os
 import streamlit as st
 import pydicom
@@ -655,7 +654,7 @@ def show_ra_index_section():
         </div>
         """, unsafe_allow_html=True)
         
-        # Recomendações (AGORA DENTRO DO BOTÃO)
+        # Recomendações - AGORA DENTRO DO BLOCO DO BOTÃO
         if total_score >= 50:
             st.warning("""
             **Recomendações:**
