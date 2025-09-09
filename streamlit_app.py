@@ -740,8 +740,7 @@ def show_user_form():
 
 def show_main_app():
     st.title("🔬 DICOM Autopsy Viewer")
-    st.success("✅ Todas as dependências foram carregadas com sucesso!")
-
+   
     with st.sidebar:
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, {st.session_state.color_theme['primary']}, {st.session_state.color_theme['secondary']}); padding: 15px; border-radius: 10px; color: white; text-align: center;'>
