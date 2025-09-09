@@ -610,7 +610,6 @@ def show_feedback_section(report_data):
     
     if not st.session_state.get('feedback_submitted', False):
         with st.form("feedback_form"):
-            st.markdown('<div class="star-rating">⭐⭐⭐⭐⭐</div>', unsafe_allow_html=True)
             rating = st.slider("Avaliação (1-5 estrelas)", 1, 5, 5)
             feedback_text = st.text_area("Comentários ou sugestões:", placeholder="O que achou do relatório? Como podemos melhorar?")
             submitted = st.form_submit_button("📤 Enviar Feedback")
