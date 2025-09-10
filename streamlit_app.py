@@ -404,44 +404,90 @@ def metierlich_gas_absorption_model(time, a, b, c):
     return a * (1 - np.exp(-b * time)) + c * time
 
 def calculate_gas_dispersion_metrics(image):
-    """Calcula 10 inferências quantitativas sobre dispersão de gases"""
+    """Calcula 10 inferências quantitativas sobre dispersão de gases de forma robusta"""
     try:
+        if image is None or image.size == 0:
+            return None
+            
         # 1. Coeficiente de difusão estimado (Fick)
-        gradient = np.gradient(image)
-        mean_gradient = np.mean([np.abs(g).mean() for g in gradient])
-        diffusion_coefficient = mean_gradient * 1e-9  # Valor estimado
+        try:
+            gradient = np.gradient(image)
+            mean_gradient = np.mean([np.abs(g).mean() for g in gradient])
+            diffusion_coefficient = mean_gradient * 1e-9
+        except:
+            diffusion_coefficient = 0
         
         # 2. Anisotropia de difusão
-        gradient_x, gradient_y = np.gradient(image)
-        anisotropy = np.std(gradient_x) / (np.std(gradient_y) + 1e-10)
+        try:
+            gradient_x, gradient_y = np.gradient(image)
+            std_x = np.std(gradient_x) if gradient_x.size > 0 else 1
+            std_y = np.std(gradient_y) if gradient_y.size > 0 else 1
+            anisotropy = std_x / (std_y + 1e-10)
+        except:
+            anisotropy = 1
         
         # 3. Entropia de dispersão
-        hist, _ = np.histogram(image.flatten(), bins=50, density=True)
-        entropy = -np.sum(hist * np.log(hist + 1e-10))
+        try:
+            hist, _ = np.histogram(image.flatten(), bins=min(50, image.size), density=True)
+            entropy = -np.sum(hist * np.log(hist + 1e-10))
+        except:
+            entropy = 0
         
         # 4. Homogeneidade do gás
-        homogeneity = 1 / (1 + np.var(image) / (np.mean(image) + 1e-10))
+        try:
+            mean_val = np.mean(image) if image.size > 0 else 1
+            var_val = np.var(image) if image.size > 0 else 0
+            homogeneity = 1 / (1 + var_val / (mean_val + 1e-10))
+        except:
+            homogeneity = 0.5
         
         # 5. Índice de concentração
-        concentration_index = np.percentile(image, 75) / (np.percentile(image, 25) + 1e-10)
+        try:
+            p75 = np.percentile(image, 75) if image.size > 0 else 1
+            p25 = np.percentile(image, 25) if image.size > 0 else 1
+            concentration_index = p75 / (p25 + 1e-10)
+        except:
+            concentration_index = 1
         
         # 6. Taxa de decaimento espacial
-        center = np.array(image.shape) // 2
-        y, x = np.indices(image.shape)
-        distances = np.sqrt((x - center[1])**2 + (y - center[0])**2)
-        decay_rate = np.polyfit(distances.flatten(), image.flatten(), 1)[0]
+        try:
+            center = np.array(image.shape) // 2
+            y, x = np.indices(image.shape)
+            distances = np.sqrt((x - center[1])**2 + (y - center[0])**2)
+            if distances.size > 0 and image.size > 0:
+                decay_rate = np.polyfit(distances.flatten(), image.flatten(), 1)[0]
+            else:
+                decay_rate = 0
+        except:
+            decay_rate = 0
         
         # 7. Assimetria de distribuição
-        skewness = stats.skew(image.flatten())
+        try:
+            skewness = stats.skew(image.flatten()) if image.size > 0 else 0
+        except:
+            skewness = 0
         
         # 8. Curtose da distribuição
-        kurtosis = stats.kurtosis(image.flatten())
+        try:
+            kurtosis = stats.kurtosis(image.flatten()) if image.size > 0 else 0
+        except:
+            kurtosis = 0
         
         # 9. Razão sinal-ruído para gases
-        snr_gas = np.mean(image) / (np.std(image) + 1e-10)
+        try:
+            mean_val = np.mean(image) if image.size > 0 else 1
+            std_val = np.std(image) if image.size > 0 else 1
+            snr_gas = mean_val / (std_val + 1e-10)
+        except:
+            snr_gas = 1
         
         # 10. Índice de heterogeneidade
-        heterogeneity = np.std(image) / np.mean(image)
+        try:
+            mean_val = np.mean(image) if image.size > 0 else 1
+            std_val = np.std(image) if image.size > 0 else 0
+            heterogeneity = std_val / (mean_val + 1e-10)
+        except:
+            heterogeneity = 0
         
         return {
             'coeficiente_difusao': diffusion_coefficient,
@@ -456,7 +502,7 @@ def calculate_gas_dispersion_metrics(image):
             'indice_heterogeneidade': heterogeneity
         }
     except Exception as e:
-        logging.error(f"Erro ao calcular métricas de dispersão de gases: {e}")
+        logging.error(f"Erro crítico ao calcular métricas de dispersão de gases: {e}")
         return None
 
 def generate_ra_index_data(image_stats, gas_metrics):
