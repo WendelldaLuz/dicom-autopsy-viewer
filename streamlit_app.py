@@ -13,14 +13,7 @@ import os
 import json
 from datetime import datetime
 from io import BytesIO
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.application import MIMEApplication
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
+import math
 import socket
 import base64
 import colorsys
@@ -58,18 +51,14 @@ if 'rating' not in st.session_state:
     st.session_state.rating = 0
 if 'learning_data' not in st.session_state:
     st.session_state.learning_data = []
+if 'logo_image' not in st.session_state:
+    st.session_state.logo_image = None
 
 # Definições globais
 DB_PATH = "feedback_database.db"
 UPLOAD_LIMITS = {
     'max_files': 5,
     'max_size_mb': 500
-}
-EMAIL_CONFIG = {
-    'sender': 'seu-email@gmail.com',
-    'password': 'sua-senha-de-app',
-    'smtp_server': 'smtp.gmail.com',
-    'smtp_port': 587
 }
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -607,6 +596,7 @@ def create_default_ra_index_data():
         'hybrid_score': 0,
         'gas_metrics': {}
     }
+
 def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report):
     try:
         buffer = BytesIO()
@@ -734,77 +724,6 @@ def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_f
     except Exception as e:
         logging.error(f"Erro ao criar relatório PDF: {e}")
         return None
-
-def send_email_report(user_data, dicom_data, image_data, report_data, ra_index_data, ai_prediction, ai_report):
-    try:
-        if not EMAIL_CONFIG['sender'] or not EMAIL_CONFIG['password']:
-            st.error("Configuração de email não está completa. Contate o administrador.")
-            return False
-        
-        msg = MIMEMultipart()
-        msg['From'] = EMAIL_CONFIG['sender']
-        msg['To'] = 'wenndell.luz@gmail.com'  # Apenas para você
-        msg['Subject'] = f'Relatório de Análise DICOM - {datetime.now().strftime("%d/%m/%Y %H:%M")}'
-        
-        body = f"""
-        RELATÓRIO DE ANÁLISE FORENSE DIGITAL - PRO
-        =================================================
-        
-        DADOS DO ANALISTA:
-        - Nome: {user_data['nome']}
-        - Departamento: {user_data['departamento']}
-        - Email: {user_data['email']}
-        - Contato: {user_data['contato']}
-        - Data da Análise: {datetime.now().strftime("%d/%m/%Y %H:%M")}
-        
-        DADOS DO EXAME:
-        - Arquivo: {dicom_data.get('file_name', 'N/A')}
-        - Tamanho: {dicom_data.get('file_size', 'N/A')}
-        - Paciente: {dicom_data.get('patient_name', 'N/A')}
-        - ID: {dicom_data.get('patient_id', 'N/A')}
-        - Modalidade: {dicom_data.get('modality', 'N/A')}
-        
-        ANÁLISE ESTATÍSTICA:
-        - Dimensões: {report_data.get('dimensoes', 'N/A')}
-        - Intensidade Mínima: {report_data.get('min_intensity', 'N/A')}
-        - Intensidade Máxima: {report_data.get('max_intensity', 'N/A')}
-        - Média: {report_data.get('media', 'N/A')}
-        - Desvio Padrão: {report_data.get('desvio_padrao', 'N/A')}
-        - Total de Pixels: {report_data.get('total_pixels', 'N/A')}
-        
-        ANÁLISE PREDITIVA (MODELO DE IA):
-        - Previsão do Modelo: {ai_prediction}
-        - RA-Index Calculado: {ra_index_data.get('ra_score', 'N/A')}
-        - Interpretação: {ra_index_data.get('interpretation', 'N/A')}
-        - Estimativa Post-Mortem: {ra_index_data.get('post_mortem_estimate', 'N/A')}
-        
-        MÉTRICAS DO MODELO:
-        - Acurácia: {ra_index_data.get('metrics', {}).get('Acuracia', 'N/A')}
-        - Sensibilidade: {ra_index_data.get('metrics', {}).get('Sensibilidade', 'N/A')}
-        - Especificidade: {ra_index_data.get('metrics', {}).get('Especificidade', 'N/A')}
-        """
-        
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # Anexar PDF
-        pdf_buffer = create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_data, ai_prediction, ai_report)
-        if pdf_buffer:
-            attachment = MIMEApplication(pdf_buffer.getvalue(), _subtype="pdf")
-            attachment.add_header('Content-Disposition', 'attachment', filename=f"relatorio_forense_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
-            msg.attach(attachment)
-        
-        # Enviar email
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-        server.starttls()
-        server.login(EMAIL_CONFIG['sender'], EMAIL_CONFIG['password'])
-        server.sendmail(EMAIL_CONFIG['sender'], 'wenndell.luz@gmail.com', msg.as_string())
-        server.quit()
-        
-        return True
-        
-    except Exception as e:
-        st.error(f"Erro ao enviar email: {e}")
-        return False
 
 def create_medical_visualization(image, title):
     fig = go.Figure()
@@ -1433,4 +1352,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
