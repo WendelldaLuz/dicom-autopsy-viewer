@@ -1136,6 +1136,37 @@ def show_learning_loop_section():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
+def format_dicom_date(date_str):
+    """
+    Formata uma data no formato DICOM (YYYYMMDD) para formato legível (DD/MM/YYYY)
+    """
+    if not date_str or not isinstance(date_str, str) or len(date_str) != 8:
+        return date_str
+    try:
+        return f"{date_str[6:8]}/{date_str[4:6]}/{date_str[0:4]}"
+    except:
+        return date_str
+
+def format_dicom_time(time_str):
+    """
+    Formata um horário no formato DICOM (HHMMSS) para formato legível (HH:MM:SS)
+    """
+    if not time_str or not isinstance(time_str, str) or len(time_str) < 6:
+        return time_str
+    try:
+        return f"{time_str[0:2]}:{time_str[2:4]}:{time_str[4:6]}"
+    except:
+        return time_str
+
+def format_patient_sex(sex_code):
+    """
+    Formata o código de sexo do paciente para formato legível
+    """
+    if not sex_code:
+        return "Não especificado"
+    sex_mapping = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro'}
+    return sex_mapping.get(sex_code.upper(), sex_code)
+
 def show_main_app():
     """
     Interface principal do DICOM Autopsy Viewer PRO - Sistema Avançado de Análise Forense de Imagens Médicas
@@ -1244,6 +1275,16 @@ def show_main_app():
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
+        
+        # Adicionando informações do sistema
+        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+        st.markdown("""
+            <div class='system-info'>
+                <h4>🖥️ Informações do Sistema</h4>
+                <p>Versão: 2.1.0</p>
+                <p>Status: <span style='color: green'>●</span> Online</p>
+            </div>
+        """, unsafe_allow_html=True)
 
     # Área principal de análise (apenas se arquivos foram carregados)
     if uploaded_files:
@@ -1604,6 +1645,39 @@ def show_main_app():
                 """
                 st.error(error_msg)
                 logging.error(f"Erro no processamento DICOM: {e}", exc_info=True)
+    else:
+        # Tela inicial quando não há arquivos carregados
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+                <div class='welcome-container'>
+                    <h2>Bem-vindo ao DICOM Autopsy Viewer PRO</h2>
+                    <p>Selecione arquivos DICOM na barra lateral para iniciar a análise</p>
+                    <div class='feature-list'>
+                        <div class='feature-item'>
+                            <span class='feature-icon'>🔍</span>
+                            <div class='feature-text'>
+                                <h4>Análise Avançada de Imagens</h4>
+                                <p>Visualização detalhada com ferramentas de medição</p>
+                            </div>
+                        </div>
+                        <div class='feature-item'>
+                            <span class='feature-icon'>📊</span>
+                            <div class='feature-text'>
+                                <h4>Relatórios Forenses Completos</h4>
+                                <p>Geração automática de laudos periciais</p>
+                            </div>
+                        </div>
+                        <div class='feature-item'>
+                            <span class='feature-icon'>🤖</span>
+                            <div class='feature-text'>
+                                <h4>Inteligência Artificial Integrada</h4>
+                                <p>Análise preditiva com algoritmos de ML</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
 def main():
     """
