@@ -507,15 +507,22 @@ def calculate_gas_dispersion_metrics(image):
 
 def generate_ra_index_data(image_stats, gas_metrics):
     try:
-        std_dev = float(image_stats.get('std_deviation', 0))
+        # Verifica se os parâmetros são válidos
+        if image_stats is None or gas_metrics is None:
+            return create_default_ra_index_data()
         
-        # Usar métricas de gás para refinar a estimativa
-        gas_entropy = gas_metrics.get('entropia_dispersao', 0)
-        gas_heterogeneity = gas_metrics.get('indice_heterogeneidade', 0)
+        # Obtém valores com fallbacks seguros
+        std_dev = float(image_stats.get('std_deviation', 0)) if isinstance(image_stats, dict) else 0
+        gas_entropy = gas_metrics.get('entropia_dispersao', 0) if isinstance(gas_metrics, dict) else 0
+        gas_heterogeneity = gas_metrics.get('indice_heterogeneidade', 0) if isinstance(gas_metrics, dict) else 0
         
-        # Fórmula híbrida combinando estatísticas de imagem e métricas de gás
-        hybrid_score = (std_dev * 0.6 + gas_entropy * 0.3 + gas_heterogeneity * 0.1) / 1e9
+        # Fórmula híbrida com verificações de segurança
+        try:
+            hybrid_score = (std_dev * 0.6 + gas_entropy * 0.3 + gas_heterogeneity * 0.1) / 1e9
+        except:
+            hybrid_score = 1.0
         
+        # Classificação baseada no score híbrido
         if hybrid_score > 1.7:
             ra_score = 75
             interpretation = "Alteração avançada com padrão de dispersão gasosa tipo IV"
@@ -536,17 +543,22 @@ def generate_ra_index_data(image_stats, gas_metrics):
         # Gerar dados para visualização
         post_mortem_hours = np.linspace(0, 48, 100)
         
-        # Modelo híbrido Fick-Metierlich
-        density_curve = metierlich_gas_absorption_model(
-            post_mortem_hours, 
-            a=hybrid_score * 2e9, 
-            b=0.15, 
-            c=hybrid_score * 1e8
-        )
+        # Modelo híbrido com verificações de segurança
+        try:
+            density_curve = metierlich_gas_absorption_model(
+                post_mortem_hours, 
+                a=hybrid_score * 2e9, 
+                b=0.15, 
+                c=hybrid_score * 1e8
+            )
+            
+            # Adicionar ruído aleatório baseado na heterogeneidade
+            if not np.isnan(gas_heterogeneity) and not np.isinf(gas_heterogeneity):
+                density_curve += np.random.normal(0, gas_heterogeneity * 1e7, size=post_mortem_hours.shape)
+        except:
+            density_curve = np.zeros_like(post_mortem_hours)
         
-        # Adicionar ruído aleatório baseado na heterogeneidade
-        density_curve += np.random.normal(0, gas_heterogeneity * 1e7, size=post_mortem_hours.shape)
-        
+        # Curva RA
         ra_curve = np.zeros_like(post_mortem_hours)
         ra_curve[post_mortem_hours < 12] = 25
         ra_curve[(post_mortem_hours >= 12) & (post_mortem_hours < 18)] = 30
@@ -570,12 +582,31 @@ def generate_ra_index_data(image_stats, gas_metrics):
             'density_curve': density_curve,
             'ra_curve': ra_curve,
             'hybrid_score': hybrid_score,
-            'gas_metrics': gas_metrics
+            'gas_metrics': gas_metrics if isinstance(gas_metrics, dict) else {}
         }
+        
     except Exception as e:
-        st.error(f"Erro ao gerar dados do RA-Index: {e}")
-        return None
+        logging.error(f"Erro ao gerar dados do RA-Index: {e}")
+        return create_default_ra_index_data()
 
+def create_default_ra_index_data():
+    """Cria dados padrão para RA-Index em caso de erro"""
+    return {
+        'ra_score': 0,
+        'interpretation': "Erro na análise - Dados indisponíveis",
+        'post_mortem_estimate': "N/A",
+        'metrics': {
+            'Acuracia': 'N/A', 
+            'Sensibilidade': 'N/A',
+            'Especificidade': 'N/A', 
+            'Confiabilidade (ICC)': 'N/A'
+        },
+        'post_mortem_hours': np.linspace(0, 48, 100),
+        'density_curve': np.zeros(100),
+        'ra_curve': np.zeros(100),
+        'hybrid_score': 0,
+        'gas_metrics': {}
+    }
 def create_pdf_report(user_data, dicom_data, report_data, ra_index_data, image_for_report, ai_prediction, ai_report):
     try:
         buffer = BytesIO()
