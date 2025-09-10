@@ -886,8 +886,6 @@ def show_feedback_section(report_data):
     st.markdown("---")
     st.markdown('<div class="card">', unsafe_allow_html=True)
         
-    if not st.session_state.get('feedback_submitted', False):
-        st.write("**Avalie a sua experiência:**")
         
         rating_cols = st.columns(5)
         current_rating = st.session_state.get('rating', 0)
