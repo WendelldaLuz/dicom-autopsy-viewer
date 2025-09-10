@@ -885,8 +885,7 @@ def calculate_image_metrics(image):
 def show_feedback_section(report_data):
     st.markdown("---")
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("💬 Feedback do Relatório")
-    
+        
     if not st.session_state.get('feedback_submitted', False):
         st.write("**Avalie a sua experiência:**")
         
