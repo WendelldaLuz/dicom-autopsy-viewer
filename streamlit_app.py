@@ -885,7 +885,10 @@ def calculate_image_metrics(image):
 def show_feedback_section(report_data):
     st.markdown("---")
     st.markdown('<div class="card">', unsafe_allow_html=True)
-        
+    st.subheader("💬 Feedback do Relatório")
+    
+    if not st.session_state.get('feedback_submitted', False):
+        st.write("**Avalie a sua experiência:**")
         
         rating_cols = st.columns(5)
         current_rating = st.session_state.get('rating', 0)
@@ -1218,7 +1221,7 @@ def show_main_app():
                     
                     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
                         "👁️ Visualização", "📊 Estatísticas", "👤 Identificação", 
-                        "⚙️ Técnico", "📈 Análise", "🤖 RA-Index", "🔄 Aprendizado"
+                        "⚙️ Técnico", "📈 Análise", "🤖 IA & RA-Index", "🔄 Aprendizado"
                     ])
                     
                     report_data = {}
