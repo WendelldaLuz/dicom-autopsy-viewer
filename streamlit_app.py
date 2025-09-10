@@ -1136,283 +1136,123 @@ def show_learning_loop_section():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-def format_dicom_date(date_str):
-    """
-    Formata uma data no formato DICOM (YYYYMMDD) para formato legível (DD/MM/YYYY)
-    """
-    if not date_str or not isinstance(date_str, str) or len(date_str) != 8:
-        return date_str
-    try:
-        return f"{date_str[6:8]}/{date_str[4:6]}/{date_str[0:4]}"
-    except:
-        return date_str
-
-def format_dicom_time(time_str):
-    """
-    Formata um horário no formato DICOM (HHMMSS) para formato legível (HH:MM:SS)
-    """
-    if not time_str or not isinstance(time_str, str) or len(time_str) < 6:
-        return time_str
-    try:
-        return f"{time_str[0:2]}:{time_str[2:4]}:{time_str[4:6]}"
-    except:
-        return time_str
-
-def format_patient_sex(sex_code):
-    """
-    Formata o código de sexo do paciente para formato legível
-    """
-    if not sex_code:
-        return "Não especificado"
-    sex_mapping = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro'}
-    return sex_mapping.get(sex_code.upper(), sex_code)
-
 def show_main_app():
-    """
-    Interface principal do DICOM Autopsy Viewer PRO - Sistema Avançado de Análise Forense de Imagens Médicas
-    """
-    # Cabeçalho principal com design profissional
-    st.markdown("""
-        <div class='main-header-container'>
-            <h1 class='main-header'>🔬 DICOM AUTOPSY VIEWER PRO</h1>
-            <h3 class='sub-header'>Sistema Integrado de Análise Forense Digital e Diagnóstico Preditivo</h3>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Barra lateral com informações do usuário e controles de upload
+    st.markdown(f"<h1 class='main-header'>🔬 DICOM Autopsy Viewer PRO</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h3 class='sub-header'>Análise Forense Digital e Preditiva Avançada</h3>", unsafe_allow_html=True)
+
     with st.sidebar:
-        # Cartão de identificação do usuário
-        st.markdown(f"""
-            <div class='user-card'>
-                <div class='user-card-header'>
-                    <span class='user-icon'>👤</span>
-                    <h4>Usuário Autenticado</h4>
-                </div>
-                <div class='user-card-body'>
-                    <p class='user-name'>{st.session_state.user_data['nome']}</p>
-                    <p class='user-dept'>{st.session_state.user_data['departamento']}</p>
-                    <p class='user-time'>Sessão iniciada: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-        
-        # Seção de personalização de relatório
         st.markdown("""
-            <div class='sidebar-section'>
-                <div class='section-header'>
-                    <span class='section-icon'>📸</span>
-                    <h4>Personalização de Relatório</h4>
-                </div>
-                <p class='section-description'>Adicione logotipo institucional para documentos oficiais</p>
-            </div>
-        """, unsafe_allow_html=True)
+        <div style='background: linear-gradient(135deg, #00BFFF, #0099CC); 
+                    padding: 15px; border-radius: 10px; color: white; text-align: center;'>
+            <h3 style='margin: 0;'>👤 Usuário Atual</h3>
+            <p style='margin: 5px 0; font-size: 0.9rem;'>{}</p>
+            <p style='margin: 0; font-size: 0.8rem;'>{}</p>
+        </div>
+        """.format(st.session_state.user_data['nome'], st.session_state.user_data['departamento']), 
+        unsafe_allow_html=True)
         
-        uploaded_logo = st.file_uploader(
-            "Selecionar arquivo de logotipo", 
-            type=["png", "jpg", "jpeg"], 
-            key="logo_uploader",
-            help="Formatos suportados: PNG, JPG, JPEG. Tamanho recomendado: 300x100px"
-        )
+        st.markdown("---")
+        st.subheader("📸 Logotipo para Relatório")
+        
+        uploaded_logo = st.file_uploader("", type=["png", "jpg", "jpeg"], key="logo_uploader")
         
         if uploaded_logo:
             st.session_state.logo_image = uploaded_logo.read()
-            st.success("✅ Logotipo carregado com sucesso")
         
-        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("""
+        <div class='card'>
+            <h4>📤 Upload de Exames</h4>
+            <p>📊 Limite: <strong>{} arquivos</strong></p>
+            <p>💾 Tamanho: <strong>{}MB máximo</strong></p>
+            <p>📄 Formato: <strong>.dcm, .DCM</strong></p>
+        </div>
+        """.format(UPLOAD_LIMITS['max_files'], UPLOAD_LIMITS['max_size_mb']), 
+        unsafe_allow_html=True)
         
-        # Seção de upload de exames
-        st.markdown(f"""
-            <div class='sidebar-section'>
-                <div class='section-header'>
-                    <span class='section-icon'>📤</span>
-                    <h4>Upload de Exames DICOM</h4>
-                </div>
-                <div class='upload-specs'>
-                    <div class='spec-item'>
-                        <span class='spec-label'>Limite de arquivos:</span>
-                        <span class='spec-value'>{UPLOAD_LIMITS['max_files']}</span>
-                    </div>
-                    <div class='spec-item'>
-                        <span class='spec-label'>Tamanho máximo:</span>
-                        <span class='spec-value'>{UPLOAD_LIMITS['max_size_mb']}MB</span>
-                    </div>
-                    <div class='spec-item'>
-                        <span class='spec-label'>Formatos:</span>
-                        <span class='spec-value'>.dcm, .DCM</span>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Widget de upload de arquivos
         uploaded_files = st.file_uploader(
-            "Selecione os arquivos DICOM para análise",
+            "Selecione os arquivos DICOM",
             type=['dcm', 'DCM'],
             accept_multiple_files=True,
-            help=f"Máximo de {UPLOAD_LIMITS['max_files']} arquivos DICOM ({UPLOAD_LIMITS['max_size_mb']}MB cada)"
+            help=f"Selecione até {UPLOAD_LIMITS['max_files']} arquivos DICOM (máximo {UPLOAD_LIMITS['max_size_mb']}MB cada)"
         )
         
-        # Validação e exibição dos arquivos carregados
         if uploaded_files:
             is_valid, message = check_upload_limits(uploaded_files)
             if not is_valid:
                 st.error(f"❌ {message}")
             else:
                 total_size = sum(f.size for f in uploaded_files)
-                st.success(f"✅ {len(uploaded_files)} arquivo(s) selecionados - {get_file_size(total_size)}")
-                
-                # Lista de arquivos carregados
-                st.markdown("<div class='file-list-title'>Arquivos carregados:</div>", unsafe_allow_html=True)
+                st.success(f"✅ {len(uploaded_files)} arquivo(s) - {get_file_size(total_size)}")
                 for file in uploaded_files:
                     st.markdown(f"""
-                        <div class='uploaded-file-item'>
-                            <div class='file-icon'>📄</div>
-                            <div class='file-info'>
-                                <div class='file-name'>{file.name}</div>
-                                <div class='file-size'>{get_file_size(file.size)}</div>
-                            </div>
-                        </div>
+                    <div class='uploaded-file'>
+                        📄 {file.name}
+                        <div class='file-size'>{get_file_size(file.size)}</div>
+                    </div>
                     """, unsafe_allow_html=True)
-        
-        # Adicionando informações do sistema
-        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-        st.markdown("""
-            <div class='system-info'>
-                <h4>🖥️ Informações do Sistema</h4>
-                <p>Versão: 2.1.0</p>
-                <p>Status: <span style='color: green'>●</span> Online</p>
-            </div>
-        """, unsafe_allow_html=True)
 
-    # Área principal de análise (apenas se arquivos foram carregados)
     if uploaded_files:
-        # Seletor de arquivo para análise
-        selected_file = st.selectbox(
-            "Selecione o exame para análise detalhada:", 
-            [f.name for f in uploaded_files],
-            key="file_selector"
-        )
-        
+        selected_file = st.selectbox("Selecione o exame para análise:", [f.name for f in uploaded_files])
         dicom_file = next((f for f in uploaded_files if f.name == selected_file), None)
         
         if dicom_file:
             try:
-                # Validação inicial do arquivo DICOM
                 if not validate_dicom_file(BytesIO(dicom_file.getvalue())):
-                    st.error("""
-                        ❌ Arquivo DICOM inválido ou corrompido
-                        
-                        **Possíveis causas:**
-                        - Arquivo não é um DICOM válido
-                        - Estrutura de arquivo corrompida
-                        - Metadados essenciais ausentes
-                    """)
+                    st.error("❌ Arquivo DICOM inválido ou corrompido")
                     return
                 
-                # Processamento do arquivo DICOM
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
                     tmp_file.write(dicom_file.getvalue())
                     tmp_path = tmp_file.name
                 
                 try:
-                    # Leitura e sanitização dos dados DICOM
                     dataset = pydicom.dcmread(tmp_path)
                     dataset = sanitize_patient_data(dataset)
                     
-                    # Compilação de metadados DICOM
                     dicom_data = {
                         'file_name': selected_file,
                         'file_size': get_file_size(dicom_file.size),
                         'patient_name': safe_dicom_value(dataset, 'PatientName'),
                         'patient_id': safe_dicom_value(dataset, 'PatientID'),
                         'modality': safe_dicom_value(dataset, 'Modality'),
-                        'study_date': safe_dicom_value(dataset, 'StudyDate'),
-                        'accession_number': safe_dicom_value(dataset, 'AccessionNumber'),
-                        'study_instance_uid': safe_dicom_value(dataset, 'StudyInstanceUID')
+                        'study_date': safe_dicom_value(dataset, 'StudyDate')
                     }
                     
-                    # Sistema de abas para análise multidimensional
                     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-                        "👁️ Visualização Médica", 
-                        "📊 Análise Estatística", 
-                        "👤 Dados do Paciente", 
-                        "⚙️ Metadados Técnicos", 
-                        "📈 Relatório Forense", 
-                        "🤖 IA & RA-Index", 
-                        "🔄 Sistema de Aprendizado"
+                        "👁️ Visualização", "📊 Estatísticas", "👤 Identificação", 
+                        "⚙️ Técnico", "📈 Análise", "🤖 RA-Index", "🔄 Aprendizado"
                     ])
                     
-                    # Inicialização de variáveis para relatório
                     report_data = {}
                     image_for_report = None
                     gas_metrics = None
                     
-                    # ABA 1: Visualização Médica
                     with tab1:
-                        st.markdown("""
-                            <div class='tab-header'>
-                                <h2>Visualização Médica Avançada</h2>
-                                <p>Análise de imagem com ferramentas de diagnóstico assistido</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
-                            
-                            # Normalização da imagem para visualização
                             if image.dtype != np.uint8:
                                 image = ((image - image.min()) / (image.max() - image.min()) * 255).astype(np.uint8)
                             
-                            # Visualização interativa com Plotly
                             fig = create_medical_visualization(image, f"Exame: {selected_file}")
                             st.plotly_chart(fig, use_container_width=True)
                             
-                            # Preparação de imagem para relatório
-                            plt.figure(figsize=(10, 8))
+                            plt.figure(figsize=(8, 8))
                             plt.imshow(image, cmap='gray')
                             plt.axis('off')
-                            plt.title(f"Análise DICOM - {selected_file}", fontsize=14, pad=20)
+                            plt.title(f"Análise DICOM - {selected_file}")
                             img_buffer = BytesIO()
-                            plt.savefig(img_buffer, format='png', bbox_inches='tight', 
-                                       pad_inches=0.1, dpi=300)
+                            plt.savefig(img_buffer, format='png', bbox_inches='tight', pad_inches=0.1)
                             img_buffer.seek(0)
                             image_for_report = Image.open(img_buffer)
                             plt.close()
-                            
-                            # Controles de visualização
-                            col1, col2, col3 = st.columns(3)
-                            with col1:
-                                st.button("🔍 Zoom +", use_container_width=True)
-                            with col2:
-                                st.button("🔍 Zoom -", use_container_width=True)
-                            with col3:
-                                st.button("🔄 Resetar Visualização", use_container_width=True)
-                                
                         else:
-                            st.warning("""
-                                ⚠️ Arquivo DICOM não contém dados de imagem visível
-                                
-                                **Possíveis causas:**
-                                - Arquivo contém apenas metadados
-                                - Dados de imagem corrompidos ou ausentes
-                                - Formato de pixel não suportado
-                            """)
+                            st.warning("⚠️ Arquivo DICOM não contém dados de imagem")
                     
-                    # ABA 2: Análise Estatística
                     with tab2:
-                        st.markdown("""
-                            <div class='tab-header'>
-                                <h2>Análise Estatística Quantitativa</h2>
-                                <p>Métricas e distribuições de intensidade de pixel</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
                             
-                            # Layout de duas colunas para gráficos
                             col1, col2 = st.columns(2)
                             
                             with col1:
@@ -1423,61 +1263,39 @@ def show_main_app():
                                 profile_fig = create_intensity_profile(image)
                                 st.plotly_chart(profile_fig, use_container_width=True)
                             
-                            # Estatísticas descritivas em formato tabular
-                            st.subheader("📊 Estatísticas Descritivas da Imagem")
+                            st.subheader("📈 Estatísticas Descritivas")
                             stats_data = {
                                 'Mínimo': np.min(image),
                                 'Máximo': np.max(image),
                                 'Média': np.mean(image),
                                 'Mediana': np.median(image),
                                 'Desvio Padrão': np.std(image),
-                                'Variância': np.var(image),
-                                'Assimetria (Skewness)': stats.skew(image.flatten()),
-                                'Curtose': stats.kurtosis(image.flatten())
+                                'Variância': np.var(image)
                             }
                             
-                            stats_df = pd.DataFrame(list(stats_data.items()), 
-                                                  columns=['Estatística', 'Valor'])
+                            stats_df = pd.DataFrame(list(stats_data.items()), columns=['Estatística', 'Valor'])
                             st.dataframe(stats_df, use_container_width=True, hide_index=True)
                     
-                    # ABA 3: Dados do Paciente
                     with tab3:
-                        st.markdown("""
-                            <div class='tab-header'>
-                                <h2>Dados Demográficos do Paciente</h2>
-                                <p>Informações clínicas e de identificação</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
                         patient_info = {
-                            'Nome Completo': safe_dicom_value(dataset, 'PatientName'),
-                            'Identificação': safe_dicom_value(dataset, 'PatientID'),
-                            'Data de Nascimento': format_dicom_date(safe_dicom_value(dataset, 'PatientBirthDate')),
+                            'Nome': safe_dicom_value(dataset, 'PatientName'),
+                            'ID': safe_dicom_value(dataset, 'PatientID'),
+                            'Data de Nascimento': safe_dicom_value(dataset, 'PatientBirthDate'),
                             'Idade': safe_dicom_value(dataset, 'PatientAge'),
-                            'Sexo': format_patient_sex(safe_dicom_value(dataset, 'PatientSex')),
-                            'Peso (kg)': safe_dicom_value(dataset, 'PatientWeight'),
+                            'Sexo': safe_dicom_value(dataset, 'PatientSex'),
+                            'Peso': safe_dicom_value(dataset, 'PatientWeight'),
                             'Descrição do Estudo': safe_dicom_value(dataset, 'StudyDescription'),
                             'Médico Solicitante': safe_dicom_value(dataset, 'ReferringPhysicianName'),
-                            'Instituição de Origem': safe_dicom_value(dataset, 'InstitutionName'),
-                            'Endereço da Instituição': safe_dicom_value(dataset, 'InstitutionAddress')
+                            'Instituição': safe_dicom_value(dataset, 'InstitutionName')
                         }
                         
                         display_info_section("Dados do Paciente", "👤", patient_info, "patient-card")
                     
-                    # ABA 4: Metadados Técnicos
                     with tab4:
-                        st.markdown("""
-                            <div class='tab-header'>
-                                <h2>Metadados Técnicos do Exame</h2>
-                                <p>Parâmetros de aquisição e configuração do equipamento</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
                         tech_info = {
                             'Modalidade': safe_dicom_value(dataset, 'Modality'),
-                            'Fabricante': safe_dicom_value(dataset, 'Manufacturer'),
                             'Modelo do Equipamento': safe_dicom_value(dataset, 'ManufacturerModelName'),
-                            'Tamanho da Imagem (pixels)': f"{safe_dicom_value(dataset, 'Rows')} × {safe_dicom_value(dataset, 'Columns')}",
+                            'Tamanho (Pixels)': f"{safe_dicom_value(dataset, 'Rows')} × {safe_dicom_value(dataset, 'Columns')}",
                             'Espaçamento de Pixel (mm)': safe_dicom_value(dataset, 'PixelSpacing'),
                             'Espessura do Corte (mm)': safe_dicom_value(dataset, 'SliceThickness'),
                             'Tempo de Exposição (ms)': safe_dicom_value(dataset, 'ExposureTime'),
@@ -1486,86 +1304,58 @@ def show_main_app():
                             'Bits Armazenados': safe_dicom_value(dataset, 'BitsStored'),
                             'Janela Central (HU)': safe_dicom_value(dataset, 'WindowCenter'),
                             'Largura da Janela (HU)': safe_dicom_value(dataset, 'WindowWidth'),
-                            'Tempo de Aquisição': format_dicom_time(safe_dicom_value(dataset, 'AcquisitionTime')),
-                            'Software Versão': safe_dicom_value(dataset, 'SoftwareVersions')
+                            'Tempo de Aquisição': safe_dicom_value(dataset, 'AcquisitionTime')
                         }
                         
                         display_info_section("Informações Técnicas", "⚙️", tech_info, "tech-card")
                     
-                    # ABA 5: Relatório Forense
                     with tab5:
-                        st.markdown("""
-                            <div class='tab-header'>
-                                <h2>Relatório de Análise Forense</h2>
-                                <p>Documentação técnica e laudo pericial</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
                         if hasattr(dataset, 'pixel_array'):
                             image = dataset.pixel_array
                             
-                            # Dados para o relatório
                             report_data = {
-                                'Dimensões da Imagem': f"{image.shape[0]} × {image.shape[1]} pixels",
+                                'Dimensões': f"{image.shape[0]} × {image.shape[1]}",
                                 'Intensidade Mínima': int(np.min(image)),
                                 'Intensidade Máxima': int(np.max(image)),
                                 'Média de Intensidade': f"{np.mean(image):.2f}",
                                 'Desvio Padrão': f"{np.std(image):.2f}",
-                                'Total de Pixels': f"{image.size:,}",
-                                'Resolução Espacial': safe_dicom_value(dataset, 'PixelSpacing'),
-                                'Profundidade de Bits': safe_dicom_value(dataset, 'BitsStored')
+                                'Total de Pixels': f"{image.size:,}"
                             }
                             
-                            # Métricas de qualidade de imagem
                             image_metrics = calculate_image_metrics(image)
                             if image_metrics:
-                                st.subheader("📈 Métricas de Qualidade de Imagem")
+                                st.subheader("📊 Métricas de Qualidade de Imagem")
                                 
-                                metric_col1, metric_col2 = st.columns(2)
-                                with metric_col1:
-                                    st.metric(label="Relação Sinal-Ruído (SNR)", 
-                                             value=f"{image_metrics['snr']:.2f} dB",
-                                             help="Valores mais altos indicam melhor qualidade de imagem")
-                                    st.metric(label="Contraste RMS", 
-                                             value=f"{image_metrics['rms_contrast']:.2f}",
-                                             help="Medida de variação de intensidade na imagem")
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.metric(label="Relação Sinal-Ruído", value=f"{image_metrics['snr']:.2f}")
+                                    st.metric(label="Contraste", value=f"{image_metrics['rms_contrast']:.2f}")
                                 
-                                with metric_col2:
-                                    st.metric(label="Entropia da Imagem", 
-                                             value=f"{image_metrics['entropy']:.2f}",
-                                             help="Medida de complexidade e informação na imagem")
-                                    st.metric(label="Uniformidade", 
-                                             value=f"{1 - (image_metrics['std_dev'] / image_metrics['mean']):.3f}",
-                                             help="Consistência de intensidade na imagem")
+                                with col2:
+                                    st.metric(label="Entropia", value=f"{image_metrics['entropy']:.2f}")
+                                    st.metric(label="Uniformidade", value=f"{1 - (image_metrics['std_dev'] / image_metrics['mean']):.3f}")
                             
-                            # Cálculo de métricas de dispersão de gases (se aplicável)
+                            # Calcular métricas de dispersão de gases
                             gas_metrics = calculate_gas_dispersion_metrics(image)
                             ra_index_data = generate_ra_index_data(report_data, gas_metrics)
                             ai_prediction, ai_accuracy, ai_report = get_ai_prediction(image)
 
-                            # Container principal do relatório
-                            st.markdown('<div class="report-container">', unsafe_allow_html=True)
-                            st.subheader("📋 Resumo da Análise")
+                            st.markdown('<div class="card">', unsafe_allow_html=True)
+                            st.subheader("📊 Análise da Imagem")
                             
-                            # Exibição de métricas em formato de cartões
                             cols = st.columns(2)
                             for i, (key, value) in enumerate(report_data.items()):
                                 with cols[i % 2]:
                                     st.markdown(f"""
-                                        <div class='metric-card'>
-                                            <div class='metric-label'>{key}</div>
-                                            <div class='metric-value'>{value}</div>
-                                        </div>
+                                    <div style='background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0;'>
+                                        <span class='metric-label'>{key}</span><br>
+                                        <span class='metric-value'>{value}</span>
+                                    </div>
                                     """, unsafe_allow_html=True)
                             
-                            # Ações de exportação do relatório
-                            st.markdown("<div class='action-buttons-container'>", unsafe_allow_html=True)
-                            export_col1, export_col2 = st.columns(2)
-                            
-                            with export_col1:
-                                if st.button("📧 Enviar Relatório por Email", 
-                                           use_container_width=True,
-                                           help="Enviar relatório completo para email cadastrado"):
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("📧 Enviar Relatório por Email", use_container_width=True):
                                     pdf_buffer = create_pdf_report(
                                         st.session_state.user_data,
                                         dicom_data,
@@ -1584,13 +1374,11 @@ def show_main_app():
                                         if send_email_report(st.session_state.user_data, dicom_data, {}, report_data, ra_index_data, ai_prediction, ai_report):
                                             st.success("✅ Relatório enviado por email com sucesso!")
                                         else:
-                                            st.error("❌ Erro ao enviar email. Verifique a configuração do servidor.")
+                                            st.error("❌ Erro ao enviar email")
                                         os.unlink(tmp_pdf_path)
                             
-                            with export_col2:
-                                if st.button("📥 Baixar Relatório PDF", 
-                                           use_container_width=True,
-                                           help="Download do relatório em formato PDF"):
+                            with col2:
+                                if st.button("📥 Baixar Relatório PDF", use_container_width=True):
                                     pdf_buffer = create_pdf_report(
                                         st.session_state.user_data,
                                         dicom_data,
@@ -1605,102 +1393,39 @@ def show_main_app():
                                         st.download_button(
                                             label="Baixar PDF",
                                             data=pdf_buffer,
-                                            file_name=f"relatorio_forense_{dicom_data['patient_id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                            file_name=f"relatorio_forense_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                                             mime="application/pdf",
                                             use_container_width=True
                                         )
                             
-                            st.markdown("</div>", unsafe_allow_html=True)
                             st.markdown('</div>', unsafe_allow_html=True)
                     
-                    # ABA 6: IA & RA-Index
                     with tab6:
                         if hasattr(dataset, 'pixel_array'):
                             show_ra_index_section(ra_index_data, ai_prediction, ai_report)
                     
-                    # ABA 7: Sistema de Aprendizado
                     with tab7:
                         show_learning_loop_section()
                     
-                    # Seção de feedback (presente em todas as abas)
                     show_feedback_section(report_data)
                     
                 finally:
-                    # Limpeza de arquivo temporário
                     try:
                         os.unlink(tmp_path)
                     except:
                         pass
                         
             except Exception as e:
-                error_msg = f"""
-                    ❌ Erro no processamento do arquivo DICOM
-                    
-                    **Detalhes do erro:** {str(e)}
-                    
-                    **Ações recomendadas:**
-                    - Verificar a integridade do arquivo
-                    - Confirmar se o arquivo segue o padrão DICOM
-                    - Tentar carregar o arquivo novamente
-                """
-                st.error(error_msg)
-                logging.error(f"Erro no processamento DICOM: {e}", exc_info=True)
-    else:
-        # Tela inicial quando não há arquivos carregados
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.markdown("""
-                <div class='welcome-container'>
-                    <h2>Bem-vindo ao DICOM Autopsy Viewer PRO</h2>
-                    <p>Selecione arquivos DICOM na barra lateral para iniciar a análise</p>
-                    <div class='feature-list'>
-                        <div class='feature-item'>
-                            <span class='feature-icon'>🔍</span>
-                            <div class='feature-text'>
-                                <h4>Análise Avançada de Imagens</h4>
-                                <p>Visualização detalhada com ferramentas de medição</p>
-                            </div>
-                        </div>
-                        <div class='feature-item'>
-                            <span class='feature-icon'>📊</span>
-                            <div class='feature-text'>
-                                <h4>Relatórios Forenses Completos</h4>
-                                <p>Geração automática de laudos periciais</p>
-                            </div>
-                        </div>
-                        <div class='feature-item'>
-                            <span class='feature-icon'>🤖</span>
-                            <div class='feature-text'>
-                                <h4>Inteligência Artificial Integrada</h4>
-                                <p>Análise preditiva com algoritmos de ML</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
+                st.error(f"❌ Erro ao processar arquivo DICOM: {e}")
+                logging.error(f"Erro no processamento DICOM: {e}")
 
 def main():
-    """
-    Função principal de inicialização do sistema DICOM Autopsy Viewer PRO
-    """
-    # Inicialização segura do banco de dados
     if not safe_init_database():
-        st.error("""
-            ❌ Erro crítico: Falha na inicialização do sistema
-                
-            **Possíveis causas:**
-            - Banco de dados não disponível
-            - Problemas de permissão de arquivos
-            - Configuração incorreta do sistema
-                
-            **Solução:** Contate o administrador do sistema.
-        """)
+        st.error("❌ Erro crítico: Não foi possível inicializar o sistema. Contate o administrador.")
         return
     
-    # Aplicação do tema CSS personalizado
     update_css_theme()
     
-    # Verificação de autenticação do usuário
     if st.session_state.user_data is None:
         show_user_form()
     else:
@@ -1708,3 +1433,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
