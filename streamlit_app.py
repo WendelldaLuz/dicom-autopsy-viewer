@@ -1221,7 +1221,7 @@ def show_main_app():
                     
                     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
                         "👁️ Visualização", "📊 Estatísticas", "👤 Identificação", 
-                        "⚙️ Técnico", "📈 Análise", "🤖 IA & RA-Index", "🔄 Aprendizado"
+                        "⚙️ Técnico", "📈 Análise", "🤖 RA-Index", "🔄 Aprendizado"
                     ])
                     
                     report_data = {}
