@@ -1336,273 +1336,95 @@ def show_main_app():
                                     st.metric(label="Uniformidade", value=f"{1 - (image_metrics['std_dev'] / image_metrics['mean']):.3f}")
                             
                             # Calcular métricas de dispersão de gases
-try:
-    # Análise de dispersão de gases com indicador de progresso
-    with st.spinner('🔬 Analisando dispersão de gases...'):
-        gas_metrics = calculate_gas_dispersion_metrics(image)
-    
-    if gas_metrics is None:
-        st.warning("⚠️ Não foi possível calcular métricas de dispersão de gases. Usando valores padrão.")
-        gas_metrics = {}
-        # Criar métricas padrão para não quebrar o fluxo
-        default_metrics = {
-            'coeficiente_difusao': 0,
-            'anisotropia_difusao': 1,
-            'entropia_dispersao': 0,
-            'homogeneidade_gas': 0.5,
-            'indice_concentracao': 1,
-            'taxa_decaimento': 0,
-            'assimetria_distribuicao': 0,
-            'curtose_distribuicao': 0,
-            'snr_gas': 1,
-            'indice_heterogeneidade': 0
-        }
-        gas_metrics.update(default_metrics)
+                            gas_metrics = calculate_gas_dispersion_metrics(image)
+                            ra_index_data = generate_ra_index_data(report_data, gas_metrics)
+                            ai_prediction, ai_accuracy, ai_report = get_ai_prediction(image)
 
-    # Geração do RA-Index com indicador de progresso
-    with st.spinner('📊 Calculando RA-Index...'):
-        ra_index_data = generate_ra_index_data(report_data, gas_metrics)
-    
-    if ra_index_data is None:
-        st.error("❌ Erro crítico ao gerar RA-Index. Usando dados padrão.")
-        ra_index_data = create_default_ra_index_data()
-
-    # Predição de IA com indicador de progresso
-    with st.spinner('🤖 Gerando predição de IA...'):
-        try:
-            ai_prediction, ai_accuracy, ai_report = get_ai_prediction(image)
-        except Exception as ai_error:
-            st.error(f"❌ Erro na predição de IA: {ai_error}")
-            ai_prediction, ai_accuracy, ai_report = "Erro na análise", "N/A", {}
-
-    # Seção de análise da imagem
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📊 Análise Completa da Imagem")
-    
-    # Abas para organizar as informações
-    analysis_tab1, analysis_tab2, analysis_tab3 = st.tabs(["Estatísticas Básicas", "Métricas de Gases", "Qualidade da Imagem"])
-    
-    with analysis_tab1:
-        st.subheader("📈 Estatísticas Básicas da Imagem")
-        cols = st.columns(2)
-        for i, (key, value) in enumerate(report_data.items()):
-            with cols[i % 2]:
-                st.markdown(f"""
-                <div style='background: #2d2d2d; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid #00bcd4;'>
-                    <span style='font-size: 0.9rem; color: #b0b0b0;'>{key}</span><br>
-                    <span style='font-size: 1.2rem; font-weight: 700; color: #00bcd4;'>{value}</span>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    with analysis_tab2:
-        st.subheader("🌫️ Métricas de Dispersão de Gases")
-        if gas_metrics:
-            gas_cols = st.columns(2)
-            gas_items = list(gas_metrics.items())
-            
-            for i, (key, value) in enumerate(gas_items):
-                with gas_cols[i % 2]:
-                    # Formatar valores científicos para melhor legibilidade
-                    if abs(value) >= 1000 or (abs(value) > 0 and abs(value) < 0.001):
-                        formatted_value = f"{value:.3e}"
-                    else:
-                        formatted_value = f"{value:.3f}"
+                            st.markdown('<div class="card">', unsafe_allow_html=True)
+                            st.subheader("📊 Análise da Imagem")
+                            
+                            cols = st.columns(2)
+                            for i, (key, value) in enumerate(report_data.items()):
+                                with cols[i % 2]:
+                                    st.markdown(f"""
+                                    <div style='background: #333333; padding: 12px; border-radius: 8px; margin: 8px 0;'>
+                                        <span class='metric-label'>{key}</span><br>
+                                        <span class='metric-value'>{value}</span>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("📧 Enviar Relatório por Email", use_container_width=True):
+                                    pdf_buffer = create_pdf_report(
+                                        st.session_state.user_data,
+                                        dicom_data,
+                                        report_data,
+                                        ra_index_data,
+                                        image_for_report,
+                                        ai_prediction,
+                                        ai_report
+                                    )
+                                    
+                                    if pdf_buffer:
+                                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf:
+                                            tmp_pdf.write(pdf_buffer.getvalue())
+                                            tmp_pdf_path = tmp_pdf.name
+                                        
+                                        if send_email_report(st.session_state.user_data, dicom_data, {}, report_data, ra_index_data, ai_prediction, ai_report):
+                                            st.success("✅ Relatório enviado por email com sucesso!")
+                                        else:
+                                            st.error("❌ Erro ao enviar email")
+                                        os.unlink(tmp_pdf_path)
+                            
+                            with col2:
+                                if st.button("📥 Baixar Relatório PDF", use_container_width=True):
+                                    pdf_buffer = create_pdf_report(
+                                        st.session_state.user_data,
+                                        dicom_data,
+                                        report_data,
+                                        ra_index_data,
+                                        image_for_report,
+                                        ai_prediction,
+                                        ai_report
+                                    )
+                                    
+                                    if pdf_buffer:
+                                        st.download_button(
+                                            label="Baixar PDF",
+                                            data=pdf_buffer,
+                                            file_name=f"relatorio_forense_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                            mime="application/pdf",
+                                            use_container_width=True
+                                        )
+                            
+                            st.markdown('</div>', unsafe_allow_html=True)
                     
-                    st.markdown(f"""
-                    <div style='background: #2d2d2d; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid #4caf50;'>
-                        <span style='font-size: 0.8rem; color: #b0b0b0;'>{key.replace('_', ' ').title()}</span><br>
-                        <span style='font-size: 1.1rem; font-weight: 700; color: #4caf50;'>{formatted_value}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-        else:
-            st.info("ℹ️ Métricas de gases não disponíveis para esta imagem.")
-    
-    with analysis_tab3:
-        st.subheader("⭐ Métricas de Qualidade de Imagem")
-        image_metrics = calculate_image_metrics(image)
-        if image_metrics:
-            quality_cols = st.columns(2)
-            quality_metrics = [
-                ("Relação Sinal-Ruído", f"{image_metrics['snr']:.2f}"),
-                ("Entropia", f"{image_metrics['entropy']:.2f}"),
-                ("Contraste RMS", f"{image_metrics['rms_contrast']:.2f}"),
-                ("Uniformidade", f"{1 - (image_metrics['std_dev'] / image_metrics['mean']):.3f}"),
-                ("Dinâmica", f"{image_metrics['max'] - image_metrics['min']:.0f}"),
-                ("Variância", f"{image_metrics['std_dev']**2:.2e}")
-            ]
-            
-            for i, (label, value) in enumerate(quality_metrics):
-                with quality_cols[i % 2]:
-                    st.markdown(f"""
-                    <div style='background: #2d2d2d; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 3px solid #ff9800;'>
-                        <span style='font-size: 0.8rem; color: #b0b0b0;'>{label}</span><br>
-                        <span style='font-size: 1.1rem; font-weight: 700; color: #ff9800;'>{value}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-        else:
-            st.info("ℹ️ Métricas de qualidade não disponíveis para esta imagem.")
-    
-    # Botões de ação com melhor feedback visual
-    st.markdown("---")
-    st.subheader("📤 Exportar Relatório")
-    
-    action_col1, action_col2, action_col3 = st.columns(3)
-    
-    with action_col1:
-        if st.button("📧 Enviar por Email", 
-                    use_container_width=True, 
-                    help="Envia o relatório completo para o email do administrador",
-                    type="primary"):
-            
-            with st.spinner('📤 Enviando email...'):
-                success = send_email_report(
-                    st.session_state.user_data,
-                    dicom_data,
-                    report_data,
-                    ra_index_data,
-                    image_for_report,
-                    ai_prediction,
-                    ai_report
-                )
-                
-                if success:
-                    st.success("✅ Relatório enviado por email com sucesso!")
-                    # Log de acesso
-                    log_access(
-                        st.session_state.user_data['email'], 
-                        "EMAIL_REPORT", 
-                        selected_file,
-                        f"Relatório enviado com RA-Index: {ra_index_data.get('ra_score', 'N/A')}"
-                    )
-                else:
-                    st.error("❌ Erro ao enviar email. Tente novamente.")
-    
-    with action_col2:
-        # Botão de download com visualização prévia
-        pdf_buffer = create_pdf_report(
-            st.session_state.user_data,
-            dicom_data,
-            report_data,
-            ra_index_data,
-            image_for_report,
-            ai_prediction,
-            ai_report
-        )
-        
-        if pdf_buffer:
-            st.download_button(
-                label="📥 Baixar PDF",
-                data=pdf_buffer,
-                file_name=f"relatorio_forense_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                help="Baixe o relatório completo em formato PDF"
-            )
-        else:
-            st.button("📥 Baixar PDF", 
-                     use_container_width=True, 
-                     disabled=True,
-                     help="Relatório não disponível para download")
-    
-    with action_col3:
-        # Botão para visualização rápida do resumo
-        if st.button("👁️ Visualizar Resumo", use_container_width=True):
-            # Mostrar resumo expandido
-            with st.expander("📋 Resumo da Análise", expanded=True):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.metric("RA-Index", f"{ra_index_data.get('ra_score', 'N/A')}/100")
-                    st.metric("Previsão IA", ai_prediction)
-                    st.metric("Estimativa Post-Mortem", ra_index_data.get('post_mortem_estimate', 'N/A'))
-                
-                with col2:
-                    st.metric("Qualidade SNR", f"{image_metrics.get('snr', 0):.1f}" if image_metrics else "N/A")
-                    st.metric("Entropia", f"{image_metrics.get('entropy', 0):.2f}" if image_metrics else "N/A")
-                    st.metric("Confiança", f"{float(ra_index_data.get('metrics', {}).get('Acuracia', '0%').strip('%')):.0f}%" if ra_index_data else "N/A")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-except Exception as analysis_error:
-    st.error(f"❌ Erro durante a análise: {analysis_error}")
-    logging.error(f"Erro na análise: {analysis_error}")
-    
-    # Fallback básico para não quebrar a aplicação
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("⚠️ Análise Parcialmente Disponível")
-    st.warning("Algumas análises não puderam ser completadas, mas as informações básicas estão disponíveis.")
-    
-    # Mostrar pelo menos as estatísticas básicas
-    if 'report_data' in locals():
-        cols = st.columns(2)
-        for i, (key, value) in enumerate(report_data.items()):
-            with cols[i % 2]:
-                st.markdown(f"""
-                <div style='background: #2d2d2d; padding: 12px; border-radius: 8px; margin: 8px 0;'>
-                    <span style='font-size: 0.9rem; color: #b0b0b0;'>{key}</span><br>
-                    <span style='font-size: 1.2rem; font-weight: 700; color: #00bcd4;'>{value}</span>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Criar dados fallback para as outras abas
-    ra_index_data = create_default_ra_index_data()
-    ai_prediction, ai_accuracy, ai_report = "Análise limitada", "N/A", {}
-
-# Abas principais da aplicação
-try:
-    with tab6:
-        if hasattr(dataset, 'pixel_array'):
-            show_ra_index_section(ra_index_data, ai_prediction, ai_report)
-    
-    with tab7:
-        show_learning_loop_section()
-    
-    show_feedback_section(report_data)
-    
-except Exception as tab_error:
-    st.error(f"❌ Erro ao exibir abas secundárias: {tab_error}")
-    logging.error(f"Erro nas abas: {tab_error}")
-
-finally:
-    # Limpeza segura do arquivo temporário
-    try:
-        if 'tmp_path' in locals() and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-            logging.info(f"Arquivo temporário removido: {tmp_path}")
-    except Exception as cleanup_error:
-        logging.warning(f"Erro na limpeza do arquivo temporário: {cleanup_error}")
-
-except Exception as e:
-    st.error(f"❌ Erro ao processar arquivo DICOM: {e}")
-    logging.error(f"Erro no processamento DICOM: {e}")
-    
-    # Adicionar informações de diagnóstico para o usuário
-    with st.expander("🔧 Informações de Diagnóstico"):
-        st.write(f"**Tipo de erro:** {type(e).__name__}")
-        st.write(f"**Mensagem:** {str(e)}")
-        st.write("**Solução:** Tente carregar o arquivo novamente ou verifique se é um DICOM válido.")
-        
-        # Botão para recarregar
-        if st.button("🔄 Tentar Novamente"):
-            st.rerun()
+                    with tab6:
+                        if hasattr(dataset, 'pixel_array'):
+                            show_ra_index_section(ra_index_data, ai_prediction, ai_report)
+                    
+                    with tab7:
+                        show_learning_loop_section()
+                    
+                    show_feedback_section(report_data)
+                    
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except:
+                        pass
+                        
+            except Exception as e:
+                st.error(f"❌ Erro ao processar arquivo DICOM: {e}")
+                logging.error(f"Erro no processamento DICOM: {e}")
 
 def main():
     if not safe_init_database():
         st.error("❌ Erro crítico: Não foi possível inicializar o sistema. Contate o administrador.")
-        
-        # Oferecer alternativa mesmo sem banco de dados
-        if st.button("🚀 Continuar em Modo Offline"):
-            st.session_state.offline_mode = True
-            st.rerun()
         return
     
     update_css_theme()
-    
-    # Verificar modo offline
-    if getattr(st.session_state, 'offline_mode', False):
-        st.warning("🔶 Modo offline: Algumas funcionalidades podem estar limitadas")
     
     if st.session_state.user_data is None:
         show_user_form()
@@ -1610,27 +1432,4 @@ def main():
         show_main_app()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as fatal_error:
-        st.error(f"💥 Erro fatal na aplicação: {fatal_error}")
-        logging.critical(f"Erro fatal: {fatal_error}")
-        
-        # Mensagem amigável para o usuário
-        st.markdown("""
-        <div style='background: #ffebee; padding: 20px; border-radius: 10px; border-left: 4px solid #c62828;'>
-            <h3 style='color: #c62828;'>😕 Ocorreu um erro inesperado</h3>
-            <p>Pedimos desculpas pelo inconveniente. A aplicação encontrou um erro crítico.</p>
-            <p><strong>O que fazer:</strong></p>
-            <ul>
-                <li>Recarregue a página</li>
-                <li>Verifique sua conexão com a internet</li>
-                <li>Entre em contato com o suporte se o problema persistir</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Botão de recarregamento
-        if st.button("🔄 Recarregar Aplicação"):
-            st.rerun()
-
+    main()
