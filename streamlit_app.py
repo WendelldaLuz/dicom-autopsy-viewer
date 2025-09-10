@@ -1169,64 +1169,33 @@ def format_patient_sex(sex_code):
 
 def show_main_app():
     """
-    Interface principal do DICOM Autopsy Viewer PRO - Sistema Avançado de Análise Forense com Proveniência
+    Interface principal do DICOM Autopsy Viewer PRO - Sistema Avançado de Análise Forense de Imagens Médicas
     """
     # Cabeçalho principal com design profissional
     st.markdown("""
         <div class='main-header-container'>
-            <h1 class='main-header'>🔬 FORSETI - DICOM AUTOPSY VIEWER PRO</h1>
-            <h3 class='sub-header'>Sistema Integrado de Análise Forense Digital com Gerenciamento de Proveniência</h3>
+            <h1 class='main-header'>🔬 DICOM AUTOPSY VIEWER PRO</h1>
+            <h3 class='sub-header'>Sistema Integrado de Análise Forense Digital e Diagnóstico Preditivo</h3>
         </div>
     """, unsafe_allow_html=True)
     
     # Barra lateral com informações do usuário e controles de upload
     with st.sidebar:
-        # Cartão de identificação do usuário com gerenciamento de autoridade
+        # Cartão de identificação do usuário
         st.markdown(f"""
             <div class='user-card'>
                 <div class='user-card-header'>
                     <span class='user-icon'>👤</span>
                     <h4>Usuário Autenticado</h4>
-                    <span class='user-badge'>{st.session_state.user_data['nivel_acesso']}</span>
                 </div>
                 <div class='user-card-body'>
                     <p class='user-name'>{st.session_state.user_data['nome']}</p>
                     <p class='user-dept'>{st.session_state.user_data['departamento']}</p>
                     <p class='user-time'>Sessão iniciada: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
-                    <div class='user-permissions'>
-                        <span class='perm-badge'>📊 Análise</span>
-                        <span class='perm-badge'>📝 Relatórios</span>
-                        {('<span class="perm-badge">👑 Administração</span>' if st.session_state.user_data['nivel_acesso'] == 'admin' else '')}
-                    </div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-        
-        # Navegação por casos (Navigation Interface inspirada no FORSETI)
-        st.markdown("""
-            <div class='sidebar-section'>
-                <div class='section-header'>
-                    <span class='section-icon'>📋</span>
-                    <h4>Gerenciamento de Casos</h4>
-                </div>
-        """, unsafe_allow_html=True)
-        
-        casos = load_user_cases(st.session_state.user_data['id'])
-        caso_selecionado = st.selectbox(
-            "Selecione um caso:",
-            options=[c['id'] for c in casos],
-            format_func=lambda x: f"Caso {x} - {next((c['status'] for c in casos if c['id'] == x), '')}",
-            help="Selecione um caso existente ou crie um novo para análise"
-        )
-        
-        if st.button("➕ Novo Caso", use_container_width=True):
-            novo_caso_id = create_new_case(st.session_state.user_data['id'])
-            st.success(f"Caso {novo_caso_id} criado com sucesso!")
-            st.experimental_rerun()
-        
-        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
         
         # Seção de personalização de relatório
@@ -1294,15 +1263,6 @@ def show_main_app():
                 total_size = sum(f.size for f in uploaded_files)
                 st.success(f"✅ {len(uploaded_files)} arquivo(s) selecionados - {get_file_size(total_size)}")
                 
-                # Registrar proveniência do upload
-                register_provenance_event(
-                    case_id=caso_selecionado,
-                    user_id=st.session_state.user_data['id'],
-                    event_type="upload",
-                    description=f"Upload de {len(uploaded_files)} arquivos DICOM",
-                    details={"file_count": len(uploaded_files), "total_size": total_size}
-                )
-                
                 # Lista de arquivos carregados
                 st.markdown("<div class='file-list-title'>Arquivos carregados:</div>", unsafe_allow_html=True)
                 for file in uploaded_files:
@@ -1323,7 +1283,6 @@ def show_main_app():
                 <h4>🖥️ Informações do Sistema</h4>
                 <p>Versão: 2.1.0</p>
                 <p>Status: <span style='color: green'>●</span> Online</p>
-                <p>Proveniência: <span style='color: blue'>●</span> Ativa</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -1382,7 +1341,7 @@ def show_main_app():
                         "⚙️ Metadados Técnicos", 
                         "📈 Relatório Forense", 
                         "🤖 IA & RA-Index", 
-                        "🔄 Proveniência & Auditoria"
+                        "🔄 Sistema de Aprendizado"
                     ])
                     
                     # Inicialização de variáveis para relatório
@@ -1410,25 +1369,6 @@ def show_main_app():
                             fig = create_medical_visualization(image, f"Exame: {selected_file}")
                             st.plotly_chart(fig, use_container_width=True)
                             
-                            # Ferramentas de análise de imagem (Inspirado no PSIA do FORSETI)
-                            st.subheader("🔧 Ferramentas de Análise de Imagem")
-                            col1, col2, col3 = st.columns(3)
-                            
-                            with col1:
-                                if st.button("📏 Medir Distância", use_container_width=True):
-                                    st.session_state.measurement_mode = not st.session_state.get('measurement_mode', False)
-                                    st.info("Modo de medição ativado" if st.session_state.measurement_mode else "Modo de medição desativado")
-                                    
-                            with col2:
-                                if st.button("🎯 Marcador de Lesão", use_container_width=True):
-                                    st.session_state.lesion_marker_mode = not st.session_state.get('lesion_marker_mode', False)
-                                    st.info("Modo marcador de lesão ativado" if st.session_state.lesion_marker_mode else "Modo marcador de lesão desativado")
-                                    
-                            with col3:
-                                if st.button("📝 Anotar Imagem", use_container_width=True):
-                                    st.session_state.annotation_mode = not st.session_state.get('annotation_mode', False)
-                                    st.info("Modo de anotação ativado" if st.session_state.annotation_mode else "Modo de anotação desativado")
-                            
                             # Preparação de imagem para relatório
                             plt.figure(figsize=(10, 8))
                             plt.imshow(image, cmap='gray')
@@ -1440,6 +1380,15 @@ def show_main_app():
                             img_buffer.seek(0)
                             image_for_report = Image.open(img_buffer)
                             plt.close()
+                            
+                            # Controles de visualização
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.button("🔍 Zoom +", use_container_width=True)
+                            with col2:
+                                st.button("🔍 Zoom -", use_container_width=True)
+                            with col3:
+                                st.button("🔄 Resetar Visualização", use_container_width=True)
                                 
                         else:
                             st.warning("""
@@ -1609,26 +1558,6 @@ def show_main_app():
                                         </div>
                                     """, unsafe_allow_html=True)
                             
-                            # Editor de conclusões (Inspirado no Authoring do PSIA)
-                            st.subheader("📝 Conclusões do Exame")
-                            conclusoes = st.text_area(
-                                "Registre suas conclusões baseadas na análise:",
-                                height=150,
-                                help="Estas conclusões serão registradas na proveniência do caso e incluídas no relatório final"
-                            )
-                            
-                            if st.button("💾 Salvar Conclusões", use_container_width=True):
-                                if conclusoes:
-                                    save_conclusions(caso_selecionado, st.session_state.user_data['id'], conclusoes)
-                                    register_provenance_event(
-                                        case_id=caso_selecionado,
-                                        user_id=st.session_state.user_data['id'],
-                                        event_type="conclusion",
-                                        description="Conclusões do exame registradas",
-                                        details={"conclusions": conclusoes}
-                                    )
-                                    st.success("Conclusões salvas com sucesso!")
-                            
                             # Ações de exportação do relatório
                             st.markdown("<div class='action-buttons-container'>", unsafe_allow_html=True)
                             export_col1, export_col2 = st.columns(2)
@@ -1644,8 +1573,7 @@ def show_main_app():
                                         ra_index_data,
                                         image_for_report,
                                         ai_prediction,
-                                        ai_report,
-                                        conclusoes
+                                        ai_report
                                     )
                                     
                                     if pdf_buffer:
@@ -1653,15 +1581,7 @@ def show_main_app():
                                             tmp_pdf.write(pdf_buffer.getvalue())
                                             tmp_pdf_path = tmp_pdf.name
                                         
-                                        if send_email_report(st.session_state.user_data, dicom_data, {}, report_data, ra_index_data, ai_prediction, ai_report, conclusoes):
-                                            # Registrar proveniência do envio
-                                            register_provenance_event(
-                                                case_id=caso_selecionado,
-                                                user_id=st.session_state.user_data['id'],
-                                                event_type="report_email",
-                                                description="Relatório enviado por email",
-                                                details={"recipient": st.session_state.user_data['email']}
-                                            )
+                                        if send_email_report(st.session_state.user_data, dicom_data, {}, report_data, ra_index_data, ai_prediction, ai_report):
                                             st.success("✅ Relatório enviado por email com sucesso!")
                                         else:
                                             st.error("❌ Erro ao enviar email. Verifique a configuração do servidor.")
@@ -1678,20 +1598,10 @@ def show_main_app():
                                         ra_index_data,
                                         image_for_report,
                                         ai_prediction,
-                                        ai_report,
-                                        conclusoes
+                                        ai_report
                                     )
                                     
                                     if pdf_buffer:
-                                        # Registrar proveniência do download
-                                        register_provenance_event(
-                                            case_id=caso_selecionado,
-                                            user_id=st.session_state.user_data['id'],
-                                            event_type="report_download",
-                                            description="Relatório baixado em PDF",
-                                            details={"file_name": f"relatorio_forense_{dicom_data['patient_id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
-                                        )
-                                        
                                         st.download_button(
                                             label="Baixar PDF",
                                             data=pdf_buffer,
@@ -1708,43 +1618,13 @@ def show_main_app():
                         if hasattr(dataset, 'pixel_array'):
                             show_ra_index_section(ra_index_data, ai_prediction, ai_report)
                     
-                    # ABA 7: Proveniência & Auditoria (Substitui o Sistema de Aprendizado)
+                    # ABA 7: Sistema de Aprendizado
                     with tab7:
-                        st.markdown("""
-                            <div class='tab-header'>
-                                <h2>Proveniência e Auditoria</h2>
-                                <p>Rastreabilidade completa das ações e análise de proveniência</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Visualização de proveniência (Inspirado no Node Editor do FORSETI)
-                        st.subheader("📊 Visualização de Proveniência")
-                        
-                        # Carregar eventos de proveniência do caso
-                        provenance_events = load_provenance_events(caso_selecionado)
-                        
-                        if provenance_events:
-                            # Criar visualização de linha do tempo
-                            fig = create_provenance_timeline(provenance_events)
-                            st.plotly_chart(fig, use_container_width=True)
-                            
-                            # Tabela detalhada de eventos
-                            st.subheader("📋 Detalhes de Proveniência")
-                            provenance_df = pd.DataFrame(provenance_events)
-                            st.dataframe(provenance_df, use_container_width=True)
-                        else:
-                            st.info("Nenhum evento de proveniência registrado para este caso.")
-                        
-                        # Auditoria de acesso
-                        st.subheader("👁️ Auditoria de Acesso")
-                        access_logs = load_access_logs(caso_selecionado)
-                        
-                        if access_logs:
-                            access_df = pd.DataFrame(access_logs)
-                            st.dataframe(access_df, use_container_width=True)
-                        else:
-                            st.info("Nenhum registro de acesso encontrado para este caso.")
-                
+                        show_learning_loop_section()
+                    
+                    # Seção de feedback (presente em todas as abas)
+                    show_feedback_section(report_data)
+                    
                 finally:
                     # Limpeza de arquivo temporário
                     try:
@@ -1771,35 +1651,28 @@ def show_main_app():
         with col2:
             st.markdown("""
                 <div class='welcome-container'>
-                    <h2>Bem-vindo ao FORSETI - DICOM Autopsy Viewer PRO</h2>
+                    <h2>Bem-vindo ao DICOM Autopsy Viewer PRO</h2>
                     <p>Selecione arquivos DICOM na barra lateral para iniciar a análise</p>
                     <div class='feature-list'>
                         <div class='feature-item'>
                             <span class='feature-icon'>🔍</span>
                             <div class='feature-text'>
                                 <h4>Análise Avançada de Imagens</h4>
-                                <p>Visualização detalhada com ferramentas de medição e proveniência</p>
+                                <p>Visualização detalhada com ferramentas de medição</p>
                             </div>
                         </div>
                         <div class='feature-item'>
                             <span class='feature-icon'>📊</span>
                             <div class='feature-text'>
                                 <h4>Relatórios Forenses Completos</h4>
-                                <p>Geração automática de laudos periciais com rastreabilidade</p>
+                                <p>Geração automática de laudos periciais</p>
                             </div>
                         </div>
                         <div class='feature-item'>
                             <span class='feature-icon'>🤖</span>
                             <div class='feature-text'>
                                 <h4>Inteligência Artificial Integrada</h4>
-                                <p>Análise preditiva com algoritmos de ML e RA-Index</p>
-                            </div>
-                        </div>
-                        <div class='feature-item'>
-                            <span class='feature-icon'>📋</span>
-                            <div class='feature-text'>
-                                <h4>Gerenciamento de Proveniência</h4>
-                                <p>Rastreabilidade completa de todas as ações no sistema</p>
+                                <p>Análise preditiva com algoritmos de ML</p>
                             </div>
                         </div>
                     </div>
@@ -1808,7 +1681,7 @@ def show_main_app():
 
 def main():
     """
-    Função principal de inicialização do sistema FORSETI - DICOM Autopsy Viewer PRO
+    Função principal de inicialização do sistema DICOM Autopsy Viewer PRO
     """
     # Inicialização segura do banco de dados
     if not safe_init_database():
