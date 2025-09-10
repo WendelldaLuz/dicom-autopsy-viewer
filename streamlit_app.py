@@ -1217,15 +1217,15 @@ def show_main_app():
         
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
         
-        # Navegação principal na barra lateral
-        st.session_state.page = st.radio(
-            "Navegação Principal",
-            options=["Análise de Imagem", "Gerenciamento de Casos", "Configurações & Relatórios", "Informações do Sistema"],
-            icons=["image", "folder", "gear", "info-circle"],
-            index=0,
-            key="main_navigation",
-            label_visibility="hidden"
-        )
+        # Botões de navegação na barra lateral que atualizam o estado da sessão
+        if st.button("Análise de Imagem", key="btn_analise", use_container_width=True):
+            st.session_state.page = "Análise de Imagem"
+        if st.button("Gerenciamento de Casos", key="btn_casos", use_container_width=True):
+            st.session_state.page = "Gerenciamento de Casos"
+        if st.button("Configurações & Relatórios", key="btn_relatorios", use_container_width=True):
+            st.session_state.page = "Configurações & Relatórios"
+        if st.button("Informações do Sistema", key="btn_sistema", use_container_width=True):
+            st.session_state.page = "Informações do Sistema"
 
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
