@@ -82,10 +82,10 @@ def apply_colorimetric_analysis(image, metal_range, gas_range, metal_color, gas_
     """
     Aplica análise colorimétrica avançada com janelamentos específicos
     """
-    # Primeiro, processar a imagem base (brilho/contraste)
+    # Primeiro, processar apenas a intensidade (não as cores)
     result_image = np.copy(image).astype(float)
     
-    # Aplicar brilho e contraste
+    # Aplicar brilho e contraste apenas nos valores de intensidade
     result_image = result_image * contrast + brightness
     result_image = np.clip(result_image, 0, 255).astype(np.uint8)
     
@@ -99,27 +99,25 @@ def apply_colorimetric_analysis(image, metal_range, gas_range, metal_color, gas_
     
     # Aplicar coloração para metais
     if apply_metal:
+        # Criar máscara baseada na imagem original (não processada)
         metal_mask = (image >= metal_range[0]) & (image <= metal_range[1])
         if np.any(metal_mask):
             # Aplicar a cor RGB diretamente - SEM operações matemáticas
-            if len(result_image.shape) == 3:
-                # Para cada canal RGB
-                for channel in range(3):
-                    result_image[metal_mask, channel] = metal_color[channel]
-            else:
-                result_image[metal_mask] = metal_color
+            # Para cada canal RGB
+            result_image[metal_mask, 0] = metal_color[0]  # Canal R
+            result_image[metal_mask, 1] = metal_color[1]  # Canal G
+            result_image[metal_mask, 2] = metal_color[2]  # Canal B
     
     # Aplicar coloração para gases
     if apply_gas:
+        # Criar máscara baseada na imagem original (não processada)
         gas_mask = (image >= gas_range[0]) & (image <= gas_range[1])
         if np.any(gas_mask):
             # Aplicar a cor RGB diretamente - SEM operações matemáticas
-            if len(result_image.shape) == 3:
-                # Para cada canal RGB
-                for channel in range(3):
-                    result_image[gas_mask, channel] = gas_color[channel]
-            else:
-                result_image[gas_mask] = gas_color
+            # Para cada canal RGB
+            result_image[gas_mask, 0] = gas_color[0]  # Canal R
+            result_image[gas_mask, 1] = gas_color[1]  # Canal G
+            result_image[gas_mask, 2] = gas_color[2]  # Canal B
     
     return result_image
 
@@ -133,7 +131,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
-        st.markdown("###  Controles de Janelamento")
+        st.markdown("### 🔧 Controles de Janelamento")
         # Presets de janelamento Hounsfield
         preset = st.selectbox("Preset de Janelamento:", [
             "Personalizado", "Ossos (400/1500)", "Metais (1000/4000)", 
@@ -158,7 +156,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         window_width = st.slider("Largura da Janela (HU):", 1, 6000, default_width)
     
     with col2:
-        st.markdown("### Colorimetria Avançada")
+        st.markdown("### 🎨 Colorimetria Avançada")
         apply_metal = st.checkbox("Destacar Metais", value=False)
         metal_range = st.slider("Faixa de Metais (HU):", -1000, 4000, (800, 3000), disabled=not apply_metal)
         metal_color = st.color_picker("Cor para Metais:", "#FF0000", disabled=not apply_metal)
@@ -168,7 +166,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         gas_color = st.color_picker("Cor para Gases:", "#00FF00", disabled=not apply_gas)
     
     with col3:
-        st.markdown("### Ajustes de Imagem")
+        st.markdown("### ⚙️ Ajustes de Imagem")
         brightness = st.slider("Brilho:", -100, 100, 0)
         contrast = st.slider("Contraste:", 0.1, 3.0, 1.0, 0.1)
         
@@ -183,6 +181,8 @@ def enhanced_visualization_tab(dicom_data, image_array):
     # Converter cores hex para RGB
     def hex_to_rgb(hex_color):
         hex_color = hex_color.lstrip('#')
+        if len(hex_color) == 3:
+            hex_color = ''.join([c*2 for c in hex_color])
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
     
     metal_rgb = hex_to_rgb(metal_color)
@@ -195,9 +195,34 @@ def enhanced_visualization_tab(dicom_data, image_array):
             brightness, contrast, apply_metal, apply_gas
         )
     else:
-        final_image = processed_image
+        # Fallback sem OpenCV - apenas aplicar brilho/contraste
+        final_image = processed_image.astype(float)
         final_image = final_image * contrast + brightness
         final_image = np.clip(final_image, 0, 255).astype(np.uint8)
+        
+        # Se precisar converter para RGB e aplicar cores
+        if apply_metal or apply_gas:
+            # Converter para RGB (3 canais)
+            if len(final_image.shape) == 2:
+                final_image = np.stack([final_image] * 3, axis=-1)
+            
+            # Aplicar coloração para metais
+            if apply_metal:
+                metal_mask = (processed_image >= metal_range[0]) & (processed_image <= metal_range[1])
+                if np.any(metal_mask):
+                    # Aplicar cor RGB canal por canal
+                    final_image[metal_mask, 0] = metal_rgb[0]  # Canal R
+                    final_image[metal_mask, 1] = metal_rgb[1]  # Canal G
+                    final_image[metal_mask, 2] = metal_rgb[2]  # Canal B
+            
+            # Aplicar coloração para gases
+            if apply_gas:
+                gas_mask = (processed_image >= gas_range[0]) & (processed_image <= gas_range[1])
+                if np.any(gas_mask):
+                    # Aplicar cor RGB canal por canal
+                    final_image[gas_mask, 0] = gas_rgb[0]  # Canal R
+                    final_image[gas_mask, 1] = gas_rgb[1]  # Canal G
+                    final_image[gas_mask, 2] = gas_rgb[2]  # Canal B
     
     # Aplicar filtros adicionais
     if 'cv2' in globals() and apply_filter != "Nenhum":
@@ -229,7 +254,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         plt.close(fig_orig)
     
     with col_img2:
-        st.markdown("#### Imagem Processada")
+        st.markdown("#### 🖼️ Imagem Processada")
         fig_proc, ax_proc = plt.subplots(figsize=(8, 8))
         if len(final_image.shape) == 3:
             ax_proc.imshow(final_image)
@@ -239,6 +264,55 @@ def enhanced_visualization_tab(dicom_data, image_array):
         ax_proc.set_title("Imagem com Processamento Avançado")
         st.pyplot(fig_proc)
         plt.close(fig_proc)
+    
+    # Análise de pixels interativa
+    st.markdown("### 🔍 Análise Interativa de Pixels")
+    
+    if st.button("Ativar Análise de Pixels"):
+        st.info("Clique na imagem abaixo para analisar pixels específicos")
+        
+        # Criar gráfico interativo com Plotly
+        fig_interactive = go.Figure()
+        
+        fig_interactive.add_trace(go.Heatmap(
+            z=processed_image,
+            colorscale='viridis',
+            showscale=True,
+            hovertemplate='X: %{x}<br>Y: %{y}<br>Valor HU: %{z}<extra></extra>'
+        ))
+        
+        fig_interactive.update_layout(
+            title="Mapa Interativo de Pixels - Clique para Analisar",
+            xaxis_title="Coordenada X",
+            yaxis_title="Coordenada Y",
+            height=600
+        )
+        
+        st.plotly_chart(fig_interactive, use_container_width=True)
+    
+    # Opção de download
+    st.markdown("### 💾 Download da Imagem Processada")
+    
+    if st.button("Preparar Download"):
+        # Converter imagem para formato de download
+        if len(final_image.shape) == 3:
+            pil_image = Image.fromarray(final_image.astype(np.uint8))
+        else:
+            pil_image = Image.fromarray(final_image.astype(np.uint8), mode='L')
+        
+        # Criar buffer para download
+        img_buffer = BytesIO()
+        pil_image.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        
+        st.download_button(
+            label="Baixar Imagem Processada (PNG)",
+            data=img_buffer,
+            file_name=f"dicom_processada_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+            mime="image/png"
+        )
+        
+        st.success("Imagem preparada para download!")
     
     # Análise de pixels interativa
     st.markdown("### 🔍 Análise Interativa de Pixels")
