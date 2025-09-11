@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+DICOM Autopsy Viewer PRO - Versão Aprimorada
+Sistema completo de análise forense digital com funcionalidades avançadas
+"""
+
 import streamlit as st
 import sqlite3
 import logging
