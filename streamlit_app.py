@@ -1669,7 +1669,7 @@ def show_main_app():
         st.write("**Status:** 🟢 Online")
     
     # Conteúdo principal
-    st.markdown("# 🔬 DICOM Autopsy Viewer PRO - Enhanced Edition")
+    st.markdown("# 🔬 DICOM Autopsy Viewer")
     st.markdown(f"**Bem-vindo, {user_data['name']}!** 👋")
     
     if uploaded_file is not None:
@@ -1689,8 +1689,7 @@ def show_main_app():
                 image_array = dicom_data.pixel_array
                 
                 # Informações básicas do arquivo
-                st.success(f"✅ Arquivo DICOM carregado com sucesso: **{uploaded_file.name}**")
-                
+                               
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("📏 Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
