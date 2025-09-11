@@ -156,7 +156,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         window_width = st.slider("Largura da Janela (HU):", 1, 6000, default_width, key="window_width")
     
     with col2:
-        st.markdown("### 🎨 Colorimetria Avançada")
+        st.markdown("### Colorimetria Avançada")
         apply_metal = st.checkbox("Destacar Metais", value=False, key="apply_metal")
         metal_range = st.slider("Faixa de Metais (HU):", -1000, 4000, (800, 3000), disabled=not apply_metal, key="metal_range")
         metal_color = st.color_picker("Cor para Metais:", "#FF0000", disabled=not apply_metal, key="metal_color")
@@ -175,7 +175,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
             "Nenhum", "Aguçar", "Suavizar", "Detecção de Bordas", "Realce de Contraste"
         ], key="apply_filter")
     
-    # Aplicar processamentos
+    # Aplicar processamentos - ESTA LINHA DEVE VIR PRIMEIRO!
     processed_image = apply_hounsfield_windowing(image_array, window_center, window_width)
     
     # Converter cores hex para RGB
@@ -188,41 +188,41 @@ def enhanced_visualization_tab(dicom_data, image_array):
     metal_rgb = hex_to_rgb(metal_color)
     gas_rgb = hex_to_rgb(gas_color)
     
-# Aplicar análise colorimétrica
-if 'cv2' in globals():
-    final_image = apply_colorimetric_analysis(
-        processed_image, metal_range, gas_range, metal_rgb, gas_rgb,
-        brightness, contrast, apply_metal, apply_gas
-    )
-else:
-    # Fallback sem OpenCV - apenas aplicar brilho/contraste
-    final_image = processed_image.astype(float)
-    final_image = final_image * contrast + brightness
-    final_image = np.clip(final_image, 0, 255).astype(np.uint8)
-    
-    # Se precisar converter para RGB e aplicar cores
-    if apply_metal or apply_gas:
-        # Converter para RGB (3 canais)
-        if len(final_image.shape) == 2:
-            final_image = np.stack([final_image] * 3, axis=-1)
+    # Aplicar análise colorimétrica
+    if 'cv2' in globals():
+        final_image = apply_colorimetric_analysis(
+            processed_image, metal_range, gas_range, metal_rgb, gas_rgb,
+            brightness, contrast, apply_metal, apply_gas
+        )
+    else:
+        # Fallback sem OpenCV - apenas aplicar brilho/contraste
+        final_image = processed_image.astype(float)
+        final_image = final_image * contrast + brightness
+        final_image = np.clip(final_image, 0, 255).astype(np.uint8)
         
-        # Aplicar coloração para metais
-        if apply_metal:
-            metal_mask = (processed_image >= metal_range[0]) & (processed_image <= metal_range[1])
-            if np.any(metal_mask):
-                # Aplicar cor RGB canal por canal
-                final_image[metal_mask, 0] = metal_rgb[0]  # Canal R
-                final_image[metal_mask, 1] = metal_rgb[1]  # Canal G
-                final_image[metal_mask, 2] = metal_rgb[2]  # Canal B
-        
-        # Aplicar coloração para gases
-        if apply_gas:
-            gas_mask = (processed_image >= gas_range[0]) & (processed_image <= gas_range[1])
-            if np.any(gas_mask):
-                # Aplicar cor RGB canal por canal
-                final_image[gas_mask, 0] = gas_rgb[0]  # Canal R
-                final_image[gas_mask, 1] = gas_rgb[1]  # Canal G
-                final_image[gas_mask, 2] = gas_rgb[2]  # Canal B
+        # Se precisar converter para RGB e aplicar cores
+        if apply_metal or apply_gas:
+            # Converter para RGB (3 canais)
+            if len(final_image.shape) == 2:
+                final_image = np.stack([final_image] * 3, axis=-1)
+            
+            # Aplicar coloração para metais
+            if apply_metal:
+                metal_mask = (processed_image >= metal_range[0]) & (processed_image <= metal_range[1])
+                if np.any(metal_mask):
+                    # Aplicar cor RGB canal por canal
+                    final_image[metal_mask, 0] = metal_rgb[0]  # Canal R
+                    final_image[metal_mask, 1] = metal_rgb[1]  # Canal G
+                    final_image[metal_mask, 2] = metal_rgb[2]  # Canal B
+            
+            # Aplicar coloração para gases
+            if apply_gas:
+                gas_mask = (processed_image >= gas_range[0]) & (processed_image <= gas_range[1])
+                if np.any(gas_mask):
+                    # Aplicar cor RGB canal por canal
+                    final_image[gas_mask, 0] = gas_rgb[0]  # Canal R
+                    final_image[gas_mask, 1] = gas_rgb[1]  # Canal G
+                    final_image[gas_mask, 2] = gas_rgb[2]  # Canal B
     
     # Aplicar filtros adicionais
     if 'cv2' in globals() and apply_filter != "Nenhum":
@@ -245,7 +245,7 @@ else:
     col_img1, col_img2 = st.columns(2)
     
     with col_img1:
-        st.markdown("#### 📷 Imagem Original")
+        st.markdown("#### Imagem Original")
         fig_orig, ax_orig = plt.subplots(figsize=(8, 8))
         ax_orig.imshow(image_array, cmap='gray')
         ax_orig.axis('off')
@@ -254,7 +254,7 @@ else:
         plt.close(fig_orig)
     
     with col_img2:
-        st.markdown("#### 🖼️ Imagem Processada")
+        st.markdown("#### Imagem Processada")
         fig_proc, ax_proc = plt.subplots(figsize=(8, 8))
         if len(final_image.shape) == 3:
             ax_proc.imshow(final_image)
@@ -266,7 +266,7 @@ else:
         plt.close(fig_proc)
     
     # Análise de pixels interativa
-    st.markdown("### 🔍 Análise Interativa de Pixels")
+    st.markdown("### Análise Interativa de Pixels")
     
     if st.button("Ativar Análise de Pixels", key="btn_analise_pixels"):
         st.info("Clique na imagem abaixo para analisar pixels específicos")
@@ -288,7 +288,7 @@ else:
             height=600
         )
         
-        st.plotly_chart(fig_interactive, use_container_width=True)
+        st.plotly_chart(fig_interactive, use_container_width=True, key="chart_interativo_pixels")
     
     # Opção de download
     st.markdown("### 💾 Download da Imagem Processada")
@@ -313,7 +313,7 @@ else:
             key="btn_download_imagem"
         )
         
-        st.success("Imagem preparada para download!")
+        st.success("Imagem preparada para download!", key="msg_sucesso_download")
 
 # ====== SEÇÃO 2: ESTATÍSTICAS AVANÇADAS ======
 
@@ -601,7 +601,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         
         # Análise de ruído
         noise_level = np.std(image_array - ndimage.median_filter(image_array, size=3))
-        st.metric("📡 Nível de Ruído", f"{noise_level:.2f}")
+        st.metric("Nível de Ruído", f"{noise_level:.2f}")
         
         # Análise de compressão
         unique_values = len(np.unique(image_array))
@@ -776,22 +776,22 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         signal = np.mean(image_array)
         noise = np.std(image_array)
         snr = signal / noise if noise > 0 else float('inf')
-        st.metric("📡 SNR", f"{snr:.2f}", key="metric_snr")
+        st.metric(" SNR", f"{snr:.2f}", key="metric_snr")
         
         # Contraste RMS
         contrast_rms = np.sqrt(np.mean((image_array - np.mean(image_array))**2))
-        st.metric("📏 Contraste RMS", f"{contrast_rms:.2f}", key="metric_contraste_rms")
+        st.metric(" Contraste RMS", f"{contrast_rms:.2f}", key="metric_contraste_rms")
     
     with col2:
         # Entropia da imagem
         hist, _ = np.histogram(image_array.flatten(), bins=256, density=True)
         hist = hist[hist > 0]  # Remove zeros
         entropy = -np.sum(hist * np.log2(hist))
-        st.metric("🔀 Entropia", f"{entropy:.2f} bits", key="metric_entropia")
+        st.metric("Entropia", f"{entropy:.2f} bits", key="metric_entropia")
         
         # Uniformidade
         uniformity = np.sum(hist**2)
-        st.metric("🎯 Uniformidade", f"{uniformity:.4f}", key="metric_uniformidade")
+        st.metric("Uniformidade", f"{uniformity:.4f}", key="metric_uniformidade")
     
     with col3:
         # Resolução efetiva (usando gradientes)
@@ -810,20 +810,20 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             laplacian_var = np.var(ndimage.laplace(image_array.astype(float)))
         except:
             laplacian_var = 0
-        st.metric("⚡ Nitidez", f"{laplacian_var:.0f}", key="metric_nitidez")
+        st.metric("Nitidez", f"{laplacian_var:.0f}", key="metric_nitidez")
     
     with col4:
         # Homogeneidade
         img_variance = np.var(image_array)
         homogeneity = 1 / (1 + img_variance) if img_variance > 0 else 1.0
-        st.metric("🏠 Homogeneidade", f"{homogeneity:.6f}", key="metric_homogeneidade")
+        st.metric("Homogeneidade", f"{homogeneity:.6f}", key="metric_homogeneidade")
         
         # Suavidade
         smoothness = 1 - (1 / (1 + img_variance)) if img_variance > 0 else 0
-        st.metric("🌊 Suavidade", f"{smoothness:.6f}", key="metric_suavidade")
+        st.metric("Suavidade", f"{smoothness:.6f}", key="metric_suavidade")
     
     # Métricas avançadas de qualidade
-    st.markdown("### 🎯 Métricas Avançadas de Qualidade")
+    st.markdown("### Métricas Avançadas de Qualidade")
     
     col1, col2 = st.columns(2)
     
@@ -866,7 +866,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         df_advanced = pd.DataFrame(list(metrics_advanced.items()), columns=['Métrica', 'Valor'])
         df_advanced['Valor'] = df_advanced['Valor'].apply(lambda x: f"{x:.2e}" if abs(x) > 1000 else f"{x:.4f}")
         
-        st.markdown("#### 🌊 Análise Espectral")
+        st.markdown("#### Análise Espectral")
         st.dataframe(df_advanced, use_container_width=True, height=300)
     
     with col2:
@@ -928,7 +928,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.dataframe(df_texture, use_container_width=True, height=300)
     
     # Visualizações de qualidade
-    st.markdown("### 📈 Visualizações de Qualidade")
+    st.markdown("### Visualizações de Qualidade")
     
     col1, col2 = st.columns(2)
     
@@ -954,7 +954,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                       annotation_text=f"Média: {mean_val:.1f}")
         
         fig1.update_layout(
-            title="📊 Distribuição de Intensidades",
+            title="Distribuição de Intensidades",
             xaxis_title="Intensidade (HU)",
             yaxis_title="Frequência",
             height=400,
@@ -1001,7 +1001,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.plotly_chart(fig2, use_container_width=True, key="chart_uniformidade")
     
     # Métricas de degradação e artefatos
-    st.markdown("### ⚠️ Análise de Artefatos e Degradação")
+    st.markdown("### Análise de Artefatos e Degradação")
     
     col1, col2, col3 = st.columns(3)
     
@@ -1033,15 +1033,15 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             
             for i, (artifact, detected) in enumerate(artifacts.items()):
                 if detected:
-                    st.warning(f"⚠️ {artifact}", key=f"artefato_{i}")
+                    st.warning(f" {artifact}", key=f"artefato_{i}")
                 else:
-                    st.success(f"✅ {artifact}", key=f"artefato_{i}")
+                    st.success(f" {artifact}", key=f"artefato_{i}")
                     
         except:
             st.error("❌ Erro na análise de artefatos", key="erro_artefatos")
     
     with col2:
-        st.markdown("#### 📉 Índices de Degradação")
+        st.markdown("#### Índices de Degradação")
         
         try:
             # Índice de borramento
@@ -1118,7 +1118,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             st.metric("Índice de Qualidade", f"{quality_index:.3f}/1.0", key="metric_qualidade")
             
             # Mostrar composição
-            with st.expander("📊 Composição do Índice", key="expander_composicao"):
+            with st.expander("Composição do Índice", key="expander_composicao"):
                 for component, weight in weights.items():
                     st.write(f"{component}: {weight*100:.0f}%", key=f"composicao_{component}")
                     
