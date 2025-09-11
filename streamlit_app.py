@@ -810,6 +810,10 @@ def calculate_glcm_features(image):
         else:
             normalized = image.astype(np.uint8)
         
+        # Garantir que normalized é um array numpy
+        if not isinstance(normalized, np.ndarray):
+            normalized = np.array(normalized)
+        
         # Calcular diferenças horizontais - garantir que são arrays numpy
         if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
             diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
@@ -835,8 +839,13 @@ def calculate_glcm_features(image):
             except:
                 correlation_val = 0.0
         
-        # Energia - garantir que é um valor float
-        energy_val = float(np.mean(normalized.astype(float)**2) / (255**2)) if normalized.size > 0 else 0.0
+        # Energia - garantir que é um valor float - CORREÇÃO AQUI
+        # Verificar se normalized é um array válido antes de operações matemáticas
+        if isinstance(normalized, np.ndarray) and normalized.size > 0:
+            energy_val = float(np.mean(normalized.astype(float) ** 2) / (255 ** 2))
+        else:
+            energy_val = 0.0
+            
         dissimilarity_val = float(mean_diff / 255) if diff_h.size > 0 else 0.0
         
         return {
@@ -1217,7 +1226,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
 
 def calculate_ra_index(image_array, dicom_data):
     """
-    Calcula um índice de risco baseado em características da imagem - CORRIGIDA
+    Calcula um índice de risco baseado em características da imagem
     """
     # Fator 1: Presença de valores extremos (metais, etc.)
     extreme_values = np.sum(image_array > 1000) / image_array.size
