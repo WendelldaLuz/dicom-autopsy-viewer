@@ -586,7 +586,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                         st.markdown(item)
     
     # Análise forense avançada
-    st.markdown("### 🔍 Análise Forense Digital Avançada")
+    st.markdown("### Análise Forense Digital Avançada")
     
     # Calcular métricas forenses específicas
     col1, col2, col3 = st.columns(3)
@@ -607,7 +607,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         unique_values = len(np.unique(image_array))
         total_pixels = image_array.size
         compression_ratio = unique_values / total_pixels
-        st.metric("🗜️ Taxa de Compressão", f"{compression_ratio:.4f}")
+        st.metric("Taxa de Compressão", f"{compression_ratio:.4f}")
     
     with col2:
         st.markdown("#### Análise Espectral")
@@ -874,7 +874,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         df_advanced['Valor'] = df_advanced['Valor'].apply(lambda x: f"{x:.2e}" if abs(x) > 1000 else f"{x:.4f}")
         
         st.markdown("#### 🌊 Análise Espectral")
-        st.dataframe(df_advanced, use_container_width=True, height=300)
+        st.dataframe(df_advanced, use_container_width=True, height=300, key="df_espectral")
     
     with col2:
         # Métricas de textura GLCM simplificado
@@ -883,32 +883,40 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                 # Normalizar imagem para 0-255
                 img_min = float(image.min())
                 img_max = float(image.max())
+                
                 if img_max > img_min:
-                    normalized = ((image - img_min) / (img_max - img_min) * 255).astype(np.uint8)
+                    # Converter para float antes das operações
+                    normalized = ((image.astype(float) - img_min) / (img_max - img_min) * 255).astype(np.uint8)
                 else:
                     normalized = image.astype(np.uint8)
                 
-                # Calcular diferenças horizontais
-                diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
+                # Calcular diferenças horizontais - garantir que são arrays numpy
+                if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
+                    diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
+                else:
+                    diff_h = np.array([0.0])
                 
                 # Métricas baseadas em diferenças
                 mean_diff = float(np.mean(diff_h)) if diff_h.size > 0 else 0.0
                 homogeneity_val = float(1 / (1 + mean_diff)) if mean_diff > 0 else 1.0
                 contrast_val = float(np.var(diff_h)) if diff_h.size > 0 else 0.0
                 
-                # Correlação
-                flat1 = normalized[:, :-1].flatten()
-                flat2 = normalized[:, 1:].flatten()
+                # Correlação - apenas se houver dados suficientes
                 correlation_val = 0.0
-                if len(flat1) > 1 and len(flat2) > 1:
+                if normalized.shape[1] > 1 and normalized.size > 0:
                     try:
-                        corr_matrix = np.corrcoef(flat1, flat2)
-                        if not np.isnan(corr_matrix[0, 1]):
-                            correlation_val = float(corr_matrix[0, 1])
+                        flat1 = normalized[:, :-1].flatten()
+                        flat2 = normalized[:, 1:].flatten()
+                        
+                        if len(flat1) > 1 and len(flat2) > 1:
+                            corr_matrix = np.corrcoef(flat1, flat2)
+                            if not np.isnan(corr_matrix[0, 1]):
+                                correlation_val = float(corr_matrix[0, 1])
                     except:
                         correlation_val = 0.0
                 
-                energy_val = float(np.mean(normalized.astype(float)**2) / (255**2))
+                # Energia - garantir que é um valor float
+                energy_val = float(np.mean(normalized.astype(float)**2) / (255**2)) if normalized.size > 0 else 0.0
                 dissimilarity_val = float(mean_diff / 255) if diff_h.size > 0 else 0.0
                 
                 return {
@@ -933,7 +941,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         df_texture['Valor'] = df_texture['Valor'].apply(lambda x: f"{x:.6f}")
         
         st.markdown("#### 🌀 Análise de Textura")
-        st.dataframe(df_texture, use_container_width=True, height=300)
+        st.dataframe(df_texture, use_container_width=True, height=300, key="df_textura")
     
     # Visualizações de qualidade
     st.markdown("### 📈 Visualizações de Qualidade")
