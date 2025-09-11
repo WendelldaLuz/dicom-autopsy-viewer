@@ -1221,6 +1221,69 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                     
         except Exception as e:
             st.error(f"❌ Erro no cálculo do índice de qualidade", key="erro_qualidade")
+    
+    with col3:
+        st.markdown("#### Índice de Qualidade Geral")
+        
+        try:
+            # Definir valores de referência com base em literature
+            REFERENCE_VALUES = {
+                'SNR': 100,        # Bom SNR para imagens CT
+                'Entropia': 6,     # Valor típico para imagens médicas
+                'Nitidez': 500,    # Valor de referência arbitrário
+                'Uniformidade': 0.1,  # Quanto menor, mais uniforme
+                'Resolução': 50    # Valor de referência arbitrário
+            }
+            
+            # Normalizar em relação aos valores de referência
+            snr_normalized = min(snr_val / REFERENCE_VALUES['SNR'], 1.0)
+            entropy_normalized = min(entropy_val / REFERENCE_VALUES['Entropia'], 1.0)
+            sharpness_normalized = min(laplacian_var_val / REFERENCE_VALUES['Nitidez'], 1.0)
+            uniformity_normalized = 1.0 - min(uniformity_val / REFERENCE_VALUES['Uniformidade'], 1.0)
+            resolution_normalized = min(effective_resolution_val / REFERENCE_VALUES['Resolução'], 1.0)
+            
+            weights = {
+                'SNR': 0.25,
+                'Entropia': 0.20,
+                'Nitidez': 0.25,
+                'Uniformidade': 0.15,
+                'Resolução': 0.15
+            }
+            
+            quality_index = float(
+                weights['SNR'] * snr_normalized +
+                weights['Entropia'] * entropy_normalized +
+                weights['Nitidez'] * sharpness_normalized +
+                weights['Uniformidade'] * uniformity_normalized +
+                weights['Resolução'] * resolution_normalized
+            )
+            
+            # Classificação da qualidade
+            if quality_index >= 0.8:
+                quality_class, color = "🏆 Excelente", "success"
+            elif quality_index >= 0.6:
+                quality_class, color = "👍 Boa", "success"
+            elif quality_index >= 0.4:
+                quality_class, color = "⚠️ Regular", "warning"
+            else:
+                quality_class, color = "❌ Ruim", "error"
+            
+            if color == "success":
+                st.success(quality_class, key="qualidade_geral")
+            elif color == "warning":
+                st.warning(quality_class, key="qualidade_geral")
+            else:
+                st.error(quality_class, key="qualidade_geral")
+            
+            st.metric("Índice de Qualidade", f"{quality_index:.3f}/1.0", key="metric_qualidade")
+            
+            # Mostrar composição
+            with st.expander("Composição do Índice", key="expander_composicao"):
+                for component, weight in weights.items():
+                    st.write(f"{component}: {weight*100:.0f}%", key=f"composicao_{component}")
+                    
+        except Exception as e:
+            st.error(f"❌ Erro no cálculo do índice de qualidade", key="erro_qualidade")
 
 # ====== SEÇÃO 5: RA-INDEX AVANÇADO ======
 
