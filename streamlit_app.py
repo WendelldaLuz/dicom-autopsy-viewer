@@ -136,7 +136,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         preset = st.selectbox("Preset de Janelamento:", [
             "Personalizado", "Ossos (400/1500)", "Metais (1000/4000)", 
             "Gases (-1000/400)", "Tecidos Moles (50/400)", "Pulmões (-600/1600)"
-        ])
+        ], key="preset_janelamento")
         
         # Configurar valores baseados no preset
         if preset == "Ossos (400/1500)":
@@ -152,28 +152,28 @@ def enhanced_visualization_tab(dicom_data, image_array):
         else:
             default_center, default_width = 0, 1000
         
-        window_center = st.slider("Centro da Janela (HU):", -2000, 4000, default_center)
-        window_width = st.slider("Largura da Janela (HU):", 1, 6000, default_width)
+        window_center = st.slider("Centro da Janela (HU):", -2000, 4000, default_center, key="window_center")
+        window_width = st.slider("Largura da Janela (HU):", 1, 6000, default_width, key="window_width")
     
     with col2:
         st.markdown("### 🎨 Colorimetria Avançada")
-        apply_metal = st.checkbox("Destacar Metais", value=False)
-        metal_range = st.slider("Faixa de Metais (HU):", -1000, 4000, (800, 3000), disabled=not apply_metal)
-        metal_color = st.color_picker("Cor para Metais:", "#FF0000", disabled=not apply_metal)
+        apply_metal = st.checkbox("Destacar Metais", value=False, key="apply_metal")
+        metal_range = st.slider("Faixa de Metais (HU):", -1000, 4000, (800, 3000), disabled=not apply_metal, key="metal_range")
+        metal_color = st.color_picker("Cor para Metais:", "#FF0000", disabled=not apply_metal, key="metal_color")
         
-        apply_gas = st.checkbox("Destacar Gases", value=False)
-        gas_range = st.slider("Faixa de Gases (HU):", -1000, 0, (-1000, -400), disabled=not apply_gas)
-        gas_color = st.color_picker("Cor para Gases:", "#00FF00", disabled=not apply_gas)
+        apply_gas = st.checkbox("Destacar Gases", value=False, key="apply_gas")
+        gas_range = st.slider("Faixa de Gases (HU):", -1000, 0, (-1000, -400), disabled=not apply_gas, key="gas_range")
+        gas_color = st.color_picker("Cor para Gases:", "#00FF00", disabled=not apply_gas, key="gas_color")
     
     with col3:
         st.markdown("### ⚙️ Ajustes de Imagem")
-        brightness = st.slider("Brilho:", -100, 100, 0)
-        contrast = st.slider("Contraste:", 0.1, 3.0, 1.0, 0.1)
+        brightness = st.slider("Brilho:", -100, 100, 0, key="brightness")
+        contrast = st.slider("Contraste:", 0.1, 3.0, 1.0, 0.1, key="contrast")
         
         # Filtros adicionais
         apply_filter = st.selectbox("Filtro Adicional:", [
             "Nenhum", "Aguçar", "Suavizar", "Detecção de Bordas", "Realce de Contraste"
-        ])
+        ], key="apply_filter")
     
     # Aplicar processamentos
     processed_image = apply_hounsfield_windowing(image_array, window_center, window_width)
@@ -268,7 +268,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
     # Análise de pixels interativa
     st.markdown("### 🔍 Análise Interativa de Pixels")
     
-    if st.button("Ativar Análise de Pixels"):
+    if st.button("Ativar Análise de Pixels", key="btn_analise_pixels"):
         st.info("Clique na imagem abaixo para analisar pixels específicos")
         
         # Criar gráfico interativo com Plotly
@@ -293,7 +293,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
     # Opção de download
     st.markdown("### 💾 Download da Imagem Processada")
     
-    if st.button("Preparar Download"):
+    if st.button("Preparar Download", key="btn_preparar_download"):
         # Converter imagem para formato de download
         if len(final_image.shape) == 3:
             pil_image = Image.fromarray(final_image.astype(np.uint8))
@@ -309,56 +309,8 @@ def enhanced_visualization_tab(dicom_data, image_array):
             label="Baixar Imagem Processada (PNG)",
             data=img_buffer,
             file_name=f"dicom_processada_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
-            mime="image/png"
-        )
-        
-        st.success("Imagem preparada para download!")
-    
-    # Análise de pixels interativa
-    st.markdown("### 🔍 Análise Interativa de Pixels")
-    
-    if st.button("Ativar Análise de Pixels"):
-        st.info("Clique na imagem abaixo para analisar pixels específicos")
-        
-        # Criar gráfico interativo com Plotly
-        fig_interactive = go.Figure()
-        
-        fig_interactive.add_trace(go.Heatmap(
-            z=processed_image,
-            colorscale='viridis',
-            showscale=True,
-            hovertemplate='X: %{x}<br>Y: %{y}<br>Valor HU: %{z}<extra></extra>'
-        ))
-        
-        fig_interactive.update_layout(
-            title="Mapa Interativo de Pixels - Clique para Analisar",
-            xaxis_title="Coordenada X",
-            yaxis_title="Coordenada Y",
-            height=600
-        )
-        
-        st.plotly_chart(fig_interactive, use_container_width=True)
-    
-    # Opção de download
-    st.markdown("### Download da Imagem Processada")
-    
-    if st.button("Preparar Download"):
-        # Converter imagem para formato de download
-        if len(final_image.shape) == 3:
-            pil_image = Image.fromarray(final_image.astype(np.uint8))
-        else:
-            pil_image = Image.fromarray(final_image.astype(np.uint8), mode='L')
-        
-        # Criar buffer para download
-        img_buffer = BytesIO()
-        pil_image.save(img_buffer, format='PNG')
-        img_buffer.seek(0)
-        
-        st.download_button(
-            label="Baixar Imagem Processada (PNG)",
-            data=img_buffer,
-            file_name=f"dicom_processada_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
-            mime="image/png"
+            mime="image/png",
+            key="btn_download_imagem"
         )
         
         st.success("Imagem preparada para download!")
