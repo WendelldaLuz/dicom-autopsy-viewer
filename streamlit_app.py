@@ -1176,8 +1176,6 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
     else:
         st.info("Informações técnicas de aquisição não disponíveis no arquivo DICOM")
 
-# ====== SEÇÃO 5: RA-INDEX AVANÇADO PROFISSIONAL ======
-
 def calculate_ra_index_standard(image_array, dicom_data):
     """
     Implementação padrão do RA-Index baseado em Egger et al. (2012)
@@ -1324,7 +1322,7 @@ def calculate_ra_index_physical(image_array, dicom_data, post_mortem_interval=24
             else:
                 risk_level, tissue_desc, ra_score = 'Crítico', 'Gás Avançado', 80
             
-            return risk_level, tissue_desc, ra_score, total_gas_volume, D_effective, knudsen_number
+            return risk_level, tissue_desc, ra_score, total_gas_volume, D_effective, knudsen_num
         
         else:
             # Tecidos não gasosos
@@ -1397,7 +1395,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     
     # Controles de parâmetros
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### ⚙️ Parâmetros do RA-Index")
+    st.sidebar.markdown("### ⚙️ Parámetros do RA-Index")
     
     pm_interval = st.sidebar.slider("Intervalo Post-Mortem Estimado (horas):", 
                                   0, 168, 24, 1,
@@ -1725,7 +1723,110 @@ def professional_ra_index_tab(dicom_data, image_array):
             phy_val = ra_data_physical['ra_values'][i]
             discrepancy = abs(std_val - phy_val)
             
-            if discrepancy > 20: 
+            if discrepancy > 20:  # Limite para discordância significativa
+                discrepancies.append({
+                    'Região': f"({ra_data_standard['coords'][i][0]}, {ra_data_standard['coords'][i][1]})",
+                    'Tradicional': std_val,
+                    'Físico': phy_val,
+                    'Diferença': discrepancy,
+                    'Tipo_Tecido': ra_data_standard['tissue_types'][i]
+                })
+        
+        if discrepancies:
+            disc_df = pd.DataFrame(discrepancies)
+            st.dataframe(disc_df.sort_values('Diferença', ascending=False), 
+                        use_container_width=True)
+            
+            st.markdown("""
+            **Interpretação das Discordâncias:**
+            - Diferenças > 20 pontos indicam regiões onde a avaliação física
+              detecta alterações não identificadas pelo método tradicional
+            - Estas regiões podem representar casos onde a análise baseada em
+              princípios físicos oferece vantagem diagnóstica
+            """)
+        else:
+            st.info("Não foram encontradas discordâncias significativas (>20 pontos) entre os métodos")
+    
+    # Conclusão e recomendações
+    st.markdown("### 🎯 Conclusões e Recomendações")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### Vantagens do Método Tradicional")
+        st.success("""
+        - ✅ Validação clínica estabelecida (Egger et al., 2012)
+        - ✅ Simplicidade de aplicação
+        - ✅ Correlação com achados macroscópicos
+        - ✅ Amplamente aceito na comunidade forense
+        """)
+    
+    with col2:
+        st.markdown("#### Vantagens do Método Físico")
+        st.info("""
+        - 🔬 Baseado em princípios científicos fundamentais
+        - 🔬 Considera parâmetros físicos (difusão, Knudsen)
+        - 🔬 Modelagem matemática da dispersão gasosa
+        - 🔬 Potencial para maior objetividade e reprodutibilidade
+        """)
+    
+    # Recomendações finais
+    st.markdown("#### 📋 Recomendações para Análise Forense")
+    
+    rec_col1, rec_col2, rec_col3 = st.columns(3)
+    
+    with rec_col1:
+        st.metric("Concordância Geral", 
+                 f"{(1 - (len(discrepancies) / len(ra_data_standard['ra_values'])) * 100:.1f}%",
+                 help="Percentual de regiões com concordância entre métodos")
+    
+    with rec_col2:
+        avg_diff = np.mean([abs(a - b) for a, b in 
+                          zip(ra_data_standard['ra_values'], ra_data_physical['ra_values'])])
+        st.metric("Diferença Média", f"{avg_diff:.1f} pontos")
+    
+    with rec_col3:
+        if discrepancies:
+            max_diff = max(discrepancies, key=lambda x: x['Diferença'])
+            st.metric("Maior Discordância", f"{max_diff['Diferença']} pontos")
+    
+    st.markdown("""
+    **Recomendações:**
+    1. Utilizar ambos os métodos para análise complementar
+    2. Investigar regiões com discordância significativa
+    3. Considerar parâmetros físicos para casos complexos
+    4. Validar achados com correlação macroscópica quando possível
+    """)
+    
+    # Opção de exportação
+    if st.button("📊 Exportar Relatório RA-Index Completo", use_container_width=True):
+        # Preparar dados para exportação
+        export_data = []
+        for i in range(len(ra_data_standard['ra_values'])):
+            export_data.append({
+                'Região_X': ra_data_standard['coords'][i][0],
+                'Região_Y': ra_data_standard['coords'][i][1],
+                'RA_Tradicional': ra_data_standard['ra_values'][i],
+                'RA_Físico': ra_data_physical['ra_values'][i],
+                'Diferença': abs(ra_data_standard['ra_values'][i] - ra_data_physical['ra_values'][i]),
+                'Intensidade_HU': ra_data_standard['intensities'][i],
+                'Categoria_Tradicional': ra_data_standard['risk_categories'][i],
+                'Categoria_Físico': ra_data_physical['risk_categories'][i],
+                'Tipo_Tecido': ra_data_standard['tissue_types'][i],
+                'Volume_Gasoso_cm3': ra_data_standard['gas_volume_estimates'][i],
+                'Coeficiente_Difusão': ra_data_physical['diffusion_coefficients'][i] if i < len(ra_data_physical['diffusion_coefficients']) else 0,
+                'Número_Knudsen': ra_data_physical['knudsen_numbers'][i] if i < len(ra_data_physical['knudsen_numbers']) else 0
+            })
+        
+        export_df = pd.DataFrame(export_data)
+        csv = export_df.to_csv(index=False)
+        
+        st.download_button(
+            label="⬇️ Baixar Dados Completos (CSV)",
+            data=csv,
+            file_name=f"ra_index_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        ) 
 
 # ====== SEÇÃO 6: FUNÇÕES PRINCIPAIS DO SISTEMA ======
 
