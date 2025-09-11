@@ -500,13 +500,13 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
     
     # Organizar metadados por categoria
     categories = {
-    'Informações do Paciente': [],
-    'Parâmetros de Aquisição': [],
-    'Configurações do Equipamento': [],
-    'Dados de Imagem': [],
-    'Informações Temporais': [],
-    'Dados Técnicos Forenses': []  
-}
+        'Informações do Paciente': [],
+        'Parâmetros de Aquisição': [],
+        'Configurações do Equipamento': [],
+        'Dados de Imagem': [],
+        'Informações Temporais': [],
+        'Dados Técnicos Forenses': []  # SEM EMOJI
+    }
     
     # Extrair informações relevantes
     for elem in dicom_data:
@@ -526,7 +526,10 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             elif any(keyword in tag_name.lower() for keyword in ['date', 'time', 'acquisition']):
                 categories['Informações Temporais'].append(f"**{tag_name}**: {value}")
             else:
-                categories['🔧 Dados Técnicos Forenses'].append(f"**{tag_name}**: {value}")
+                # CORREÇÃO: Usar a chave sem emoji
+                categories['Dados Técnicos Forenses'].append(f"**{tag_name}**: {value}")
+    
+    # ... restante do código permanece igual
     
     # Exibir categorias em colunas
     col1, col2 = st.columns(2)
