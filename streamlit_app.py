@@ -764,526 +764,417 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             for anomaly in anomalies:
                 st.warning(anomaly)
 
-# ====== SEÇÃO 4: MÉTRICAS DE QUALIDADE ======
+# ====== SEÇÃO 4: MÉTRICAS DE QUALIDADE PROFISSIONAL ======
 
-def estimate_noise(image):
-    """
-    Estima o nível de ruído usando o método de diferenciação - CORRIGIDA
-    """
-    h, w = image.shape
-    # Calcular diferenças entre pixels adjacentes
-    diff_h = image[:, 1:] - image[:, :-1]
-    diff_v = image[1:, :] - image[:-1, :]
-    
-    # Estimar ruído como o desvio padrão das diferenças
-    noise_estimate = np.std(np.concatenate([diff_h.flatten(), diff_v.flatten()])) / np.sqrt(2)
-    return noise_estimate
+def calculate_psnr(original, processed=None):
+    """Calcula PSNR (Peak Signal-to-Noise Ratio)"""
+    if processed is None:
+        # Se não há imagem processada, usar ruído estimado
+        noise = estimate_noise(original)
+        if noise == 0:
+            return float('inf')
+        return 20 * np.log10(np.max(original) / noise)
+    else:
+        # Entre original e processada
+        mse = np.mean((original - processed) ** 2)
+        if mse == 0:
+            return float('inf')
+        return 20 * np.log10(np.max(original) / np.sqrt(mse))
 
-def calculate_snr(image_array):
-    """
-    Calcula SNR de forma mais robusta - CORRIGIDA
-    """
-    # Método mais robusto: usar uma região homogênea para estimar ruído
-    # Selecionar uma pequena região central (assumindo que é relativamente homogênea)
-    h, w = image_array.shape
-    roi_size = min(20, h//10, w//10)  # Tamanho da região de interesse
-    roi = image_array[h//2-roi_size//2:h//2+roi_size//2, 
-                     w//2-roi_size//2:w//2+roi_size//2]
+def calculate_ssim(original, processed=None):
+    """Calcula SSIM (Structural Similarity Index) simplificado"""
+    if processed is None:
+        return 1.0  # Sem imagem processada para comparação
     
-    signal = np.mean(roi)
-    noise = np.std(roi)
-    
-    return signal / noise if noise > 0 else float('inf')
-
-def calculate_glcm_features(image):
-    """
-    Calcula características GLCM simplificadas - CORRIGIDA
-    """
     try:
-        # Normalizar imagem para 0-255
-        img_min = float(image.min())
-        img_max = float(image.max())
+        from skimage.metrics import structural_similarity as ssim
+        # Normalizar imagens para 0-1
+        original_norm = (original - np.min(original)) / (np.max(original) - np.min(original))
+        processed_norm = (processed - np.min(processed)) / (np.max(processed) - np.min(processed))
+        return ssim(original_norm, processed_norm, data_range=1.0)
+    except ImportError:
+        # Fallback calculation
+        C1 = (0.01 * 255) ** 2
+        C2 = (0.03 * 255) ** 2
         
-        if img_max > img_min:
-            # Converter para float antes das operações
-            normalized = ((image.astype(float) - img_min) / (img_max - img_min) * 255).astype(np.uint8)
-        else:
-            normalized = image.astype(np.uint8)
+        mu_x = np.mean(original)
+        mu_y = np.mean(processed)
+        sigma_x = np.var(original)
+        sigma_y = np.var(processed)
+        sigma_xy = np.cov(original.flatten(), processed.flatten())[0, 1]
         
-        # Garantir que normalized é um array numpy
-        if not isinstance(normalized, np.ndarray):
-            normalized = np.array(normalized)
-        
-        # Calcular diferenças horizontais - garantir que são arrays numpy
-        if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
-            diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
-        else:
-            diff_h = np.array([0.0])
-        
-        # Métricas baseadas em diferenças
-        mean_diff = float(np.mean(diff_h)) if diff_h.size > 0 else 0.0
-        homogeneity_val = float(1 / (1 + mean_diff)) if mean_diff > 0 else 1.0
-        contrast_val = float(np.var(diff_h)) if diff_h.size > 0 else 0.0
-        
-        # Correlação - apenas se houver dados suficientes
-        correlation_val = 0.0
-        if normalized.shape[1] > 1 and normalized.size > 0:
-            try:
-                flat1 = normalized[:, :-1].flatten()
-                flat2 = normalized[:, 1:].flatten()
-                
-                if len(flat1) > 1 and len(flat2) > 1:
-                    corr_matrix = np.corrcoef(flat1, flat2)
-                    if not np.isnan(corr_matrix[0, 1]):
-                        correlation_val = float(corr_matrix[0, 1])
-            except:
-                correlation_val = 0.0
-        
-        # Energia - garantir que é um valor float - CORREÇÃO AQUI
-        # Verificar se normalized é um array válido antes de operações matemáticas
-        if isinstance(normalized, np.ndarray) and normalized.size > 0:
-            energy_val = float(np.mean(normalized.astype(float) ** 2) / (255 ** 2))
-        else:
-            energy_val = 0.0
-            
-        dissimilarity_val = float(mean_diff / 255) if diff_h.size > 0 else 0.0
-        
-        return {
-            'Homogeneidade GLCM': homogeneity_val,
-            'Contraste GLCM': contrast_val,
-            'Correlação GLCM': correlation_val,
-            'Energia GLCM': energy_val,
-            'Dissimilaridade': dissimilarity_val
-        }
-    except Exception as e:
-        return {
-            'Homogeneidade GLCM': 0.0,
-            'Contraste GLCM': 0.0,
-            'Correlação GLCM': 0.0,
-            'Energia GLCM': 0.0,
-            'Dissimilaridade': 0.0
-        }
+        ssim_val = ((2 * mu_x * mu_y + C1) * (2 * sigma_xy + C2)) / \
+                  ((mu_x ** 2 + mu_y ** 2 + C1) * (sigma_x + sigma_y + C2))
+        return ssim_val
 
-def detect_artifacts(image_array):
-    """
-    Detecta vários tipos de artefatos em imagens DICOM - CORRIGIDA
-    """
-    artifacts = {}
-    
-    # 1. Artefato de movimento (análise de Fourier)
-    fft_2d = np.fft.fft2(image_array.astype(float))
-    magnitude_spectrum = np.log(np.abs(np.fft.fftshift(fft_2d)) + 1)
-    
-    # Verificar se há linhas brilhantes no espectro (indicativo de artefato de movimento)
-    center = np.array(magnitude_spectrum.shape) // 2
-    horizontal_line = magnitude_spectrum[center[0], :]
-    vertical_line = magnitude_spectrum[:, center[1]]
-    
-    # Detectar picos incomuns nas linhas centrais
-    horizontal_peaks = np.std(horizontal_line) > 2 * np.mean(horizontal_line)
-    vertical_peaks = np.std(vertical_line) > 2 * np.mean(vertical_line)
-    
-    artifacts['Motion Artifact'] = horizontal_peaks or vertical_peaks
-    
-    # 2. Artefato de metal (valores extremamente altos)
-    metal_threshold = 3000  # HU
-    metal_pixels = np.sum(image_array > metal_threshold)
-    artifacts['Metal Artifact'] = metal_pixels > (image_array.size * 0.001)  # Mais de 0.1% dos pixels
-    
-    # 3. Artefato de ruído (análise de ruído)
-    noise_level = estimate_noise(image_array)
-    artifacts['Noise Artifact'] = noise_level > 50  # Threshold arbitrário
-    
-    return artifacts
+def calculate_mtf(image_array, dicom_data):
+    """Calcula MTF (Modulation Transfer Function) simplificado"""
+    try:
+        # Usar borda da imagem para estimar MTF
+        edge_profile = image_array[image_array.shape[0] // 2, :]
+        
+        # Derivada do perfil de borda (Edge Spread Function)
+        esf_derivative = np.gradient(edge_profile)
+        
+        # Normalizar e calcular MTF
+        mtf = np.abs(np.fft.fft(esf_derivative))
+        mtf = mtf[:len(mtf)//2]  # Manter apenas frequências positivas
+        mtf = mtf / np.max(mtf)  # Normalizar
+        
+        # Encontrar frequência onde MTF cai para 50%
+        freq_50 = np.argmax(mtf < 0.5) / len(mtf) if np.any(mtf < 0.5) else 1.0
+        
+        # Converter para lp/mm se PixelSpacing disponível
+        if hasattr(dicom_data, 'PixelSpacing'):
+            pixel_spacing = float(dicom_data.PixelSpacing[0])
+            freq_50 = freq_50 / (2 * pixel_spacing)  # Conversão para lp/mm
+        
+        return float(freq_50), mtf
+    except:
+        return 0.0, np.array([0.0])
 
-def enhanced_quality_metrics_tab(dicom_data, image_array):
-    """
-    Aba de métricas de qualidade expandidas para análise de imagem DICOM - CORRIGIDA
-    """
-    st.subheader("⭐ Métricas de Qualidade de Imagem Avançadas")
-    
-    # Calcular métricas básicas de qualidade
-    st.markdown("### 📊 Métricas Fundamentais")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    # Calcular estatísticas básicas primeiro
-    signal_val = float(np.mean(image_array))
-    noise_val = float(estimate_noise(image_array))
-    snr_val = float(calculate_snr(image_array))
-    
-    # Calcular entropia corretamente
-    hist, _ = np.histogram(image_array.flatten(), bins=256)
-    probabilities = hist / np.sum(hist)
-    probabilities = probabilities[probabilities > 0]  # Remover zeros
-    entropy_val = float(-np.sum(probabilities * np.log2(probabilities)))
-    
-    # Calcular uniformidade corretamente
-    uniformity_val = float(np.sum(probabilities**2))
-    
-    # Métricas básicas
-    with col1:
-        # Relação sinal-ruído (SNR)
-        st.metric("SNR", f"{snr_val:.2f}", key="metric_snr")
-        
-        # Contraste RMS
-        contrast_rms_val = float(np.sqrt(np.mean((image_array - np.mean(image_array))**2)))
-        st.metric("Contraste RMS", f"{contrast_rms_val:.2f}", key="metric_contraste_rms")
-    
-    with col2:
-        # Entropia da imagem
-        st.metric("Entropia", f"{entropy_val:.2f} bits", key="metric_entropia")
-        
-        # Uniformidade
-        st.metric("Uniformidade", f"{uniformity_val:.4f}", key="metric_uniformidade")
-    
-    with col3:
-        # Resolução efetiva (usando gradientes)
-        try:
-            grad_x = np.gradient(image_array.astype(float), axis=1)
-            grad_y = np.gradient(image_array.astype(float), axis=0)
-            gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
-            effective_resolution_val = float(np.mean(gradient_magnitude))
-        except:
-            effective_resolution_val = 0.0
-        
-        st.metric("🔍 Resolução Efetiva", f"{effective_resolution_val:.2f}", key="metric_resolucao")
-        
-        # Nitidez (Laplaciano)
-        try:
-            laplacian_var_val = float(np.var(ndimage.laplace(image_array.astype(float))))
-        except:
-            laplacian_var_val = 0.0
-        st.metric("Nitidez", f"{laplacian_var_val:.0f}", key="metric_nitidez")
-    
-    with col4:
-        # Homogeneidade
-        img_variance_val = float(np.var(image_array))
-        homogeneity_val = float(1 / (1 + img_variance_val)) if img_variance_val > 0 else 1.0
-        st.metric("Homogeneidade", f"{homogeneity_val:.6f}", key="metric_homogeneidade")
-        
-        # Suavidade
-        smoothness_val = float(1 - (1 / (1 + img_variance_val))) if img_variance_val > 0 else 0.0
-        st.metric("Suavidade", f"{smoothness_val:.6f}", key="metric_suavidade")
-    
-    # Métricas avançadas de qualidade
-    st.markdown("### Métricas Avançadas de Qualidade")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Análise de frequência espacial
-        try:
-            fft_2d = np.fft.fft2(image_array.astype(float))
-            magnitude_spectrum = np.abs(fft_2d)
-            
-            # Frequência espacial média
-            freq_x = np.fft.fftfreq(image_array.shape[0])
-            freq_y = np.fft.fftfreq(image_array.shape[1])
-            
-            # Converter para ciclos/mm se PixelSpacing disponível
-            if hasattr(dicom_data, 'PixelSpacing'):
-                pixel_spacing = float(dicom_data.PixelSpacing[0])  # em mm
-                freq_x = freq_x / pixel_spacing
-                freq_y = freq_y / pixel_spacing
-            
-            fx, fy = np.meshgrid(freq_x, freq_y, indexing='ij')
-            frequency_map = np.sqrt(fx**2 + fy**2)
-            
-            mean_spatial_freq_val = float(np.mean(magnitude_spectrum * frequency_map))
-            
-            # Densidade espectral de potência
-            power_spectrum = magnitude_spectrum**2
-            total_power_val = float(np.sum(power_spectrum))
-            
-            energy_high_freq_val = float(np.sum(power_spectrum[frequency_map > 0.3]))
-            energy_low_freq_val = float(np.sum(power_spectrum[frequency_map < 0.1]))
-            
-            ratio_val = float(energy_high_freq_val / energy_low_freq_val) if energy_low_freq_val > 0 else 0.0
-            
-            metrics_advanced = {
-                'Frequência Espacial Média': mean_spatial_freq_val,
-                'Densidade Espectral Total': total_power_val,
-                'Energia de Alta Frequência': energy_high_freq_val,
-                'Energia de Baixa Frequência': energy_low_freq_val,
-                'Razão Alta/Baixa Freq.': ratio_val
-            }
-            
-        except Exception as e:
-            metrics_advanced = {
-                'Frequência Espacial Média': 0.0,
-                'Densidade Espectral Total': 0.0,
-                'Energia de Alta Frequência': 0.0,
-                'Energia de Baixa Frequência': 0.0,
-                'Razão Alta/Baixa Freq.': 0.0
-            }
-        
-        df_advanced = pd.DataFrame(list(metrics_advanced.items()), columns=['Métrica', 'Valor'])
-        df_advanced['Valor'] = df_advanced['Valor'].apply(lambda x: f"{x:.2e}" if abs(x) > 1000 else f"{x:.4f}")
-        
-        st.markdown("#### Análise Espectral")
-        st.dataframe(df_advanced, use_container_width=True, height=300, key="df_espectral")
-    
-    with col2:
-        # Métricas de textura GLCM
-        texture_metrics = calculate_glcm_features(image_array)
-        
-        df_texture = pd.DataFrame(list(texture_metrics.items()), columns=['Métrica', 'Valor'])
-        df_texture['Valor'] = df_texture['Valor'].apply(lambda x: f"{x:.6f}")
-        
-        st.markdown("#### Análise de Textura")
-        st.dataframe(df_texture, use_container_width=True, height=300, key="df_textura")
-    
-    # Visualizações de qualidade
-    st.markdown("### Visualizações de Qualidade")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Gráfico de distribuição de intensidades
-        fig1 = go.Figure()
-        
-        hist, bin_edges = np.histogram(image_array.flatten(), bins=50)
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-        
-        fig1.add_trace(go.Scatter(
-            x=bin_centers,
-            y=hist,
-            mode='lines',
-            name='Distribuição',
-            fill='tozeroy',
-            line=dict(color='blue', width=2)
-        ))
-        
-        # Adicionar marcadores de qualidade
-        mean_val = float(np.mean(image_array))
-        fig1.add_vline(x=mean_val, line_dash="dash", line_color="red", 
-                      annotation_text=f"Média: {mean_val:.1f}")
-        
-        fig1.update_layout(
-            title="Distribuição de Intensidades",
-            xaxis_title="Intensidade (HU)",
-            yaxis_title="Frequência",
-            height=400,
-            showlegend=False
-        )
-        st.plotly_chart(fig1, use_container_width=True, key="chart_distribuicao")
-    
-    with col2:
-        # Análise de uniformidade regional
+def calculate_cnr(image_array):
+    """Calcula CNR (Contrast-to-Noise Ratio)"""
+    try:
+        # Selecionar duas regiões diferentes para calcular contraste
         h, w = image_array.shape
-        grid_size = min(4, h, w)
-        h_step, w_step = max(1, h // grid_size), max(1, w // grid_size)
+        roi1 = image_array[h//4:h//2, w//4:w//2]  # Região central
+        roi2 = image_array[3*h//4:h, 3*w//4:w]    # Região periférica
         
-        uniformity_map = np.zeros((grid_size, grid_size))
+        contrast = np.abs(np.mean(roi1) - np.mean(roi2))
+        noise = estimate_noise(image_array)
         
-        for i in range(grid_size):
-            for j in range(grid_size):
-                start_h = i * h_step
-                start_w = j * w_step
-                end_h = min((i + 1) * h_step, h)
-                end_w = min((j + 1) * w_step, w)
+        return contrast / noise if noise > 0 else 0.0
+    except:
+        return 0.0
+
+def calculate_nps(image_array):
+    """Calcula NPS (Noise Power Spectrum)"""
+    try:
+        # Remover tendência linear
+        detrended = image_array - ndimage.uniform_filter(image_array, size=10)
+        
+        # Calcular espectro de potência do ruído
+        fft_nps = np.fft.fft2(detrended)
+        nps = np.abs(fft_nps) ** 2
+        nps = np.fft.fftshift(nps)
+        
+        # Perfil radial do NPS
+        center = np.array(nps.shape) // 2
+        y, x = np.indices(nps.shape)
+        r = np.sqrt((x - center[1])**2 + (y - center[0])**2)
+        r = r.astype(int)
+        
+        nps_radial = ndimage.mean(nps, labels=r, index=np.arange(0, np.max(r)))
+        
+        return nps, nps_radial
+    except:
+        return np.zeros_like(image_array), np.array([0.0])
+
+def advanced_noise_analysis(image_array):
+    """Análise avançada de ruído"""
+    try:
+        # Análise de ruído usando múltiplos métodos
+        noise_levels = {}
+        
+        # Método 1: Diferença entre pixels adjacentes
+        diff_h = image_array[:, 1:] - image_array[:, :-1]
+        diff_v = image_array[1:, :] - image_array[:-1, :]
+        noise_levels['Método Diferença'] = np.std(np.concatenate([diff_h.flatten(), diff_v.flatten()])) / np.sqrt(2)
+        
+        # Método 2: Filtro de uniformidade
+        uniform_filtered = ndimage.uniform_filter(image_array, size=3)
+        residual = image_array - uniform_filtered
+        noise_levels['Método Residual'] = np.std(residual)
+        
+        # Método 3: Análise wavelet (simplificada)
+        from scipy import ndimage
+        wavelet_approx = ndimage.gaussian_filter(image_array, sigma=1)
+        wavelet_detail = image_array - wavelet_approx
+        noise_levels['Método Wavelet'] = np.std(wavelet_detail)
+        
+        return noise_levels
+    except:
+        return {'Método Diferença': 0.0, 'Método Residual': 0.0, 'Método Wavelet': 0.0}
+
+def professional_quality_metrics_tab(dicom_data, image_array, processed_image=None):
+    """
+    Aba de métricas de qualidade profissional para análise de imagem DICOM
+    """
+    st.subheader("⭐ Métricas de Qualidade de Imagem Profissional")
+    
+    # Calcular métricas avançadas
+    with st.spinner("Calculando métricas avançadas de qualidade..."):
+        # Métricas básicas
+        snr_val = calculate_snr(image_array)
+        psnr_val = calculate_psnr(image_array, processed_image)
+        ssim_val = calculate_ssim(image_array, processed_image) if processed_image is not None else 1.0
+        cnr_val = calculate_cnr(image_array)
+        mtf_val, mtf_curve = calculate_mtf(image_array, dicom_data)
+        
+        # Análise de ruído avançada
+        noise_levels = advanced_noise_analysis(image_array)
+        nps_matrix, nps_radial = calculate_nps(image_array)
+        
+        # Cálculo de entropia e uniformidade corretos
+        hist, _ = np.histogram(image_array.flatten(), bins=256)
+        probabilities = hist / np.sum(hist)
+        probabilities = probabilities[probabilities > 0]
+        entropy_val = float(-np.sum(probabilities * np.log2(probabilities)))
+        uniformity_val = float(np.sum(probabilities**2))
+    
+    # Display de métricas principais em abas
+    tab1, tab2, tab3, tab4 = st.tabs(["Métricas Gerais", "Análise de Ruído", "Resolução", "Relatório Completo"])
+    
+    with tab1:
+        st.markdown("### 📊 Métricas Fundamentais de Qualidade")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("SNR", f"{snr_val:.2f}", help="Relação Sinal-Ruído")
+            st.metric("PSNR", f"{psnr_val:.2f} dB" if psnr_val != float('inf') else "∞ dB", 
+                     help="Pico de Relação Sinal-Ruído")
+        
+        with col2:
+            st.metric("CNR", f"{cnr_val:.2f}", help="Relação Contraste-Ruído")
+            st.metric("SSIM", f"{ssim_val:.4f}", help="Índice de Similaridade Estrutural")
+        
+        with col3:
+            st.metric("Entropia", f"{entropy_val:.2f} bits", help="Medida de informação/complexidade")
+            st.metric("Uniformidade", f"{uniformity_val:.4f}", help="Uniformidade da distribuição de intensidade")
+        
+        with col4:
+            st.metric("MTF₅₀", f"{mtf_val:.2f} lp/mm", help="Frequência espacial a 50% da modulação")
+            st.metric("Dinâmica", f"{image_array.max()-image_array.min():.0f} HU", 
+                     help="Faixa dinâmica da imagem")
+    
+    with tab2:
+        st.markdown("### 📈 Análise Avançada de Ruído")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Comparação de métodos de ruído
+            noise_df = pd.DataFrame(list(noise_levels.items()), columns=['Método', 'Nível de Ruído (HU)'])
+            fig_noise = px.bar(noise_df, x='Método', y='Nível de Ruído (HU)', 
+                              title="Comparação de Métodos de Análise de Ruído")
+            st.plotly_chart(fig_noise, use_container_width=True)
+            
+            # Perfil do NPS
+            fig_nps = go.Figure()
+            fig_nps.add_trace(go.Scatter(
+                x=np.arange(len(nps_radial)),
+                y=nps_radial,
+                mode='lines',
+                name='NPS Radial',
+                line=dict(color='blue', width=2)
+            ))
+            fig_nps.update_layout(
+                title="Espectro de Potência do Ruído (NPS) - Perfil Radial",
+                xaxis_title="Frequência Espacial",
+                yaxis_title="Potência do Ruído",
+                height=300
+            )
+            st.plotly_chart(fig_nps, use_container_width=True)
+        
+        with col2:
+            # Mapa de ruído
+            noise_map = image_array - ndimage.uniform_filter(image_array, size=5)
+            fig_noise_map = go.Figure(data=go.Heatmap(
+                z=noise_map,
+                colorscale='Viridis',
+                showscale=True,
+                title="Mapa de Distribuição de Ruído"
+            ))
+            fig_noise_map.update_layout(height=400)
+            st.plotly_chart(fig_noise_map, use_container_width=True)
+            
+            # Estatísticas de ruído
+            st.markdown("**Estatísticas de Ruído:**")
+            noise_stats = {
+                'Ruído Médio': f"{np.mean(noise_map):.2f} HU",
+                'Desvio Padrão': f"{np.std(noise_map):.2f} HU",
+                'Ruído Máximo': f"{np.max(np.abs(noise_map)):.2f} HU"
+            }
+            for stat, value in noise_stats.items():
+                st.write(f"{stat}: {value}")
+    
+    with tab3:
+        st.markdown("### 🔍 Análise de Resolução e Nitidez")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Curva MTF
+            fig_mtf = go.Figure()
+            fig_mtf.add_trace(go.Scatter(
+                x=np.linspace(0, 1, len(mtf_curve)),
+                y=mtf_curve,
+                mode='lines',
+                name='MTF',
+                line=dict(color='red', width=3)
+            ))
+            fig_mtf.add_hline(y=0.5, line_dash="dash", line_color="orange", 
+                             annotation_text="50% Modulação")
+            fig_mtf.update_layout(
+                title="Função de Transferência de Modulação (MTF)",
+                xaxis_title="Frequência Espacial Normalizada",
+                yaxis_title="Modulação",
+                height=400
+            )
+            st.plotly_chart(fig_mtf, use_container_width=True)
+        
+        with col2:
+            # Análise de bordas
+            try:
+                # Detecção de bordas para análise de nitidez
+                if processed_image is not None and len(processed_image.shape) == 2:
+                    edges = cv2.Canny(processed_image.astype(np.uint8), 50, 150)
+                else:
+                    edges = cv2.Canny(image_array.astype(np.uint8), 50, 150)
                 
-                region = image_array[start_h:end_h, start_w:end_w]
-                if region.size > 0:
-                    uniformity_map[i, j] = float(np.var(region))
-                else:
-                    uniformity_map[i, j] = 0.0
-        
-        fig2 = go.Figure(data=go.Heatmap(
-            z=uniformity_map,
-            colorscale='viridis',
-            showscale=True,
-            text=np.round(uniformity_map, 2),
-            texttemplate="%{text}",
-            textfont={"size": 10}
-        ))
-        
-        fig2.update_layout(
-            title="Mapa de Uniformidade Regional",
-            xaxis_title="Região X",
-            yaxis_title="Região Y",
-            height=400
-        )
-        st.plotly_chart(fig2, use_container_width=True, key="chart_uniformidade")
+                fig_edges = go.Figure(data=go.Heatmap(
+                    z=edges,
+                    colorscale='Gray',
+                    showscale=False,
+                    title="Mapa de Bordas - Análise de Nitidez"
+                ))
+                fig_edges.update_layout(height=400)
+                st.plotly_chart(fig_edges, use_container_width=True)
+                
+                # Métricas de nitidez
+                edge_sharpness = np.mean(edges) if edges.size > 0 else 0
+                st.metric("Índice de Nitidez", f"{edge_sharpness:.4f}")
+                
+            except Exception as e:
+                st.warning("Análise de bordas não disponível")
     
-    # Métricas de degradação e artefatos
-    st.markdown("### Análise de Artefatos e Degradação")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("#### 🔍 Detecção de Artefatos")
+    with tab4:
+        st.markdown("### 📋 Relatório Completo de Qualidade")
         
-        try:
-            # Detecção de artefatos
-            artifacts = detect_artifacts(image_array)
-            
-            for i, (artifact, detected) in enumerate(artifacts.items()):
-                if detected:
-                    st.warning(f"⚠️ {artifact}", key=f"artefato_{i}")
-                else:
-                    st.success(f"✅ {artifact}", key=f"artefato_{i}")
-                    
-        except Exception as e:
-            st.error("❌ Erro na análise de artefatos", key="erro_artefatos")
-    
-    with col2:
-        st.markdown("#### Índices de Degradação")
+        # Gerar relatório abrangente
+        report_data = {
+            'Métrica': [
+                'SNR (Relação Sinal-Ruído)',
+                'PSNR (Pico SNR)',
+                'CNR (Relação Contraste-Ruído)',
+                'SSIM (Similaridade Estrutural)',
+                'Entropia',
+                'Uniformidade',
+                'MTF₅₀ (Resolução)',
+                'Faixa Dinâmica'
+            ],
+            'Valor': [
+                f"{snr_val:.2f}",
+                f"{psnr_val:.2f} dB" if psnr_val != float('inf') else "∞ dB",
+                f"{cnr_val:.2f}",
+                f"{ssim_val:.4f}",
+                f"{entropy_val:.2f} bits",
+                f"{uniformity_val:.4f}",
+                f"{mtf_val:.2f} lp/mm",
+                f"{image_array.max()-image_array.min():.0f} HU"
+            ],
+            'Status': [
+                'Excelente' if snr_val > 50 else 'Bom' if snr_val > 30 else 'Aceitável' if snr_val > 15 else 'Ruim',
+                'Excelente' if psnr_val > 60 else 'Bom' if psnr_val > 40 else 'Aceitável' if psnr_val > 20 else 'Ruim',
+                'Excelente' if cnr_val > 5 else 'Bom' if cnr_val > 3 else 'Aceitável' if cnr_val > 1 else 'Ruim',
+                'Excelente' if ssim_val > 0.9 else 'Bom' if ssim_val > 0.7 else 'Aceitável' if ssim_val > 0.5 else 'Ruim',
+                'Alta' if entropy_val > 6 else 'Média' if entropy_val > 4 else 'Baixa',
+                'Excelente' if uniformity_val > 0.1 else 'Boa' if uniformity_val > 0.05 else 'Baixa',
+                'Alta' if mtf_val > 2.0 else 'Média' if mtf_val > 1.0 else 'Baixa',
+                'Ampla' if (image_array.max()-image_array.min()) > 2000 else 'Média' if (image_array.max()-image_array.min()) > 1000 else 'Estreita'
+            ]
+        }
         
-        try:
-            # Índice de borramento
-            blur_index = float(1 / (1 + laplacian_var_val/1000)) if laplacian_var_val > 0 else 1.0
-            
-            # Índice de ruído
-            noise_index = float(noise_val / signal_val) if signal_val > 0 else 0.0
-            
-            # Índice de compressão
-            unique_vals = len(np.unique(image_array))
-            compression_index = float(unique_vals / image_array.size)
-            
-            degradation_metrics = {
-                "Índice de Borramento": blur_index,
-                "Índice de Ruído": noise_index,
-                "Índice de Compressão": compression_index
-            }
-            
-            for i, (metric, value) in enumerate(degradation_metrics.items()):
-                if value < 0.1:
-                    st.success(f"✅ {metric}: {value:.4f}", key=f"degradacao_{i}")
-                elif value < 0.3:
-                    st.warning(f"⚠️ {metric}: {value:.4f}", key=f"degradacao_{i}")
-                else:
-                    st.error(f"❌ {metric}: {value:.4f}", key=f"degradacao_{i}")
-                    
-        except Exception as e:
-            st.error("❌ Erro no cálculo de índices", key="erro_indices")
-    
-    with col3:
-        st.markdown("#### Índice de Qualidade Geral")
+        report_df = pd.DataFrame(report_data)
+        st.dataframe(report_df, use_container_width=True, hide_index=True)
         
-        try:
-            # Definir valores de referência com base em literature
-            REFERENCE_VALUES = {
-                'SNR': 100,        # Bom SNR para imagens CT
-                'Entropia': 6,     # Valor típico para imagens médicas
-                'Nitidez': 500,    # Valor de referência arbitrário
-                'Uniformidade': 0.1,  # Quanto menor, mais uniforme
-                'Resolução': 50    # Valor de referência arbitrário
-            }
-            
-            # Normalizar em relação aos valores de referência
-            snr_normalized = min(snr_val / REFERENCE_VALUES['SNR'], 1.0)
-            entropy_normalized = min(entropy_val / REFERENCE_VALUES['Entropia'], 1.0)
-            sharpness_normalized = min(laplacian_var_val / REFERENCE_VALUES['Nitidez'], 1.0)
-            uniformity_normalized = 1.0 - min(uniformity_val / REFERENCE_VALUES['Uniformidade'], 1.0)
-            resolution_normalized = min(effective_resolution_val / REFERENCE_VALUES['Resolução'], 1.0)
-            
-            weights = {
-                'SNR': 0.25,
-                'Entropia': 0.20,
-                'Nitidez': 0.25,
-                'Uniformidade': 0.15,
-                'Resolução': 0.15
-            }
-            
-            quality_index = float(
-                weights['SNR'] * snr_normalized +
-                weights['Entropia'] * entropy_normalized +
-                weights['Nitidez'] * sharpness_normalized +
-                weights['Uniformidade'] * uniformity_normalized +
-                weights['Resolução'] * resolution_normalized
+        # Recomendações baseadas na análise
+        st.markdown("#### 🎯 Recomendações Técnicas")
+        
+        recommendations = []
+        if snr_val < 20:
+            recommendations.append("• Aumentar dose de radiação ou melhorar técnica de aquisição para melhorar SNR")
+        if cnr_val < 2:
+            recommendations.append("• Ajustar parâmetros de contraste ou usar meio de contraste para melhorar CNR")
+        if mtf_val < 1.0:
+            recommendations.append("• Verificar calibração do equipamento e parâmetros de reconstrução para melhorar resolução")
+        if (image_array.max()-image_array.min()) < 1000:
+            recommendations.append("• Ajustar janelamento Hounsfield para melhor utilizar a faixa dinâmica disponível")
+        
+        if recommendations:
+            for rec in recommendations:
+                st.info(rec)
+        else:
+            st.success("A imagem apresenta excelentes características de qualidade!")
+        
+        # Opção de exportar relatório
+        if st.button("📊 Exportar Relatório de Qualidade", use_container_width=True):
+            csv = report_df.to_csv(index=False)
+            st.download_button(
+                label="⬇️ Baixar Relatório (CSV)",
+                data=csv,
+                file_name=f"relatorio_qualidade_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
             )
-            
-            # Classificação da qualidade
-            if quality_index >= 0.8:
-                quality_class, color = "🏆 Excelente", "success"
-            elif quality_index >= 0.6:
-                quality_class, color = "👍 Boa", "success"
-            elif quality_index >= 0.4:
-                quality_class, color = "⚠️ Regular", "warning"
-            else:
-                quality_class, color = "❌ Ruim", "error"
-            
-            if color == "success":
-                st.success(quality_class, key="qualidade_geral")
-            elif color == "warning":
-                st.warning(quality_class, key="qualidade_geral")
-            else:
-                st.error(quality_class, key="qualidade_geral")
-            
-            st.metric("Índice de Qualidade", f"{quality_index:.3f}/1.0", key="metric_qualidade")
-            
-            # Mostrar composição
-            with st.expander("Composição do Índice", key="expander_composicao"):
-                for component, weight in weights.items():
-                    st.write(f"{component}: {weight*100:.0f}%", key=f"composicao_{component}")
-                    
-        except Exception as e:
-            st.error(f"❌ Erro no cálculo do índice de qualidade", key="erro_qualidade")
     
-    with col3:
-        st.markdown("#### Índice de Qualidade Geral")
+    # Análise comparativa se houver imagem processada
+    if processed_image is not None and np.any(processed_image != image_array):
+        st.markdown("### 🔄 Análise Comparativa: Original vs Processada")
         
-        try:
-            # Definir valores de referência com base em literature
-            REFERENCE_VALUES = {
-                'SNR': 100,        # Bom SNR para imagens CT
-                'Entropia': 6,     # Valor típico para imagens médicas
-                'Nitidez': 500,    # Valor de referência arbitrário
-                'Uniformidade': 0.1,  # Quanto menor, mais uniforme
-                'Resolução': 50    # Valor de referência arbitrário
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Diferença entre imagens
+            difference = np.abs(image_array.astype(float) - processed_image.astype(float))
+            fig_diff = go.Figure(data=go.Heatmap(
+                z=difference,
+                colorscale='Hot',
+                showscale=True,
+                title="Mapa de Diferenças (Original - Processada)"
+            ))
+            fig_diff.update_layout(height=400)
+            st.plotly_chart(fig_diff, use_container_width=True)
+        
+        with col2:
+            # Métricas de comparação
+            mse = np.mean((image_array - processed_image) ** 2)
+            rmse = np.sqrt(mse)
+            nrmse = rmse / (np.max(image_array) - np.min(image_array))
+            
+            comp_metrics = {
+                'MSE (Erro Quadrático Médio)': f"{mse:.2f}",
+                'RMSE (Raiz do Erro Quadrático Médio)': f"{rmse:.2f} HU",
+                'NRMSE (RMSE Normalizado)': f"{nrmse:.4f}",
+                'PSNR (Original vs Processada)': f"{calculate_psnr(image_array, processed_image):.2f} dB",
+                'SSIM (Original vs Processada)': f"{calculate_ssim(image_array, processed_image):.4f}"
             }
             
-            # Normalizar em relação aos valores de referência
-            snr_normalized = min(snr_val / REFERENCE_VALUES['SNR'], 1.0)
-            entropy_normalized = min(entropy_val / REFERENCE_VALUES['Entropia'], 1.0)
-            sharpness_normalized = min(laplacian_var_val / REFERENCE_VALUES['Nitidez'], 1.0)
-            uniformity_normalized = 1.0 - min(uniformity_val / REFERENCE_VALUES['Uniformidade'], 1.0)
-            resolution_normalized = min(effective_resolution_val / REFERENCE_VALUES['Resolução'], 1.0)
-            
-            weights = {
-                'SNR': 0.25,
-                'Entropia': 0.20,
-                'Nitidez': 0.25,
-                'Uniformidade': 0.15,
-                'Resolução': 0.15
-            }
-            
-            quality_index = float(
-                weights['SNR'] * snr_normalized +
-                weights['Entropia'] * entropy_normalized +
-                weights['Nitidez'] * sharpness_normalized +
-                weights['Uniformidade'] * uniformity_normalized +
-                weights['Resolução'] * resolution_normalized
-            )
-            
-            # Classificação da qualidade
-            if quality_index >= 0.8:
-                quality_class, color = "🏆 Excelente", "success"
-            elif quality_index >= 0.6:
-                quality_class, color = "👍 Boa", "success"
-            elif quality_index >= 0.4:
-                quality_class, color = "⚠️ Regular", "warning"
-            else:
-                quality_class, color = "❌ Ruim", "error"
-            
-            if color == "success":
-                st.success(quality_class, key="qualidade_geral")
-            elif color == "warning":
-                st.warning(quality_class, key="qualidade_geral")
-            else:
-                st.error(quality_class, key="qualidade_geral")
-            
-            st.metric("Índice de Qualidade", f"{quality_index:.3f}/1.0", key="metric_qualidade")
-            
-            # Mostrar composição
-            with st.expander("Composição do Índice", key="expander_composicao"):
-                for component, weight in weights.items():
-                    st.write(f"{component}: {weight*100:.0f}%", key=f"composicao_{component}")
-                    
-        except Exception as e:
-            st.error(f"❌ Erro no cálculo do índice de qualidade", key="erro_qualidade")
+            st.markdown("**Métricas de Comparação:**")
+            for metric, value in comp_metrics.items():
+                st.write(f"{metric}: {value}")
+    
+    # Informações técnicas do DICOM relevantes para qualidade
+    st.markdown("### 🔧 Parâmetros Técnicos de Aquisição")
+    
+    tech_params = {}
+    if hasattr(dicom_data, 'KVP'):
+        tech_params['Tensão (kVp)'] = f"{dicom_data.KVP} kV"
+    if hasattr(dicom_data, 'ExposureTime'):
+        tech_params['Tempo de Exposição'] = f"{dicom_data.ExposureTime} ms"
+    if hasattr(dicom_data, 'XRayTubeCurrent'):
+        tech_params['Corrente do Tubo'] = f"{dicom_data.XRayTubeCurrent} mA"
+    if hasattr(dicom_data, 'PixelSpacing'):
+        tech_params['Espaçamento de Pixel'] = f"{dicom_data.PixelSpacing[0]} mm"
+    if hasattr(dicom_data, 'SliceThickness'):
+        tech_params['Espessura de Corte'] = f"{dicom_data.SliceThickness} mm"
+    
+    if tech_params:
+        tech_df = pd.DataFrame(list(tech_params.items()), columns=['Parâmetro', 'Valor'])
+        st.dataframe(tech_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Informações técnicas de aquisição não disponíveis no arquivo DICOM")
 
 # ====== SEÇÃO 5: RA-INDEX AVANÇADO ======
 
