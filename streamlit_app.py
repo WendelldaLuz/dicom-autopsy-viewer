@@ -1676,7 +1676,7 @@ def show_main_app():
         st.write("**Status:** 🟢 Online")
     
     # Conteúdo principal
-    st.markdown("# 🔬 DICOM Autopsy Viewer PRO - Enhanced Edition")
+    st.markdown("# 🔬 DICOM Autopsy Viewer PRO")
     st.markdown(f"**Bem-vindo, {user_data['name']}!** 👋")
     
     if uploaded_file is not None:
