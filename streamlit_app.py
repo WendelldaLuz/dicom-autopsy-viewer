@@ -82,29 +82,44 @@ def apply_colorimetric_analysis(image, metal_range, gas_range, metal_color, gas_
     """
     Aplica análise colorimétrica avançada com janelamentos específicos
     """
-    result_image = np.copy(image)
+    # Primeiro, processar a imagem base (brilho/contraste)
+    result_image = np.copy(image).astype(float)
     
-    # Aplicar brilho e contraste (APENAS na imagem, não nas cores)
+    # Aplicar brilho e contraste
     result_image = result_image * contrast + brightness
     result_image = np.clip(result_image, 0, 255).astype(np.uint8)
     
-    # Converter para RGB se necessário
+    # Converter para RGB se necessário (apenas para imagens em escala de cinza)
     if len(result_image.shape) == 2:
-        result_image = cv2.cvtColor(result_image, cv2.COLOR_GRAY2RGB)
+        if 'cv2' in globals():
+            result_image = cv2.cvtColor(result_image, cv2.COLOR_GRAY2RGB)
+        else:
+            # Fallback sem OpenCV - converter manualmente para RGB
+            result_image = np.stack([result_image] * 3, axis=-1)
     
-    # Aplicar coloração para metais (usando a cor RGB diretamente)
+    # Aplicar coloração para metais
     if apply_metal:
         metal_mask = (image >= metal_range[0]) & (image <= metal_range[1])
         if np.any(metal_mask):
-            # Aplicar a cor diretamente - REMOVER OPERAÇÕES MATEMÁTICAS
-            result_image[metal_mask] = metal_color
+            # Aplicar a cor RGB diretamente - SEM operações matemáticas
+            if len(result_image.shape) == 3:
+                # Para cada canal RGB
+                for channel in range(3):
+                    result_image[metal_mask, channel] = metal_color[channel]
+            else:
+                result_image[metal_mask] = metal_color
     
     # Aplicar coloração para gases
     if apply_gas:
         gas_mask = (image >= gas_range[0]) & (image <= gas_range[1])
         if np.any(gas_mask):
-            # Aplicar a cor diretamente - REMOVER OPERAÇÕES MATEMÁTICAS
-            result_image[gas_mask] = gas_color
+            # Aplicar a cor RGB diretamente - SEM operações matemáticas
+            if len(result_image.shape) == 3:
+                # Para cada canal RGB
+                for channel in range(3):
+                    result_image[gas_mask, channel] = gas_color[channel]
+            else:
+                result_image[gas_mask] = gas_color
     
     return result_image
 
