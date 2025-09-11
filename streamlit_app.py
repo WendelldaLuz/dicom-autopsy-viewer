@@ -84,7 +84,7 @@ def apply_colorimetric_analysis(image, metal_range, gas_range, metal_color, gas_
     """
     result_image = np.copy(image)
     
-    # Aplicar brilho e contraste
+    # Aplicar brilho e contraste (APENAS na imagem, não nas cores)
     result_image = result_image * contrast + brightness
     result_image = np.clip(result_image, 0, 255).astype(np.uint8)
     
@@ -92,16 +92,18 @@ def apply_colorimetric_analysis(image, metal_range, gas_range, metal_color, gas_
     if len(result_image.shape) == 2:
         result_image = cv2.cvtColor(result_image, cv2.COLOR_GRAY2RGB)
     
-    # Aplicar coloração para metais
+    # Aplicar coloração para metais (usando a cor RGB diretamente)
     if apply_metal:
         metal_mask = (image >= metal_range[0]) & (image <= metal_range[1])
         if np.any(metal_mask):
+            # Aplicar a cor diretamente - REMOVER OPERAÇÕES MATEMÁTICAS
             result_image[metal_mask] = metal_color
     
     # Aplicar coloração para gases
     if apply_gas:
         gas_mask = (image >= gas_range[0]) & (image <= gas_range[1])
         if np.any(gas_mask):
+            # Aplicar a cor diretamente - REMOVER OPERAÇÕES MATEMÁTICAS
             result_image[gas_mask] = gas_color
     
     return result_image
@@ -110,13 +112,13 @@ def enhanced_visualization_tab(dicom_data, image_array):
     """
     Aba de visualização aprimorada com ferramentas colorimétricas
     """
-    st.subheader("🎨 Visualização Avançada com Ferramentas Colorimétricas")
+    st.subheader("Visualização Avançada com Ferramentas Colorimétricas")
     
     # Controles principais em colunas
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
-        st.markdown("### 🔧 Controles de Janelamento")
+        st.markdown("###  Controles de Janelamento")
         # Presets de janelamento Hounsfield
         preset = st.selectbox("Preset de Janelamento:", [
             "Personalizado", "Ossos (400/1500)", "Metais (1000/4000)", 
@@ -141,7 +143,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         window_width = st.slider("Largura da Janela (HU):", 1, 6000, default_width)
     
     with col2:
-        st.markdown("### 🎨 Colorimetria Avançada")
+        st.markdown("### Colorimetria Avançada")
         apply_metal = st.checkbox("Destacar Metais", value=False)
         metal_range = st.slider("Faixa de Metais (HU):", -1000, 4000, (800, 3000), disabled=not apply_metal)
         metal_color = st.color_picker("Cor para Metais:", "#FF0000", disabled=not apply_metal)
@@ -151,7 +153,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         gas_color = st.color_picker("Cor para Gases:", "#00FF00", disabled=not apply_gas)
     
     with col3:
-        st.markdown("### ⚡ Ajustes de Imagem")
+        st.markdown("### Ajustes de Imagem")
         brightness = st.slider("Brilho:", -100, 100, 0)
         contrast = st.slider("Contraste:", 0.1, 3.0, 1.0, 0.1)
         
@@ -212,7 +214,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         plt.close(fig_orig)
     
     with col_img2:
-        st.markdown("#### 🎨 Imagem Processada")
+        st.markdown("#### Imagem Processada")
         fig_proc, ax_proc = plt.subplots(figsize=(8, 8))
         if len(final_image.shape) == 3:
             ax_proc.imshow(final_image)
@@ -226,7 +228,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
     # Análise de pixels interativa
     st.markdown("### 🔍 Análise Interativa de Pixels")
     
-    if st.button("🎯 Ativar Análise de Pixels"):
+    if st.button("Ativar Análise de Pixels"):
         st.info("Clique na imagem abaixo para analisar pixels específicos")
         
         # Criar gráfico interativo com Plotly
@@ -240,7 +242,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         ))
         
         fig_interactive.update_layout(
-            title="🎯 Mapa Interativo de Pixels - Clique para Analisar",
+            title="Mapa Interativo de Pixels - Clique para Analisar",
             xaxis_title="Coordenada X",
             yaxis_title="Coordenada Y",
             height=600
@@ -249,9 +251,9 @@ def enhanced_visualization_tab(dicom_data, image_array):
         st.plotly_chart(fig_interactive, use_container_width=True)
     
     # Opção de download
-    st.markdown("### 💾 Download da Imagem Processada")
+    st.markdown("### Download da Imagem Processada")
     
-    if st.button("📥 Preparar Download"):
+    if st.button("Preparar Download"):
         # Converter imagem para formato de download
         if len(final_image.shape) == 3:
             pil_image = Image.fromarray(final_image.astype(np.uint8))
@@ -264,13 +266,13 @@ def enhanced_visualization_tab(dicom_data, image_array):
         img_buffer.seek(0)
         
         st.download_button(
-            label="🎨 Baixar Imagem Processada (PNG)",
+            label="Baixar Imagem Processada (PNG)",
             data=img_buffer,
             file_name=f"dicom_processada_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
             mime="image/png"
         )
         
-        st.success("✅ Imagem preparada para download!")
+        st.success("Imagem preparada para download!")
 
 # ====== SEÇÃO 2: ESTATÍSTICAS AVANÇADAS ======
 
@@ -278,7 +280,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     """
     Aba de estatísticas com múltiplas visualizações
     """
-    st.subheader("📊 Análise Estatística Avançada")
+    st.subheader("Análise Estatística Avançada")
     
     # Calcular estatísticas básicas
     stats_data = {
@@ -296,23 +298,23 @@ def enhanced_statistics_tab(dicom_data, image_array):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("📈 Média (HU)", f"{stats_data['Média']:.2f}")
-        st.metric("📊 Mediana (HU)", f"{stats_data['Mediana']:.2f}")
+        st.metric("Média (HU)", f"{stats_data['Média']:.2f}")
+        st.metric("Mediana (HU)", f"{stats_data['Mediana']:.2f}")
     
     with col2:
-        st.metric("📏 Desvio Padrão", f"{stats_data['Desvio Padrão']:.2f}")
-        st.metric("🎯 Variância", f"{stats_data['Variância']:.2f}")
+        st.metric("Desvio Padrão", f"{stats_data['Desvio Padrão']:.2f}")
+        st.metric("Variância", f"{stats_data['Variância']:.2f}")
     
     with col3:
-        st.metric("⬇️ Mínimo (HU)", f"{stats_data['Mínimo']:.2f}")
-        st.metric("⬆️ Máximo (HU)", f"{stats_data['Máximo']:.2f}")
+        st.metric("Mínimo (HU)", f"{stats_data['Mínimo']:.2f}")
+        st.metric("Máximo (HU)", f"{stats_data['Máximo']:.2f}")
     
     with col4:
-        st.metric("↗️ Assimetria", f"{stats_data['Assimetria']:.3f}")
-        st.metric("📐 Curtose", f"{stats_data['Curtose']:.3f}")
+        st.metric("Assimetria", f"{stats_data['Assimetria']:.3f}")
+        st.metric("urtose", f"{stats_data['Curtose']:.3f}")
     
     # Gráficos avançados
-    st.markdown("### 📈 Visualizações Estatísticas Avançadas")
+    st.markdown("### Visualizações Estatísticas Avançadas")
     
     # 1. Histograma detalhado
     col1, col2 = st.columns(2)
@@ -327,7 +329,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             opacity=0.7
         ))
         fig1.update_layout(
-            title="📊 Histograma de Distribuição de Valores HU",
+            title="Histograma de Distribuição de Valores HU",
             xaxis_title="Unidades Hounsfield (HU)",
             yaxis_title="Frequência",
             height=400
@@ -344,7 +346,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             marker_color='lightgreen'
         ))
         fig2.update_layout(
-            title="📦 Box Plot - Análise de Outliers",
+            title="Box Plot - Análise de Outliers",
             yaxis_title="Unidades Hounsfield (HU)",
             height=400
         )
@@ -367,7 +369,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             marker=dict(size=8)
         ))
         fig3.update_layout(
-            title="📏 Análise de Percentis",
+            title="Análise de Percentis",
             xaxis_title="Percentil (%)",
             yaxis_title="Valor HU",
             height=400
@@ -390,7 +392,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             line=dict(color='purple', width=2)
         ))
         fig4.update_layout(
-            title="🌊 Densidade de Probabilidade",
+            title="Densidade de Probabilidade",
             xaxis_title="Unidades Hounsfield (HU)",
             yaxis_title="Densidade",
             height=400
@@ -407,7 +409,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             showscale=True
         ))
         fig5.update_layout(
-            title="🔥 Mapa de Calor da Imagem",
+            title="Mapa de Calor da Imagem",
             height=400
         )
         st.plotly_chart(fig5, use_container_width=True)
@@ -425,7 +427,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             showscale=True
         ))
         fig6.update_layout(
-            title="⚡ Magnitude do Gradiente",
+            title="Magnitude do Gradiente",
             height=400
         )
         st.plotly_chart(fig6, use_container_width=True)
@@ -472,7 +474,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     ))
     
     fig7.update_layout(
-        title="📊 Comparação Estatística Regional",
+        title="Comparação Estatística Regional",
         xaxis_title="Regiões da Imagem",
         yaxis_title="Valores",
         barmode='group',
@@ -482,7 +484,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     st.plotly_chart(fig7, use_container_width=True)
     
     # Tabela de estatísticas regionais
-    st.markdown("#### 📋 Tabela de Estatísticas Regionais")
+    st.markdown("#### Tabela de Estatísticas Regionais")
     st.dataframe(df_regional, use_container_width=True)
 
 # ====== SEÇÃO 3: ANÁLISE TÉCNICA ======
@@ -498,12 +500,12 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
     
     # Organizar metadados por categoria
     categories = {
-        '🏥 Informações do Paciente': [],
-        '🔬 Parâmetros de Aquisição': [],
-        '⚙️ Configurações do Equipamento': [],
-        '📊 Dados de Imagem': [],
-        '🕒 Informações Temporais': [],
-        '🔧 Dados Técnicos Forenses': []
+        'Informações do Paciente': [],
+        'Parâmetros de Aquisição': [],
+        'Configurações do Equipamento': [],
+        'Dados de Imagem': [],
+        'Informações Temporais': [],
+        'Dados Técnicos Forenses': []
     }
     
     # Extrair informações relevantes
@@ -514,15 +516,15 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             
             # Categorizar por tipo de informação
             if any(keyword in tag_name.lower() for keyword in ['patient', 'name', 'id', 'birth', 'sex']):
-                categories['🏥 Informações do Paciente'].append(f"**{tag_name}**: {value}")
+                categories['Informações do Paciente'].append(f"**{tag_name}**: {value}")
             elif any(keyword in tag_name.lower() for keyword in ['kv', 'ma', 'exposure', 'slice', 'pixel']):
-                categories['🔬 Parâmetros de Aquisição'].append(f"**{tag_name}**: {value}")
+                categories['Parâmetros de Aquisição'].append(f"**{tag_name}**: {value}")
             elif any(keyword in tag_name.lower() for keyword in ['manufacturer', 'model', 'software', 'station']):
-                categories['⚙️ Configurações do Equipamento'].append(f"**{tag_name}**: {value}")
+                categories['Configurações do Equipamento'].append(f"**{tag_name}**: {value}")
             elif any(keyword in tag_name.lower() for keyword in ['rows', 'columns', 'spacing', 'thickness']):
-                categories['📊 Dados de Imagem'].append(f"**{tag_name}**: {value}")
+                categories['Dados de Imagem'].append(f"**{tag_name}**: {value}")
             elif any(keyword in tag_name.lower() for keyword in ['date', 'time', 'acquisition']):
-                categories['🕒 Informações Temporais'].append(f"**{tag_name}**: {value}")
+                categories['Informações Temporais'].append(f"**{tag_name}**: {value}")
             else:
                 categories['🔧 Dados Técnicos Forenses'].append(f"**{tag_name}**: {value}")
     
@@ -550,7 +552,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("#### 🎯 Métricas de Integridade")
+        st.markdown("#### Métricas de Integridade")
         
         # Calcular hash da imagem
         import hashlib
@@ -568,7 +570,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         st.metric("🗜️ Taxa de Compressão", f"{compression_ratio:.4f}")
     
     with col2:
-        st.markdown("#### 📊 Análise Espectral")
+        st.markdown("#### Análise Espectral")
         
         # FFT para análise de frequência
         fft_2d = np.fft.fft2(image_array)
@@ -578,17 +580,17 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         low_freq_energy = np.sum(magnitude_spectrum[:50, :50])
         high_freq_energy = np.sum(magnitude_spectrum[-50:, -50:])
         
-        st.metric("🌊 Energia Baixa Freq.", f"{low_freq_energy:.0f}")
-        st.metric("⚡ Energia Alta Freq.", f"{high_freq_energy:.0f}")
+        st.metric("Energia Baixa Freq.", f"{low_freq_energy:.0f}")
+        st.metric("Energia Alta Freq.", f"{high_freq_energy:.0f}")
         
         # Relação sinal-ruído estimada
         signal_power = np.var(image_array)
         noise_power = noise_level**2
         snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
-        st.metric("📻 SNR (dB)", f"{snr:.2f}")
+        st.metric("SNR (dB)", f"{snr:.2f}")
     
     with col3:
-        st.markdown("#### 🔬 Análise Morfológica")
+        st.markdown("#### Análise Morfológica")
         
         # Detecção de bordas
         if 'cv2' in globals():
@@ -601,19 +603,19 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             edges = np.sqrt(grad_x**2 + grad_y**2)
             edge_density = np.sum(edges > np.percentile(edges, 95)) / edges.size
         
-        st.metric("🔗 Densidade de Bordas", f"{edge_density:.4f}")
+        st.metric("Densidade de Bordas", f"{edge_density:.4f}")
         
         # Análise de conectividade
         binary_image = image_array > np.mean(image_array)
         connected_components = len(np.unique(ndimage.label(binary_image)[0]))
-        st.metric("🔗 Componentes Conexos", f"{connected_components}")
+        st.metric("Componentes Conexos", f"{connected_components}")
         
         # Análise de textura (simplificada)
         texture_energy = np.sum(np.gradient(image_array)**2)
-        st.metric("🌀 Energia de Textura", f"{texture_energy:.0f}")
+        st.metric("Energia de Textura", f"{texture_energy:.0f}")
     
     # Gráficos de análise forense
-    st.markdown("### 📈 Visualizações Forenses")
+    st.markdown("### Visualizações Forenses")
     
     col1, col2 = st.columns(2)
     
@@ -625,7 +627,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             showscale=True
         ))
         fig1.update_layout(
-            title="🌊 Espectro de Magnitude (FFT)",
+            title="Espectro de Magnitude (FFT)",
             height=400
         )
         st.plotly_chart(fig1, use_container_width=True)
@@ -638,13 +640,13 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             showscale=True
         ))
         fig2.update_layout(
-            title="🔗 Mapa de Detecção de Bordas",
+            title="Mapa de Detecção de Bordas",
             height=400
         )
         st.plotly_chart(fig2, use_container_width=True)
     
     # Análise de autenticidade
-    st.markdown("### 🔐 Análise de Autenticidade")
+    st.markdown("### Análise de Autenticidade")
     
     col1, col2, col3 = st.columns(3)
     
@@ -653,11 +655,11 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         
         # Simulação de verificações (em um sistema real, estas seriam mais complexas)
         checks = {
-            "✅ Estrutura DICOM válida": True,
-            "✅ Metadados consistentes": True,
-            "✅ Assinatura digital": False,  # Simulado
-            "⚠️ Possível edição detectada": np.random.choice([True, False]),
-            "✅ Conformidade com padrão": True
+            "Estrutura DICOM válida": True,
+            "Metadados consistentes": True,
+            "Assinatura digital": False,  # Simulado
+            "Possível edição detectada": np.random.choice([True, False]),
+            "Conformidade com padrão": True
         }
         
         for check, status in checks.items():
@@ -671,16 +673,16 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                 st.info(check)
     
     with col2:
-        st.markdown("#### 📅 Timeline Forense")
+        st.markdown("#### Timeline Forense")
         
         # Extrair datas importantes
         timeline_data = []
         if hasattr(dicom_data, 'StudyDate'):
-            timeline_data.append(f"📅 Data do Estudo: {dicom_data.StudyDate}")
+            timeline_data.append(f" Data do Estudo: {dicom_data.StudyDate}")
         if hasattr(dicom_data, 'AcquisitionDate'):
-            timeline_data.append(f"📷 Data de Aquisição: {dicom_data.AcquisitionDate}")
+            timeline_data.append(f" Data de Aquisição: {dicom_data.AcquisitionDate}")
         if hasattr(dicom_data, 'ContentDate'):
-            timeline_data.append(f"📝 Data do Conteúdo: {dicom_data.ContentDate}")
+            timeline_data.append(f" Data do Conteúdo: {dicom_data.ContentDate}")
         
         timeline_data.append(f"🔍 Análise Realizada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
@@ -688,29 +690,29 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             st.markdown(f"- {event}")
     
     with col3:
-        st.markdown("#### ⚡ Relatório de Anomalias")
+        st.markdown("#### Relatório de Anomalias")
         
         # Detectar possíveis anomalias
         anomalies = []
         
         # Verificar valores extremos
         if np.min(image_array) < -1000 or np.max(image_array) > 4000:
-            anomalies.append("⚠️ Valores HU fora do padrão")
+            anomalies.append("Valores HU fora do padrão")
         
         # Verificar uniformidade
         if np.std(image_array) > 1000:
-            anomalies.append("⚠️ Alta variabilidade nos dados")
+            anomalies.append("Alta variabilidade nos dados")
         
         # Verificar ruído excessivo
         if noise_level > 100:
-            anomalies.append("⚠️ Nível de ruído elevado")
+            anomalies.append("Nível de ruído elevado")
         
         # Verificar possível compressão excessiva
         if compression_ratio < 0.1:
-            anomalies.append("⚠️ Possível compressão excessiva")
+            anomalies.append("Possível compressão excessiva")
         
         if not anomalies:
-            st.success("✅ Nenhuma anomalia detectada")
+            st.success("Nenhuma anomalia detectada")
         else:
             for anomaly in anomalies:
                 st.warning(anomaly)
@@ -721,10 +723,10 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
     """
     Aba de métricas de qualidade expandidas
     """
-    st.subheader("⭐ Métricas de Qualidade de Imagem Avançadas")
+    st.subheader("Métricas de Qualidade de Imagem Avançadas")
     
     # Calcular métricas básicas de qualidade
-    st.markdown("### 📊 Métricas Fundamentais")
+    st.markdown("### Métricas Fundamentais")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -738,18 +740,18 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         
         # Contraste RMS
         contrast_rms = np.sqrt(np.mean((image_array - np.mean(image_array))**2))
-        st.metric("📏 Contraste RMS", f"{contrast_rms:.2f}")
+        st.metric("Contraste RMS", f"{contrast_rms:.2f}")
     
     with col2:
         # Entropia da imagem
         hist, _ = np.histogram(image_array.flatten(), bins=256, density=True)
         hist = hist[hist > 0]  # Remove zeros
         entropy = -np.sum(hist * np.log2(hist))
-        st.metric("🔀 Entropia", f"{entropy:.2f} bits")
+        st.metric("Entropia", f"{entropy:.2f} bits")
         
         # Uniformidade
         uniformity = np.sum(hist**2)
-        st.metric("🎯 Uniformidade", f"{uniformity:.4f}")
+        st.metric("Uniformidade", f"{uniformity:.4f}")
     
     with col3:
         # Resolução efetiva
@@ -757,23 +759,23 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         grad_y = np.gradient(image_array, axis=0)
         gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
         effective_resolution = np.mean(gradient_magnitude)
-        st.metric("🔍 Resolução Efetiva", f"{effective_resolution:.2f}")
+        st.metric("Resolução Efetiva", f"{effective_resolution:.2f}")
         
         # Nitidez
         laplacian_var = np.var(ndimage.laplace(image_array))
-        st.metric("⚡ Nitidez (Laplacian)", f"{laplacian_var:.0f}")
+        st.metric("Nitidez (Laplacian)", f"{laplacian_var:.0f}")
     
     with col4:
         # Homogeneidade
         homogeneity = 1 / (1 + np.var(image_array))
-        st.metric("🏠 Homogeneidade", f"{homogeneity:.6f}")
+        st.metric("Homogeneidade", f"{homogeneity:.6f}")
         
         # Suavidade
         smoothness = 1 - (1 / (1 + np.var(image_array)))
-        st.metric("🌊 Suavidade", f"{smoothness:.6f}")
+        st.metric("Suavidade", f"{smoothness:.6f}")
     
     # Métricas avançadas de qualidade
-    st.markdown("### 🎯 Métricas Avançadas de Qualidade")
+    st.markdown("### Métricas Avançadas de Qualidade")
     
     col1, col2 = st.columns(2)
     
@@ -802,7 +804,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         df_advanced = pd.DataFrame(list(metrics_advanced.items()), columns=['Métrica', 'Valor'])
         df_advanced['Valor'] = df_advanced['Valor'].apply(lambda x: f"{x:.2e}" if abs(x) > 1000 else f"{x:.4f}")
         
-        st.markdown("#### 🌊 Análise Espectral")
+        st.markdown("#### Análise Espectral")
         st.dataframe(df_advanced, use_container_width=True)
     
     with col2:
@@ -835,11 +837,11 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         df_texture = pd.DataFrame(list(texture_metrics.items()), columns=['Métrica', 'Valor'])
         df_texture['Valor'] = df_texture['Valor'].apply(lambda x: f"{x:.6f}")
         
-        st.markdown("#### 🌀 Análise de Textura")
+        st.markdown("#### Análise de Textura")
         st.dataframe(df_texture, use_container_width=True)
     
     # Visualizações de qualidade
-    st.markdown("### 📈 Visualizações de Qualidade")
+    st.markdown("### Visualizações de Qualidade")
     
     col1, col2 = st.columns(2)
     
@@ -865,7 +867,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                       annotation_text=f"Média: {mean_val:.1f}")
         
         fig1.update_layout(
-            title="📊 Distribuição de Intensidades",
+            title="Distribuição de Intensidades",
             xaxis_title="Intensidade (HU)",
             yaxis_title="Frequência",
             height=400
@@ -895,7 +897,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         ))
         
         fig2.update_layout(
-            title="🗺️ Mapa de Uniformidade Regional",
+            title="Mapa de Uniformidade Regional",
             xaxis_title="Região X",
             yaxis_title="Região Y",
             height=400
@@ -903,7 +905,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.plotly_chart(fig2, use_container_width=True)
     
     # Métricas de degradação e artefatos
-    st.markdown("### ⚠️ Análise de Artefatos e Degradação")
+    st.markdown("### Análise de Artefatos e Degradação")
     
     col1, col2, col3 = st.columns(3)
     
@@ -933,12 +935,12 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         
         for artifact, detected in artifacts.items():
             if detected:
-                st.warning(f"⚠️ {artifact} detectado")
+                st.warning(f" {artifact} detectado")
             else:
-                st.success(f"✅ {artifact} não detectado")
+                st.success(f" {artifact} não detectado")
     
     with col2:
-        st.markdown("#### 📉 Índices de Degradação")
+        st.markdown("#### Índices de Degradação")
         
         # Índice de borramento
         blur_index = 1 / (1 + laplacian_var/1000)
@@ -958,14 +960,14 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         for metric, value in degradation_metrics.items():
             # Determinar cor baseada no valor
             if value < 0.1:
-                st.success(f"✅ {metric}: {value:.4f}")
+                st.success(f" {metric}: {value:.4f}")
             elif value < 0.3:
-                st.warning(f"⚠️ {metric}: {value:.4f}")
+                st.warning(f" {metric}: {value:.4f}")
             else:
-                st.error(f"❌ {metric}: {value:.4f}")
+                st.error(f" {metric}: {value:.4f}")
     
     with col3:
-        st.markdown("#### ⭐ Índice de Qualidade Geral")
+        st.markdown("#### Índice de Qualidade Geral")
         
         # Calcular índice de qualidade composto
         # Normalizar métricas (0-1, onde 1 é melhor)
@@ -995,16 +997,16 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         
         # Classificação da qualidade
         if quality_index >= 0.8:
-            quality_class = "🏆 Excelente"
+            quality_class = "Excelente"
             color = "success"
         elif quality_index >= 0.6:
-            quality_class = "👍 Boa"
+            quality_class = "Boa"
             color = "success"
         elif quality_index >= 0.4:
-            quality_class = "⚠️ Regular"
+            quality_class = "Regular"
             color = "warning"
         else:
-            quality_class = "❌ Ruim"
+            quality_class = "Ruim"
             color = "error"
         
         if color == "success":
@@ -1027,7 +1029,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
     """
     Aba RA-Index com visualizações avançadas incluindo mapas de calor
     """
-    st.subheader("🎯 RA-Index - Análise de Risco Aprimorada")
+    st.subheader("RA-Index - Análise de Risco Aprimorada")
     
     # Gerar dados RA-Index mais sofisticados
     def generate_advanced_ra_index_data(image_array):
@@ -1097,29 +1099,29 @@ def enhanced_ra_index_tab(dicom_data, image_array):
     ra_data, grid_size = generate_advanced_ra_index_data(image_array)
     
     # Estatísticas gerais do RA-Index
-    st.markdown("### 📊 Estatísticas Gerais do RA-Index")
+    st.markdown("### Estatísticas Gerais do RA-Index")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         avg_ra = np.mean(ra_data['ra_values'])
-        st.metric("📈 RA-Index Médio", f"{avg_ra:.1f}")
+        st.metric("RA-Index Médio", f"{avg_ra:.1f}")
         
     with col2:
         max_ra = np.max(ra_data['ra_values'])
-        st.metric("🔴 RA-Index Máximo", f"{max_ra:.1f}")
+        st.metric("RA-Index Máximo", f"{max_ra:.1f}")
     
     with col3:
         risk_counts = pd.Series(ra_data['risk_categories']).value_counts()
         critical_count = risk_counts.get('Crítico', 0)
-        st.metric("⚠️ Regiões Críticas", critical_count)
+        st.metric("Regiões Críticas", critical_count)
     
     with col4:
         high_risk_count = risk_counts.get('Alto', 0)
-        st.metric("🟡 Regiões Alto Risco", high_risk_count)
+        st.metric("Regiões Alto Risco", high_risk_count)
     
     # Mapas de calor avançados
-    st.markdown("### 🔥 Mapas de Calor Avançados")
+    st.markdown("### Mapas de Calor Avançados")
     
     col1, col2 = st.columns(2)
     
@@ -1138,7 +1140,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         ))
         
         fig1.update_layout(
-            title="🎯 Mapa de Calor - RA-Index",
+            title="Mapa de Calor - RA-Index",
             xaxis_title="Região X",
             yaxis_title="Região Y",
             height=500
@@ -1172,7 +1174,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         st.plotly_chart(fig2, use_container_width=True)
     
     # Análise de distribuição de risco
-    st.markdown("### 📊 Análise de Distribuição de Risco")
+    st.markdown("### Análise de Distribuição de Risco")
     
     col1, col2 = st.columns(2)
     
@@ -1186,7 +1188,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         )])
         
         fig3.update_layout(
-            title="🍕 Distribuição de Categorias de Risco",
+            title="Distribuição de Categorias de Risco",
             height=400
         )
         st.plotly_chart(fig3, use_container_width=True)
@@ -1209,7 +1211,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
                       line_color="orange", annotation_text="P90")
         
         fig4.update_layout(
-            title="📈 Distribuição de Valores RA-Index",
+            title="Distribuição de Valores RA-Index",
             xaxis_title="RA-Index",
             yaxis_title="Frequência",
             height=400
@@ -1217,7 +1219,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         st.plotly_chart(fig4, use_container_width=True)
     
     # Análise temporal simulada
-    st.markdown("### ⏱️ Análise Temporal Simulada")
+    st.markdown("### Análise Temporal Simulada")
     
     # Simular evolução temporal do RA-Index
     time_points = ['T0', 'T1', 'T2', 'T3', 'T4', 'T5']
@@ -1255,7 +1257,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         ))
     
     fig5.update_layout(
-        title="📈 Evolução Temporal das Categorias de Risco",
+        title="Evolução Temporal das Categorias de Risco",
         xaxis_title="Ponto Temporal",
         yaxis_title="Número de Regiões",
         height=400,
@@ -1264,7 +1266,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
     st.plotly_chart(fig5, use_container_width=True)
     
     # Análise de correlação avançada
-    st.markdown("### 🔗 Análise de Correlações")
+    st.markdown("### Análise de Correlações")
     
     col1, col2 = st.columns(2)
     
@@ -1293,7 +1295,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
                 ))
         
         fig6.update_layout(
-            title="🔗 Correlação: RA-Index vs Intensidade HU",
+            title="Correlação: RA-Index vs Intensidade HU",
             xaxis_title="Intensidade (HU)",
             yaxis_title="RA-Index",
             height=400
@@ -1323,7 +1325,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         )])
         
         fig7.update_layout(
-            title="🌐 Visualização 3D do RA-Index",
+            title="Visualização 3D do RA-Index",
             scene=dict(
                 xaxis_title="Região X",
                 yaxis_title="Região Y",
@@ -1339,7 +1341,7 @@ def enhanced_ra_index_tab(dicom_data, image_array):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### 🎯 Regiões de Atenção")
+        st.markdown("#### Regiões de Atenção")
         
         # Identificar regiões de maior risco
         high_risk_indices = [i for i, ra in enumerate(ra_data['ra_values']) if ra > 70]
@@ -1356,10 +1358,10 @@ def enhanced_ra_index_tab(dicom_data, image_array):
                           f"- Tipo: {tissue}\n"
                           f"- Categoria: {risk}")
         else:
-            st.success("✅ Nenhuma região de alto risco identificada")
+            st.success("Nenhuma região de alto risco identificada")
     
     with col2:
-        st.markdown("#### 📊 Estatísticas de Monitoramento")
+        st.markdown("#### Estatísticas de Monitoramento")
         
         monitoring_stats = {
             "Cobertura de Análise": "100%",
@@ -1374,9 +1376,9 @@ def enhanced_ra_index_tab(dicom_data, image_array):
             st.metric(metric, value)
     
     # Exportar dados RA-Index
-    st.markdown("### 💾 Exportar Dados RA-Index")
+    st.markdown("### Exportar Dados RA-Index")
     
-    if st.button("📊 Gerar Relatório RA-Index"):
+    if st.button("Gerar Relatório RA-Index"):
         # Criar DataFrame para exportação
         df_export = pd.DataFrame({
             'Região_X': [coord[0] for coord in ra_data['coords']],
@@ -1393,13 +1395,13 @@ def enhanced_ra_index_tab(dicom_data, image_array):
         csv_buffer.seek(0)
         
         st.download_button(
-            label="📥 Baixar Dados RA-Index (CSV)",
+            label="Baixar Dados RA-Index (CSV)",
             data=csv_buffer,
             file_name=f"ra_index_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
         )
         
-        st.success("✅ Relatório RA-Index preparado para download!")
+        st.success("Relatório RA-Index preparado para download!")
 
 # ====== SEÇÃO 6: FUNÇÕES PRINCIPAIS DO SISTEMA ======
 
@@ -1587,7 +1589,7 @@ def show_user_form():
                                      placeholder="Departamento de Radiologia")
         
         # Termos de uso
-        st.markdown("### 📋 Termos de Uso")
+        st.markdown("### Termos de Uso")
         terms_accepted = st.checkbox("""
         Eu concordo com os termos de uso e confirmo que:
         - Utilizarei este sistema apenas para fins educacionais e de pesquisa
@@ -1595,11 +1597,11 @@ def show_user_form():
         - Mantenho a confidencialidade das informações processadas
         """)
         
-        submitted = st.form_submit_button("🚀 Iniciar Sistema", use_container_width=True)
+        submitted = st.form_submit_button("Iniciar Sistema", use_container_width=True)
         
         if submitted:
             if not all([name, email]) or not terms_accepted:
-                st.error("❌ Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
+                st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
             else:
                 try:
                     # Registrar usuário
@@ -1629,7 +1631,7 @@ def show_user_form():
                     st.rerun()
                     
                 except Exception as e:
-                    st.error(f"❌ Erro ao registrar usuário: {e}")
+                    st.error(f"Erro ao registrar usuário: {e}")
 
 def show_main_app():
     """
@@ -1639,7 +1641,7 @@ def show_main_app():
     
     # Sidebar com informações do usuário
     with st.sidebar:
-        st.markdown("### 👤 Usuário Ativo")
+        st.markdown("### Usuário Ativo")
         st.write(f"**Nome:** {user_data['name']}")
         st.write(f"**Função:** {user_data['role']}")
         if user_data['department']:
@@ -1649,7 +1651,7 @@ def show_main_app():
         
         # Upload destacado na sidebar
         st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-        st.markdown("### 📁 Upload de Arquivo DICOM")
+        st.markdown("### Upload de Arquivo DICOM")
         uploaded_file = st.file_uploader(
             "Selecione um arquivo DICOM:",
             type=['dcm', 'dicom'],
@@ -1657,16 +1659,16 @@ def show_main_app():
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.button("🔄 Trocar Usuário"):
+        if st.button("Trocar Usuário"):
             st.session_state.user_data = None
             st.rerun()
         
         # Informações do sistema
         st.markdown("---")
-        st.markdown("### ℹ️ Informações do Sistema")
+        st.markdown("### Informações do Sistema")
         st.write("**Versão:** 2.0 Enhanced")
         st.write("**Última Atualização:** 2025-09-11")
-        st.write("**Status:** 🟢 Online")
+        st.write("**Status:** Online")
     
     # Conteúdo principal
     st.markdown("# 🔬 DICOM Autopsy Viewer")
@@ -1692,18 +1694,18 @@ def show_main_app():
                                
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("📏 Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
+                    st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
                 with col2:
-                    st.metric("🎨 Tipo de Dados", str(image_array.dtype))
+                    st.metric("Tipo de Dados", str(image_array.dtype))
                 with col3:
-                    st.metric("📊 Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
+                    st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
                 with col4:
-                    st.metric("💾 Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
+                    st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
                 
                 # Tabs principais
                 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-                    "🎨 Visualização", "📊 Estatísticas", "🔬 Análise Técnica", 
-                    "⭐ Qualidade", "🎯 RA-Index", "📋 Relatórios", "💬 Feedback"
+                    "Visualização", "Estatísticas", "Análise Técnica", 
+                    "Qualidade", "RA-Index", "Relatórios", "Feedback"
                 ])
                 
                 with tab1:
@@ -1722,21 +1724,21 @@ def show_main_app():
                     enhanced_ra_index_tab(dicom_data, image_array)
                 
                 with tab6:
-                    st.subheader("📋 Geração de Relatórios")
-                    st.info("🚧 Funcionalidade de relatórios em desenvolvimento")
+                    st.subheader("Geração de Relatórios")
+                    st.info("Funcionalidade de relatórios em desenvolvimento")
                     
                     # Placeholder para funcionalidades futuras
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("📄 Gerar Relatório Completo"):
-                            st.success("📄 Relatório em desenvolvimento...")
+                        if st.button("Gerar Relatório Completo"):
+                            st.success("Relatório em desenvolvimento...")
                     
                     with col2:
-                        if st.button("📊 Exportar Análises"):
-                            st.success("📊 Exportação em desenvolvimento...")
+                        if st.button("Exportar Análises"):
+                            st.success("Exportação em desenvolvimento...")
                 
                 with tab7:
-                    st.subheader("💬 Feedback do Sistema")
+                    st.subheader("Feedback do Sistema")
                     
                     # Formulário de feedback
                     if 'feedback_submitted' not in st.session_state:
@@ -1746,7 +1748,7 @@ def show_main_app():
                         st.markdown('<div class="feedback-form">', unsafe_allow_html=True)
                         
                         # Sistema de avaliação com estrelas
-                        st.markdown("#### ⭐ Avalie o Sistema")
+                        st.markdown("#### Avalie o Sistema")
                         
                         # Usar colunas para as estrelas
                         star_cols = st.columns(5)
@@ -1781,7 +1783,7 @@ def show_main_app():
                                 
                                 recommend_system = st.checkbox("Recomendaria este sistema para colegas?", value=True)
                             
-                            submitted = st.form_submit_button("📤 Enviar Avaliação Completa", use_container_width=True)
+                            submitted = st.form_submit_button("Enviar Avaliação Completa", use_container_width=True)
                             
                             if submitted:
                                 rating = st.session_state.get('rating', 0)
@@ -1789,11 +1791,11 @@ def show_main_app():
                                     st.error("Por favor, selecione uma avaliação com as estrelas.")
                                 else:
                                     st.session_state.feedback_submitted = True
-                                    st.success("✅ Avaliação enviada com sucesso! Obrigado por contribuir com a melhoria do sistema.")
+                                    st.success("Avaliação enviada com sucesso! Obrigado por contribuir com a melhoria do sistema.")
                                     st.balloons()  # Efeito visual de sucesso
                                     st.rerun()
                     else:
-                        st.success("📝 Obrigado pela sua avaliação! Suas contribuições são fundamentais para o aprimoramento contínuo do sistema.")
+                        st.success("Obrigado pela sua avaliação! Suas contribuições são fundamentais para o aprimoramento contínuo do sistema.")
                     
                     st.markdown('</div>', unsafe_allow_html=True)
                     
@@ -1807,16 +1809,16 @@ def show_main_app():
             st.error(f"❌ Erro ao processar arquivo DICOM: {e}")
             logging.error(f"Erro no processamento DICOM: {e}")
     else:
-        st.info("👆 Carregue um arquivo DICOM na sidebar para começar a análise.")
+        st.info("arregue um arquivo DICOM na sidebar para começar a análise.")
         
         # Informações sobre o sistema
-        st.markdown("## 🎯 Funcionalidades Disponíveis")
+        st.markdown("## Funcionalidades Disponíveis")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
             st.markdown("""
-            ### 🎨 Visualização Avançada
+            ### Visualização Avançada
             - Janelamento Hounsfield personalizado
             - Ferramentas colorimétricas
             - Análise de pixels interativa
@@ -1825,7 +1827,7 @@ def show_main_app():
         
         with col2:
             st.markdown("""
-            ### 📊 Análise Estatística
+            ### Análise Estatística
             - 6+ tipos de visualizações
             - Análise regional
             - Correlações avançadas
@@ -1834,7 +1836,7 @@ def show_main_app():
         
         with col3:
             st.markdown("""
-            ### 🔬 Análise Forense
+            ### Análise Forense
             - Metadados completos
             - Verificação de integridade
             - Detecção de anomalias
