@@ -763,35 +763,38 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
     """
     Aba de métricas de qualidade expandidas para análise de imagem DICOM
     """
-    st.subheader("Métricas de Qualidade de Imagem Avançadas")
+    st.subheader("⭐ Métricas de Qualidade de Imagem Avançadas")
     
     # Calcular métricas básicas de qualidade
-    st.markdown("### Métricas Fundamentais")
+    st.markdown("### 📊 Métricas Fundamentais")
     
     col1, col2, col3, col4 = st.columns(4)
+    
+    # Calcular estatísticas básicas primeiro
+    signal_val = float(np.mean(image_array))
+    noise_val = float(np.std(image_array))
+    snr_val = signal_val / noise_val if noise_val > 0 else float('inf')
+    
+    hist, _ = np.histogram(image_array.flatten(), bins=256, density=True)
+    hist = hist[hist > 0]
+    entropy_val = float(-np.sum(hist * np.log2(hist)))
+    uniformity_val = float(np.sum(hist**2))
     
     # Métricas básicas
     with col1:
         # Relação sinal-ruído (SNR)
-        signal = np.mean(image_array)
-        noise = np.std(image_array)
-        snr = signal / noise if noise > 0 else float('inf')
-        st.metric(" SNR", f"{snr:.2f}", key="metric_snr")
+        st.metric("📡 SNR", f"{snr_val:.2f}", key="metric_snr")
         
         # Contraste RMS
-        contrast_rms = np.sqrt(np.mean((image_array - np.mean(image_array))**2))
-        st.metric(" Contraste RMS", f"{contrast_rms:.2f}", key="metric_contraste_rms")
+        contrast_rms_val = float(np.sqrt(np.mean((image_array - np.mean(image_array))**2)))
+        st.metric("📏 Contraste RMS", f"{contrast_rms_val:.2f}", key="metric_contraste_rms")
     
     with col2:
         # Entropia da imagem
-        hist, _ = np.histogram(image_array.flatten(), bins=256, density=True)
-        hist = hist[hist > 0]  # Remove zeros
-        entropy = -np.sum(hist * np.log2(hist))
-        st.metric("Entropia", f"{entropy:.2f} bits", key="metric_entropia")
+        st.metric("🔀 Entropia", f"{entropy_val:.2f} bits", key="metric_entropia")
         
         # Uniformidade
-        uniformity = np.sum(hist**2)
-        st.metric("Uniformidade", f"{uniformity:.4f}", key="metric_uniformidade")
+        st.metric("🎯 Uniformidade", f"{uniformity_val:.4f}", key="metric_uniformidade")
     
     with col3:
         # Resolução efetiva (usando gradientes)
@@ -799,31 +802,31 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             grad_x = np.gradient(image_array.astype(float), axis=1)
             grad_y = np.gradient(image_array.astype(float), axis=0)
             gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
-            effective_resolution = np.mean(gradient_magnitude)
+            effective_resolution_val = float(np.mean(gradient_magnitude))
         except:
-            effective_resolution = 0
+            effective_resolution_val = 0.0
         
-        st.metric("🔍 Resolução Efetiva", f"{effective_resolution:.2f}", key="metric_resolucao")
+        st.metric("🔍 Resolução Efetiva", f"{effective_resolution_val:.2f}", key="metric_resolucao")
         
         # Nitidez (Laplaciano)
         try:
-            laplacian_var = np.var(ndimage.laplace(image_array.astype(float)))
+            laplacian_var_val = float(np.var(ndimage.laplace(image_array.astype(float))))
         except:
-            laplacian_var = 0
-        st.metric("Nitidez", f"{laplacian_var:.0f}", key="metric_nitidez")
+            laplacian_var_val = 0.0
+        st.metric("⚡ Nitidez", f"{laplacian_var_val:.0f}", key="metric_nitidez")
     
     with col4:
         # Homogeneidade
-        img_variance = np.var(image_array)
-        homogeneity = 1 / (1 + img_variance) if img_variance > 0 else 1.0
-        st.metric("Homogeneidade", f"{homogeneity:.6f}", key="metric_homogeneidade")
+        img_variance_val = float(np.var(image_array))
+        homogeneity_val = float(1 / (1 + img_variance_val)) if img_variance_val > 0 else 1.0
+        st.metric("🏠 Homogeneidade", f"{homogeneity_val:.6f}", key="metric_homogeneidade")
         
         # Suavidade
-        smoothness = 1 - (1 / (1 + img_variance)) if img_variance > 0 else 0
-        st.metric("Suavidade", f"{smoothness:.6f}", key="metric_suavidade")
+        smoothness_val = float(1 - (1 / (1 + img_variance_val))) if img_variance_val > 0 else 0.0
+        st.metric("🌊 Suavidade", f"{smoothness_val:.6f}", key="metric_suavidade")
     
     # Métricas avançadas de qualidade
-    st.markdown("### Métricas Avançadas de Qualidade")
+    st.markdown("### 🎯 Métricas Avançadas de Qualidade")
     
     col1, col2 = st.columns(2)
     
@@ -839,34 +842,38 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             fx, fy = np.meshgrid(freq_x, freq_y, indexing='ij')
             frequency_map = np.sqrt(fx**2 + fy**2)
             
-            mean_spatial_freq = np.mean(magnitude_spectrum * frequency_map)
+            mean_spatial_freq_val = float(np.mean(magnitude_spectrum * frequency_map))
             
             # Densidade espectral de potência
             power_spectrum = magnitude_spectrum**2
-            total_power = np.sum(power_spectrum)
+            total_power_val = float(np.sum(power_spectrum))
+            
+            energy_high_freq_val = float(np.sum(power_spectrum[frequency_map > 0.3]))
+            energy_low_freq_val = float(np.sum(power_spectrum[frequency_map < 0.1]))
+            
+            ratio_val = float(energy_high_freq_val / energy_low_freq_val) if energy_low_freq_val > 0 else 0.0
             
             metrics_advanced = {
-                'Frequência Espacial Média': mean_spatial_freq,
-                'Densidade Espectral Total': total_power,
-                'Energia de Alta Frequência': np.sum(power_spectrum[frequency_map > 0.3]),
-                'Energia de Baixa Frequência': np.sum(power_spectrum[frequency_map < 0.1]),
-                'Razão Alta/Baixa Freq.': np.sum(power_spectrum[frequency_map > 0.3]) / 
-                                        np.sum(power_spectrum[frequency_map < 0.1]) if np.sum(power_spectrum[frequency_map < 0.1]) > 0 else 0
+                'Frequência Espacial Média': mean_spatial_freq_val,
+                'Densidade Espectral Total': total_power_val,
+                'Energia de Alta Frequência': energy_high_freq_val,
+                'Energia de Baixa Frequência': energy_low_freq_val,
+                'Razão Alta/Baixa Freq.': ratio_val
             }
             
         except Exception as e:
             metrics_advanced = {
-                'Frequência Espacial Média': 0,
-                'Densidade Espectral Total': 0,
-                'Energia de Alta Frequência': 0,
-                'Energia de Baixa Frequência': 0,
-                'Razão Alta/Baixa Freq.': 0
+                'Frequência Espacial Média': 0.0,
+                'Densidade Espectral Total': 0.0,
+                'Energia de Alta Frequência': 0.0,
+                'Energia de Baixa Frequência': 0.0,
+                'Razão Alta/Baixa Freq.': 0.0
             }
         
         df_advanced = pd.DataFrame(list(metrics_advanced.items()), columns=['Métrica', 'Valor'])
         df_advanced['Valor'] = df_advanced['Valor'].apply(lambda x: f"{x:.2e}" if abs(x) > 1000 else f"{x:.4f}")
         
-        st.markdown("#### Análise Espectral")
+        st.markdown("#### 🌊 Análise Espectral")
         st.dataframe(df_advanced, use_container_width=True, height=300)
     
     with col2:
@@ -874,8 +881,8 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         def simple_glcm_features(image):
             try:
                 # Normalizar imagem para 0-255
-                img_min = image.min()
-                img_max = image.max()
+                img_min = float(image.min())
+                img_max = float(image.max())
                 if img_max > img_min:
                     normalized = ((image - img_min) / (img_max - img_min) * 255).astype(np.uint8)
                 else:
@@ -885,38 +892,39 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                 diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
                 
                 # Métricas baseadas em diferenças
-                homogeneity = 1 / (1 + np.mean(diff_h)) if np.mean(diff_h) > 0 else 1.0
-                contrast = np.var(diff_h) if diff_h.size > 0 else 0
+                mean_diff = float(np.mean(diff_h)) if diff_h.size > 0 else 0.0
+                homogeneity_val = float(1 / (1 + mean_diff)) if mean_diff > 0 else 1.0
+                contrast_val = float(np.var(diff_h)) if diff_h.size > 0 else 0.0
                 
                 # Correlação
                 flat1 = normalized[:, :-1].flatten()
                 flat2 = normalized[:, 1:].flatten()
+                correlation_val = 0.0
                 if len(flat1) > 1 and len(flat2) > 1:
                     try:
-                        correlation = np.corrcoef(flat1, flat2)[0, 1]
-                        if np.isnan(correlation):
-                            correlation = 0
+                        corr_matrix = np.corrcoef(flat1, flat2)
+                        if not np.isnan(corr_matrix[0, 1]):
+                            correlation_val = float(corr_matrix[0, 1])
                     except:
-                        correlation = 0
-                else:
-                    correlation = 0
+                        correlation_val = 0.0
                 
-                energy = np.mean(normalized.astype(float)**2) / (255**2)
+                energy_val = float(np.mean(normalized.astype(float)**2) / (255**2))
+                dissimilarity_val = float(mean_diff / 255) if diff_h.size > 0 else 0.0
                 
                 return {
-                    'Homogeneidade GLCM': homogeneity,
-                    'Contraste GLCM': contrast,
-                    'Correlação GLCM': correlation,
-                    'Energia GLCM': energy,
-                    'Dissimilaridade': np.mean(diff_h) / 255 if diff_h.size > 0 else 0
+                    'Homogeneidade GLCM': homogeneity_val,
+                    'Contraste GLCM': contrast_val,
+                    'Correlação GLCM': correlation_val,
+                    'Energia GLCM': energy_val,
+                    'Dissimilaridade': dissimilarity_val
                 }
-            except:
+            except Exception as e:
                 return {
-                    'Homogeneidade GLCM': 0,
-                    'Contraste GLCM': 0,
-                    'Correlação GLCM': 0,
-                    'Energia GLCM': 0,
-                    'Dissimilaridade': 0
+                    'Homogeneidade GLCM': 0.0,
+                    'Contraste GLCM': 0.0,
+                    'Correlação GLCM': 0.0,
+                    'Energia GLCM': 0.0,
+                    'Dissimilaridade': 0.0
                 }
         
         texture_metrics = simple_glcm_features(image_array)
@@ -928,7 +936,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.dataframe(df_texture, use_container_width=True, height=300)
     
     # Visualizações de qualidade
-    st.markdown("### Visualizações de Qualidade")
+    st.markdown("### 📈 Visualizações de Qualidade")
     
     col1, col2 = st.columns(2)
     
@@ -949,12 +957,12 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         ))
         
         # Adicionar marcadores de qualidade
-        mean_val = np.mean(image_array)
+        mean_val = float(np.mean(image_array))
         fig1.add_vline(x=mean_val, line_dash="dash", line_color="red", 
                       annotation_text=f"Média: {mean_val:.1f}")
         
         fig1.update_layout(
-            title="Distribuição de Intensidades",
+            title="📊 Distribuição de Intensidades",
             xaxis_title="Intensidade (HU)",
             yaxis_title="Frequência",
             height=400,
@@ -965,7 +973,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
     with col2:
         # Análise de uniformidade regional
         h, w = image_array.shape
-        grid_size = min(4, h, w)  # Garantir que não seja maior que a imagem
+        grid_size = min(4, h, w)
         h_step, w_step = max(1, h // grid_size), max(1, w // grid_size)
         
         uniformity_map = np.zeros((grid_size, grid_size))
@@ -979,9 +987,9 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                 
                 region = image_array[start_h:end_h, start_w:end_w]
                 if region.size > 0:
-                    uniformity_map[i, j] = np.var(region)
+                    uniformity_map[i, j] = float(np.var(region))
                 else:
-                    uniformity_map[i, j] = 0
+                    uniformity_map[i, j] = 0.0
         
         fig2 = go.Figure(data=go.Heatmap(
             z=uniformity_map,
@@ -1001,7 +1009,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.plotly_chart(fig2, use_container_width=True, key="chart_uniformidade")
     
     # Métricas de degradação e artefatos
-    st.markdown("### Análise de Artefatos e Degradação")
+    st.markdown("### ⚠️ Análise de Artefatos e Degradação")
     
     col1, col2, col3 = st.columns(3)
     
@@ -1009,21 +1017,24 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.markdown("#### 🔍 Detecção de Artefatos")
         
         try:
-            # Detecção de artefatos baseada em análise de gradientes
-            grad_magnitude = np.sqrt(grad_x**2 + grad_y**2)
-            motion_artifact = np.std(grad_magnitude) > np.percentile(grad_magnitude, 95)
+            # Detecção de artefatos
+            motion_artifact = False
+            aliasing_artifact = False
+            truncation_artifact = False
             
-            # Detecção de artefatos de aliasing
-            high_freq_energy = np.sum(power_spectrum[frequency_map > 0.4]) / total_power if total_power > 0 else 0
-            aliasing_artifact = high_freq_energy > 0.15
+            if 'grad_magnitude' in locals():
+                motion_artifact = bool(np.std(grad_magnitude) > np.percentile(grad_magnitude, 95))
+            
+            if 'total_power_val' in locals() and total_power_val > 0:
+                aliasing_artifact = bool(energy_high_freq_val / total_power_val > 0.15)
             
             # Detecção de truncamento
-            edge_intensity = np.mean(np.concatenate([
+            edge_intensity = float(np.mean(np.concatenate([
                 image_array[0, :], image_array[-1, :], 
                 image_array[:, 0], image_array[:, -1]
-            ]))
-            center_intensity = np.mean(image_array[h//4:3*h//4, w//4:3*w//4])
-            truncation_artifact = abs(edge_intensity - center_intensity) > np.std(image_array)
+            ])))
+            center_intensity = float(np.mean(image_array[h//4:3*h//4, w//4:3*w//4]))
+            truncation_artifact = bool(abs(edge_intensity - center_intensity) > np.std(image_array))
             
             artifacts = {
                 "Artefato de Movimento": motion_artifact,
@@ -1033,26 +1044,26 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             
             for i, (artifact, detected) in enumerate(artifacts.items()):
                 if detected:
-                    st.warning(f" {artifact}", key=f"artefato_{i}")
+                    st.warning(f"⚠️ {artifact}", key=f"artefato_{i}")
                 else:
-                    st.success(f" {artifact}", key=f"artefato_{i}")
+                    st.success(f"✅ {artifact}", key=f"artefato_{i}")
                     
-        except:
+        except Exception as e:
             st.error("❌ Erro na análise de artefatos", key="erro_artefatos")
     
     with col2:
-        st.markdown("#### Índices de Degradação")
+        st.markdown("#### 📉 Índices de Degradação")
         
         try:
             # Índice de borramento
-            blur_index = 1 / (1 + laplacian_var/1000) if laplacian_var > 0 else 1.0
+            blur_index = float(1 / (1 + laplacian_var_val/1000)) if laplacian_var_val > 0 else 1.0
             
             # Índice de ruído
-            noise_index = noise / signal if signal > 0 else 0
+            noise_index = float(noise_val / signal_val) if signal_val > 0 else 0.0
             
             # Índice de compressão
             unique_vals = len(np.unique(image_array))
-            compression_index = unique_vals / image_array.size
+            compression_index = float(unique_vals / image_array.size)
             
             degradation_metrics = {
                 "Índice de Borramento": blur_index,
@@ -1068,7 +1079,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                 else:
                     st.error(f"❌ {metric}: {value:.4f}", key=f"degradacao_{i}")
                     
-        except:
+        except Exception as e:
             st.error("❌ Erro no cálculo de índices", key="erro_indices")
     
     with col3:
@@ -1076,11 +1087,11 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         
         try:
             # Calcular índice de qualidade composto
-            snr_normalized = min(snr / 100, 1.0) if snr < float('inf') else 1.0
-            entropy_normalized = min(entropy / 8, 1.0)
-            sharpness_normalized = min(laplacian_var / 1000, 1.0) if laplacian_var > 0 else 0
-            uniformity_normalized = min(uniformity, 1.0)
-            resolution_normalized = min(effective_resolution / 100, 1.0)
+            snr_normalized = float(min(snr_val / 100, 1.0)) if snr_val < float('inf') else 1.0
+            entropy_normalized = float(min(entropy_val / 8, 1.0))
+            sharpness_normalized = float(min(laplacian_var_val / 1000, 1.0)) if laplacian_var_val > 0 else 0.0
+            uniformity_normalized = float(min(uniformity_val, 1.0))
+            resolution_normalized = float(min(effective_resolution_val / 100, 1.0))
             
             weights = {
                 'SNR': 0.25,
@@ -1090,7 +1101,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                 'Resolução': 0.15
             }
             
-            quality_index = (
+            quality_index = float(
                 weights['SNR'] * snr_normalized +
                 weights['Entropia'] * entropy_normalized +
                 weights['Nitidez'] * sharpness_normalized +
@@ -1118,12 +1129,12 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
             st.metric("Índice de Qualidade", f"{quality_index:.3f}/1.0", key="metric_qualidade")
             
             # Mostrar composição
-            with st.expander("Composição do Índice", key="expander_composicao"):
+            with st.expander("📊 Composição do Índice", key="expander_composicao"):
                 for component, weight in weights.items():
                     st.write(f"{component}: {weight*100:.0f}%", key=f"composicao_{component}")
                     
         except Exception as e:
-            st.error(f"❌ Erro no cálculo do índice de qualidade: {e}", key="erro_qualidade")
+            st.error(f"❌ Erro no cálculo do índice de qualidade", key="erro_qualidade")
 
 # ====== SEÇÃO 5: RA-INDEX AVANÇADO ======
 
