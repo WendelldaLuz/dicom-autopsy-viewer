@@ -1963,7 +1963,7 @@ def show_main_app():
             st.error(f"❌ Erro ao processar arquivo DICOM: {e}")
             logging.error(f"Erro no processamento DICOM: {e}")
     else:
-        st.info("arregue um arquivo DICOM na sidebar para começar a análise.")
+        st.info("Carregue um arquivo DICOM na sidebar para começar a análise.")
         
         # Informações sobre o sistema
         st.markdown("## Funcionalidades Disponíveis")
