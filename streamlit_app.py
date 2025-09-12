@@ -328,7 +328,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     """
     Aba de estatísticas com múltiplas visualizações - AMPLIADA E CORRIGIDA
     """
-    st.subheader("📊 Análise Estatística Avançada")
+    st.subheader(" Análise Estatística Avançada")
     
     # Verificação de segurança
     if image_array is None or not isinstance(image_array, np.ndarray) or image_array.size == 0:
@@ -376,7 +376,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     tab1, tab2, tab3, tab4 = st.tabs(["Métricas Básicas", "Distribuição", "Análise Regional", "Estatísticas Avançadas"])
     
     with tab1:
-        st.markdown("### 📈 Métricas Estatísticas Básicas")
+        st.markdown("### Métricas Estatísticas Básicas")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -407,7 +407,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.metric("Entropia", f"{stats_data['Entropia']:.3f}")
     
     with tab2:
-        st.markdown("### 📊 Análise de Distribuição")
+        st.markdown("### Análise de Distribuição")
         
         col1, col2 = st.columns(2)
         
@@ -587,7 +587,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.warning("Não foi possível calcular estatísticas regionais")
     
     with tab4:
-        st.markdown("### 📐 Estatísticas Avançadas")
+        st.markdown("### Estatísticas Avançadas")
         
         col1, col2 = st.columns(2)
         
@@ -606,7 +606,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.plotly_chart(fig5, use_container_width=True)
             
             # 7. Análise de valores outliers
-            st.markdown("#### 📌 Análise de Outliers")
+            st.markdown("#### Análise de Outliers")
             
             # Calcular limites para outliers
             Q1 = stats_data['Q1']
@@ -660,7 +660,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.dataframe(texture_df, use_container_width=True, height=200)
             
             # Métricas de qualidade de imagem
-            st.markdown("#### ⭐ Métricas de Qualidade")
+            st.markdown("#### Métricas de Qualidade")
             
             quality_metrics = {
                 'SNR': f"{calculate_snr(image_array):.2f}" if not np.isinf(calculate_snr(image_array)) else "∞",
@@ -672,7 +672,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
                 st.metric(metric, value)
     
     # Análise adicional
-    st.markdown("### 📋 Relatório Estatístico Completo")
+    st.markdown("### Relatório Estatístico Completo")
     
     with st.expander("Visualizar Relatório Detalhado"):
         # Estatísticas descritivas completas
@@ -719,7 +719,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.warning(f"Não foi possível realizar o teste de normalidade: {str(e)}")
     
     # Opção de exportação
-    if st.button("📊 Exportar Relatório Estatístico", key="btn_export_stats"):
+    if st.button(" Exportar Relatório Estatístico", key="btn_export_stats"):
         # Preparar dados para exportação
         export_data = []
         
@@ -750,7 +750,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
         csv = export_df.to_csv(index=False)
         
         st.download_button(
-            label="⬇️ Baixar Dados Estatísticos (CSV)",
+            label="Baixar Dados Estatísticos (CSV)",
             data=csv,
             file_name=f"estatisticas_imagem_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
@@ -1223,7 +1223,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
                 st.write(f"{stat}: {value}")
     
     with tab3:
-        st.markdown("### 🔍 Análise de Resolução e Nitidez")
+        st.markdown("###  Análise de Resolução e Nitidez")
         
         col1, col2 = st.columns(2)
         
@@ -1273,7 +1273,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
                 st.warning("Análise de bordas não disponível")
     
     with tab4:
-        st.markdown("### 📋 Relatório Completo de Qualidade")
+        st.markdown("###  Relatório Completo de Qualidade")
         
         # Gerar relatório abrangente
         report_data = {
