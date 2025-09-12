@@ -298,7 +298,7 @@ def enhanced_visualization_tab(dicom_data, image_array):
         st.plotly_chart(fig_interactive, use_container_width=True, key="chart_interativo_pixels")
     
     # Opção de download
-    st.markdown("### 💾 Download da Imagem Processada")
+    st.markdown("### Download da Imagem Processada")
     
     if st.button("Preparar Download", key="btn_preparar_download"):
         # Converter imagem para formato de download
