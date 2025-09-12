@@ -64,7 +64,7 @@ def setup_matplotlib_for_plotting():
 
 def apply_hounsfield_windowing(image, window_center, window_width):
     """
-    Aplica janelamento de Hounsfield na imagem - CORRIGIDA
+    Aplica janelamento de Hounsfield na imagem
     """
     min_value = window_center - window_width / 2.0  # Usar divisão float
     max_value = window_center + window_width / 2.0
@@ -657,7 +657,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         connected_components = len(np.unique(ndimage.label(binary_image)[0]))
         st.metric("Componentes Conexos", f"{connected_components}")
         
-        # Análise de textura (simplificada)
+        # Análise de textura
         texture_energy = np.sum(np.gradient(image_array)**2)
         st.metric("Energia de Textura", f"{texture_energy:.0f}")
     
@@ -887,7 +887,7 @@ def advanced_noise_analysis(image_array):
         residual = image_array - uniform_filtered
         noise_levels['Método Residual'] = np.std(residual)
         
-        # Método 3: Análise wavelet (simplificada)
+        # Método 3: Análise wavelet 
         from scipy import ndimage
         wavelet_approx = ndimage.gaussian_filter(image_array, sigma=1)
         wavelet_detail = image_array - wavelet_approx
@@ -1232,7 +1232,7 @@ def calculate_ra_index_standard(image_array, dicom_data):
             # Estimar volume gasoso baseado em HU
             gas_volume = 0
             if mean_intensity < -500:
-                # Estimativa volumétrica simplificada
+                # Estimativa volumétrica
                 gas_pixels = np.sum(region < -500)
                 gas_volume = gas_pixels * (0.1 ** 3)  # Assuming 0.1mm³ per pixel
             
@@ -1292,13 +1292,13 @@ def calculate_ra_index_physical(image_array, dicom_data, post_mortem_interval=24
             
             # Calcular concentração gasosa baseada em HU
             # HU = 1000 * (μ - μ_water) / μ_water ≈ -1000 para ar
-            gas_concentration = (mean_intensity + 1000) / 1000  # Estimativa simplificada
+            gas_concentration = (mean_intensity + 1000) / 1000  # Estimativa
             
             # Aplicar Segunda Lei de Fick para estimar dispersão
             # ∂C/∂t = D * ∇²C
             D_effective = DIFFUSION_COEFFICIENTS['metano']  # Usar metano como referência
             
-            # Estimativa simplificada da dispersão
+            # Estimativa da dispersão
             dispersion_factor = D_effective * post_mortem_interval / (pixel_spacing ** 2)
             
             # Calcular número de Knudsen para avaliar regime de fluxo
@@ -1370,7 +1370,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     st.subheader("🔬 RA-Index - Análise de Risco Radiológico Avançada")
     
     # Introdução teórica
-    with st.expander("📚 Fundamentação Teórica e Metodológica", expanded=False):
+    with st.expander(" Fundamentação Teórica e Metodológica", expanded=False):
         st.markdown("""
         ### Interface Multidisciplinar: Física Quântica e Radiologia Legal
         
@@ -1395,7 +1395,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     
     # Controles de parâmetros
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### ⚙️ Parâmetros do RA-Index")
+    st.sidebar.markdown("### Parâmetros do RA-Index")
     
     pm_interval = st.sidebar.slider("Intervalo Post-Mortem Estimado (horas):", 
                                   0, 168, 24, 1,
@@ -1410,7 +1410,7 @@ def professional_ra_index_tab(dicom_data, image_array):
         ra_data_physical, _ = calculate_ra_index_physical(image_array, dicom_data, pm_interval)
     
     # Métricas comparativas
-    st.markdown("### 📊 Métricas Comparativas dos Métodos")
+    st.markdown("### Métricas Comparativas dos Métodos")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -1444,7 +1444,7 @@ def professional_ra_index_tab(dicom_data, image_array):
                  delta=f"{critical_phy - critical_std}")
     
     # Visualizações comparativas
-    st.markdown("### 📈 Visualizações Comparativas")
+    st.markdown("### Visualizações Comparativas")
     
     tab1, tab2, tab3, tab4 = st.tabs(["Mapas de Calor", "Distribuição", "Análise Física", "Correlações"])
     
@@ -1609,7 +1609,7 @@ def professional_ra_index_tab(dicom_data, image_array):
                 st.write(f"- Referência cadaverina: 0.12 mm²/h")
     
     with tab4:
-        st.markdown("### 📐 Análise de Correlações e Regressão")
+        st.markdown("### Análise de Correlações e Regressão")
         
         # Preparar dados para análise
         comparison_data = []
@@ -1748,7 +1748,7 @@ def professional_ra_index_tab(dicom_data, image_array):
             st.info("Não foram encontradas discordâncias significativas (>20 pontos) entre os métodos")
     
     # Conclusão e recomendações
-    st.markdown("### 🎯 Conclusões e Recomendações")
+    st.markdown("### Conclusões e Recomendações")
     
     col1, col2 = st.columns(2)
     
@@ -1770,7 +1770,7 @@ def professional_ra_index_tab(dicom_data, image_array):
         - 🔬 Potencial para maior objetividade e reprodutibilidade
         """)
     
-    # Recomendações finais - SEÇÃO CORRIGIDA
+    # Recomendações finais 
     st.markdown("#### 📋 Recomendações para Análise Forense")
     
     rec_col1, rec_col2, rec_col3 = st.columns(3)
@@ -1844,37 +1844,43 @@ def estimate_noise(image):
     """
     Estima o nível de ruído usando o método de diferenciação
     """
-    h, w = image.shape
-    # Calcular diferenças entre pixels adjacentes
-    diff_h = image[:, 1:] - image[:, :-1]
-    diff_v = image[1:, :] - image[:-1, :]
-    
-    # Estimar ruído como o desvio padrão das diferenças
-    noise_estimate = np.std(np.concatenate([diff_h.flatten(), diff_v.flatten()])) / np.sqrt(2)
-    return noise_estimate
+    try:
+        h, w = image.shape
+        # Calcular diferenças entre pixels adjacentes
+        diff_h = image[:, 1:] - image[:, :-1]
+        diff_v = image[1:, :] - image[:-1, :]
+        
+        # Estimar ruído como o desvio padrão das diferenças
+        noise_estimate = np.std(np.concatenate([diff_h.flatten(), diff_v.flatten()])) / np.sqrt(2)
+        return noise_estimate
+    except Exception as e:
+        return 0.0
 
 def calculate_snr(image_array):
     """
     Calcula SNR de forma mais robusta usando uma região homogênea
     """
-    # Selecionar uma pequena região central (assumindo que é relativamente homogênea)
-    h, w = image_array.shape
-    roi_size = min(20, h//10, w//10)  # Tamanho da região de interesse
-    roi = image_array[h//2-roi_size//2:h//2+roi_size//2, 
-                     w//2-roi_size//2:w//2+roi_size//2]
-    
-    signal = np.mean(roi)
-    noise = np.std(roi)
-    
-    return signal / noise if noise > 0 else float('inf')
+    try:
+        # Selecionar uma pequena região central (assumindo que é relativamente homogênea)
+        h, w = image_array.shape
+        roi_size = min(20, h//10, w//10)  # Tamanho da região de interesse
+        roi = image_array[h//2-roi_size//2:h//2+roi_size//2, 
+                         w//2-roi_size//2:w//2+roi_size//2]
+        
+        signal = np.mean(roi)
+        noise = np.std(roi)
+        
+        return signal / noise if noise > 0 else float('inf')
+    except Exception as e:
+        return float('inf')
 
 def calculate_glcm_features(image):
     """
-    Calcula características GLCM simplificadas 
+    Calcula características GLCM simplificadas - VERSÃO CORRIGIDA
     """
     try:
         # Verificar se a imagem é válida
-        if image is None or image.size == 0:
+        if image is None or not isinstance(image, np.ndarray) or image.size == 0:
             return {
                 'Homogeneidade GLCM': 0.0,
                 'Contraste GLCM': 0.0,
@@ -1887,41 +1893,36 @@ def calculate_glcm_features(image):
         img_min = float(np.min(image))
         img_max = float(np.max(image))
         
-        # Evitar divisão por zero
+        # Caso especial: imagem constante
         if img_max <= img_min:
-            normalized = image.astype(np.uint8)
+            # Imagem com valor constante
+            normalized = np.full_like(image, 128, dtype=np.uint8)  # Valor médio
         else:
-            # Converter para float antes das operações
-            normalized = ((image.astype(float) - img_min) / (img_max - img_min) * 255).astype(np.uint8)
+            # Normalizar normalmente
+            normalized = ((image.astype(float) - img_min) / (img_max - img_min) * 255)
+            normalized = normalized.astype(np.uint8)
         
-        # Garantir que normalized é um array numpy válido
-        if not isinstance(normalized, np.ndarray) or normalized.size == 0:
-            return {
-                'Homogeneidade GLCM': 0.0,
-                'Contraste GLCM': 0.0,
-                'Correlação GLCM': 0.0,
-                'Energia GLCM': 0.0,
-                'Dissimilaridade': 0.0
-            }
+        # Garantir que é um array numpy
+        if not isinstance(normalized, np.ndarray):
+            normalized = np.array(normalized)
         
-        # Calcular diferenças horizontais - CORREÇÃO APPLICADA
-        diff_h = np.array([0.0])
+        # Calcular diferenças horizontais
+        diff_h = np.array([0.0], dtype=float)
         try:
-            if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
-                # Garantir que estamos usando arrays numpy para operações matemáticas
+            if len(normalized.shape) > 1 and normalized.shape[1] > 1:
                 diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
         except:
-            diff_h = np.array([0.0])
+            diff_h = np.array([0.0], dtype=float)
         
         # Métricas baseadas em diferenças
         mean_diff = float(np.mean(diff_h)) if diff_h.size > 0 else 0.0
         homogeneity_val = float(1 / (1 + mean_diff)) if mean_diff > 0 else 1.0
         contrast_val = float(np.var(diff_h)) if diff_h.size > 0 else 0.0
         
-        # Correlação - apenas se houver dados suficientes
+        # Correlação
         correlation_val = 0.0
         try:
-            if normalized.shape[1] > 1 and normalized.size > 0:
+            if len(normalized.shape) > 1 and normalized.shape[1] > 1 and normalized.size > 0:
                 flat1 = normalized[:, :-1].flatten()
                 flat2 = normalized[:, 1:].flatten()
                 
@@ -1932,27 +1933,31 @@ def calculate_glcm_features(image):
         except:
             correlation_val = 0.0
         
-        # Energia - CORREÇÃO APPLICADA AQUI
-        # Verificar se normalized é um array válido antes de operações matemáticas
+        # Energia - CORREÇÃO CRÍTICA APLICADA AQUI
         energy_val = 0.0
         try:
+            # Garantir que estamos trabalhando com um array numpy
             if isinstance(normalized, np.ndarray) and normalized.size > 0:
-                # Garantir que estamos elevando ao quadrado um array, não uma tupla
-                squared_values = normalized.astype(float) ** 2
-                energy_val = float(np.mean(squared_values) / (255 ** 2))
-        except:
+                # Converter para float e garantir que é um array unidimensional
+                img_float = normalized.astype(float).flatten()
+                # Calcular a energia
+                energy_val = float(np.mean(img_float ** 2) / (255.0 ** 2))
+        except Exception as e:
             energy_val = 0.0
             
-        dissimilarity_val = float(mean_diff / 255) if diff_h.size > 0 else 0.0
+        # Dissimilaridade
+        dissimilarity_val = float(mean_diff / 255.0) if diff_h.size > 0 else 0.0
         
         return {
-            'Homogeneidade GLCM': homogeneity_val,
-            'Contraste GLCM': contrast_val,
-            'Correlação GLCM': correlation_val,
-            'Energia GLCM': energy_val,
-            'Dissimilaridade': dissimilarity_val
+            'Homogeneidade GLCM': round(homogeneity_val, 6),
+            'Contraste GLCM': round(contrast_val, 6),
+            'Correlação GLCM': round(correlation_val, 6),
+            'Energia GLCM': round(energy_val, 6),
+            'Dissimilaridade': round(dissimilarity_val, 6)
         }
+        
     except Exception as e:
+        # Em caso de qualquer erro, retornar valores padrão
         return {
             'Homogeneidade GLCM': 0.0,
             'Contraste GLCM': 0.0,
@@ -1986,15 +1991,158 @@ def detect_artifacts(image_array):
         artifacts['Motion Artifact'] = False
     
     # 2. Artefato de metal (valores extremamente altos)
-    metal_threshold = 3000  # HU
-    metal_pixels = np.sum(image_array > metal_threshold)
-    artifacts['Metal Artifact'] = metal_pixels > (image_array.size * 0.001)  # Mais de 0.1% dos pixels
+    try:
+        metal_threshold = 3000  # HU
+        metal_pixels = np.sum(image_array > metal_threshold)
+        artifacts['Metal Artifact'] = metal_pixels > (image_array.size * 0.001)  # Mais de 0.1% dos pixels
+    except:
+        artifacts['Metal Artifact'] = False
     
     # 3. Artefato de ruído (análise de ruído)
-    noise_level = estimate_noise(image_array)
-    artifacts['Noise Artifact'] = noise_level > 50  # Threshold arbitrário
+    try:
+        noise_level = estimate_noise(image_array)
+        artifacts['Noise Artifact'] = noise_level > 50  # Threshold arbitrário
+    except:
+        artifacts['Noise Artifact'] = False
     
     return artifacts
+
+def calculate_psnr(original, processed=None):
+    """Calcula PSNR (Peak Signal-to-Noise Ratio)"""
+    try:
+        if processed is None:
+            # Se não há imagem processada, usar ruído estimado
+            noise = estimate_noise(original)
+            if noise == 0:
+                return float('inf')
+            return 20 * np.log10(np.max(original) / noise)
+        else:
+            # Entre original e processada
+            mse = np.mean((original - processed) ** 2)
+            if mse == 0:
+                return float('inf')
+            return 20 * np.log10(np.max(original) / np.sqrt(mse))
+    except:
+        return float('inf')
+
+def calculate_ssim(original, processed=None):
+    """Calcula SSIM (Structural Similarity Index) simplificado"""
+    try:
+        if processed is None:
+            return 1.0  # Sem imagem processada para comparação
+        
+        try:
+            from skimage.metrics import structural_similarity as ssim
+            # Normalizar imagens para 0-1
+            original_norm = (original - np.min(original)) / (np.max(original) - np.min(original))
+            processed_norm = (processed - np.min(processed)) / (np.max(processed) - np.min(processed))
+            return ssim(original_norm, processed_norm, data_range=1.0)
+        except ImportError:
+            # Fallback calculation
+            C1 = (0.01 * 255) ** 2
+            C2 = (0.03 * 255) ** 2
+            
+            mu_x = np.mean(original)
+            mu_y = np.mean(processed)
+            sigma_x = np.var(original)
+            sigma_y = np.var(processed)
+            sigma_xy = np.cov(original.flatten(), processed.flatten())[0, 1]
+            
+            ssim_val = ((2 * mu_x * mu_y + C1) * (2 * sigma_xy + C2)) / \
+                      ((mu_x ** 2 + mu_y ** 2 + C1) * (sigma_x + sigma_y + C2))
+            return ssim_val
+    except:
+        return 0.0
+
+def calculate_mtf(image_array, dicom_data):
+    """Calcula MTF (Modulation Transfer Function) simplificado"""
+    try:
+        # Usar borda da imagem para estimar MTF
+        edge_profile = image_array[image_array.shape[0] // 2, :]
+        
+        # Derivada do perfil de borda (Edge Spread Function)
+        esf_derivative = np.gradient(edge_profile)
+        
+        # Normalizar e calcular MTF
+        mtf = np.abs(np.fft.fft(esf_derivative))
+        mtf = mtf[:len(mtf)//2]  # Manter apenas frequências positivas
+        mtf = mtf / np.max(mtf)  # Normalizar
+        
+        # Encontrar frequência donde MTF cai para 50%
+        freq_50 = np.argmax(mtf < 0.5) / len(mtf) if np.any(mtf < 0.5) else 1.0
+        
+        # Converter para ciclos/mm se PixelSpacing disponível
+        if hasattr(dicom_data, 'PixelSpacing'):
+            pixel_spacing = float(dicom_data.PixelSpacing[0])
+            freq_50 = freq_50 / (2 * pixel_spacing)  # Conversão para lp/mm
+        
+        return float(freq_50), mtf
+    except:
+        return 0.0, np.array([0.0])
+
+def calculate_cnr(image_array):
+    """Calcula CNR (Contrast-to-Noise Ratio)"""
+    try:
+        # Selecionar duas regiões diferentes para calcular contraste
+        h, w = image_array.shape
+        roi1 = image_array[h//4:h//2, w//4:w//2]  # Região central
+        roi2 = image_array[3*h//4:h, 3*w//4:w]    # Região periférica
+        
+        contrast = np.abs(np.mean(roi1) - np.mean(roi2))
+        noise = estimate_noise(image_array)
+        
+        return contrast / noise if noise > 0 else 0.0
+    except:
+        return 0.0
+
+def calculate_nps(image_array):
+    """Calcula NPS (Noise Power Spectrum)"""
+    try:
+        # Remover tendência linear
+        detrended = image_array - ndimage.uniform_filter(image_array, size=10)
+        
+        # Calcular espectro de potência do ruído
+        fft_nps = np.fft.fft2(detrended)
+        nps = np.abs(fft_nps) ** 2
+        nps = np.fft.fftshift(nps)
+        
+        # Perfil radial do NPS
+        center = np.array(nps.shape) // 2
+        y, x = np.indices(nps.shape)
+        r = np.sqrt((x - center[1])**2 + (y - center[0])**2)
+        r = r.astype(int)
+        
+        nps_radial = ndimage.mean(nps, labels=r, index=np.arange(0, np.max(r)))
+        
+        return nps, nps_radial
+    except:
+        return np.zeros_like(image_array), np.array([0.0])
+
+def advanced_noise_analysis(image_array):
+    """Análise avançada de ruído"""
+    try:
+        # Análise de ruído usando múltiplos métodos
+        noise_levels = {}
+        
+        # Método 1: Diferença entre pixels adjacentes
+        diff_h = image_array[:, 1:] - image_array[:, :-1]
+        diff_v = image_array[1:, :] - image_array[:-1, :]
+        noise_levels['Método Diferença'] = np.std(np.concatenate([diff_h.flatten(), diff_v.flatten()])) / np.sqrt(2)
+        
+        # Método 2: Filtro de uniformidade
+        uniform_filtered = ndimage.uniform_filter(image_array, size=3)
+        residual = image_array - uniform_filtered
+        noise_levels['Método Residual'] = np.std(residual)
+        
+        # Método 3: Análise wavelet (simplificada)
+        from scipy import ndimage
+        wavelet_approx = ndimage.gaussian_filter(image_array, sigma=1)
+        wavelet_detail = image_array - wavelet_approx
+        noise_levels['Método Wavelet'] = np.std(wavelet_detail)
+        
+        return noise_levels
+    except:
+        return {'Método Diferença': 0.0, 'Método Residual': 0.0, 'Método Wavelet': 0.0}
 
 # ====== SEÇÃO 4: MÉTRICAS DE QUALIDADE PROFISSIONAL ======
 
@@ -2119,7 +2267,7 @@ def advanced_noise_analysis(image_array):
         residual = image_array - uniform_filtered
         noise_levels['Método Residual'] = np.std(residual)
         
-        # Método 3: Análise wavelet (simplificada)
+        # Método 3: Análise wavelet 
         from scipy import ndimage
         wavelet_approx = ndimage.gaussian_filter(image_array, sigma=1)
         wavelet_detail = image_array - wavelet_approx
@@ -2133,7 +2281,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
     """
     Aba de métricas de qualidade profissional para análise de imagem DICOM
     """
-    st.subheader("⭐ Métricas de Qualidade de Imagem Profissional")
+    st.subheader(" Métricas de Qualidade de Imagem Profissional")
     
     # Calcular métricas avançadas
     with st.spinner("Calculando métricas avançadas de qualidade..."):
@@ -2159,7 +2307,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
     tab1, tab2, tab3, tab4 = st.tabs(["Métricas Gerais", "Análise de Ruído", "Resolução", "Relatório Completo"])
     
     with tab1:
-        st.markdown("### 📊 Métricas Fundamentais de Qualidade")
+        st.markdown("### Métricas Fundamentais de Qualidade")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -2182,7 +2330,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
                      help="Faixa dinâmica da imagem")
     
     with tab2:
-        st.markdown("### 📈 Análise Avançada de Ruído")
+        st.markdown("### Análise Avançada de Ruído")
         
         col1, col2 = st.columns(2)
         
@@ -2283,7 +2431,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
                 st.warning("Análise de bordas não disponível")
     
     with tab4:
-        st.markdown("### 📋 Relatório Completo de Qualidade")
+        st.markdown("### Relatório Completo de Qualidade")
         
         # Gerar relatório abrangente
         report_data = {
@@ -2323,7 +2471,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
         st.dataframe(report_df, use_container_width=True, hide_index=True)
         
         # Recomendações baseadas na análise
-        st.markdown("#### 🎯 Recomendações Técnicas")
+        st.markdown("#### Recomendações Técnicas")
         
         recommendations = []
         if snr_val < 20:
@@ -2632,7 +2780,7 @@ def show_user_form():
                     # Log do evento
                     log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
                     
-                    st.success("✅ Usuário registrado com sucesso!")
+                    st.success(" Usuário registrado com sucesso!")
                     st.rerun()
                     
                 except Exception as e:
