@@ -322,218 +322,436 @@ def enhanced_visualization_tab(dicom_data, image_array):
         
         st.success("Imagem preparada para download!", key="msg_sucesso_download")
 
-# ====== SEÇÃO 2: ESTATÍSTICAS AVANÇADAS ======
+# ====== SEÇÃO 2: ESTATÍSTICAS AVANÇADAS AMPLIADA ======
 
 def enhanced_statistics_tab(dicom_data, image_array):
     """
-    Aba de estatísticas com múltiplas visualizações
+    Aba de estatísticas com múltiplas visualizações - AMPLIADA E CORRIGIDA
     """
-    st.subheader("Análise Estatística Avançada")
+    st.subheader("📊 Análise Estatística Avançada")
     
-    # Calcular estatísticas básicas
-    stats_data = {
-        'Média': np.mean(image_array),
-        'Mediana': np.median(image_array),
-        'Desvio Padrão': np.std(image_array),
-        'Mínimo': np.min(image_array),
-        'Máximo': np.max(image_array),
-        'Variância': np.var(image_array),
-        'Assimetria': stats.skew(image_array.flatten()),
-        'Curtose': stats.kurtosis(image_array.flatten())
-    }
+    # Verificação de segurança
+    if image_array is None or not isinstance(image_array, np.ndarray) or image_array.size == 0:
+        st.error("Dados de imagem inválidos para análise estatística")
+        return
     
-    # Display de métricas principais
-    col1, col2, col3, col4 = st.columns(4)
+    # Calcular estatísticas básicas com verificação de erro
+    try:
+        stats_data = {
+            'Média': np.mean(image_array),
+            'Mediana': np.median(image_array),
+            'Desvio Padrão': np.std(image_array),
+            'Mínimo': np.min(image_array),
+            'Máximo': np.max(image_array),
+            'Variância': np.var(image_array),
+            'Assimetria': stats.skew(image_array.flatten()) if image_array.size > 1 else 0,
+            'Curtose': stats.kurtosis(image_array.flatten()) if image_array.size > 1 else 0,
+            'Intervalo': np.max(image_array) - np.min(image_array),
+            'Q1': np.percentile(image_array, 25),
+            'Q3': np.percentile(image_array, 75),
+            'IQR': np.percentile(image_array, 75) - np.percentile(image_array, 25),
+            'Energia': np.sum(image_array**2) / image_array.size,
+            'Entropia': stats.entropy(np.histogram(image_array, bins=256, density=True)[0]) if image_array.size > 1 else 0
+        }
+    except Exception as e:
+        st.error(f"Erro ao calcular estatísticas: {e}")
+        return
     
-    with col1:
-        st.metric("Média (HU)", f"{stats_data['Média']:.2f}")
-        st.metric("Mediana (HU)", f"{stats_data['Mediana']:.2f}")
+    # Display de métricas principais em abas
+    tab1, tab2, tab3, tab4 = st.tabs(["Métricas Básicas", "Distribuição", "Análise Regional", "Estatísticas Avançadas"])
     
-    with col2:
-        st.metric("Desvio Padrão", f"{stats_data['Desvio Padrão']:.2f}")
-        st.metric("Variância", f"{stats_data['Variância']:.2f}")
+    with tab1:
+        st.markdown("### 📈 Métricas Estatísticas Básicas")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Média (HU)", f"{stats_data['Média']:.2f}")
+            st.metric("Mediana (HU)", f"{stats_data['Mediana']:.2f}")
+            st.metric("Moda (HU)", f"{stats.mode(image_array.flatten())[0][0] if image_array.size > 1 else 0:.2f}")
+        
+        with col2:
+            st.metric("Desvio Padrão", f"{stats_data['Desvio Padrão']:.2f}")
+            st.metric("Variância", f"{stats_data['Variância']:.2f}")
+            st.metric("Amplitude", f"{stats_data['Intervalo']:.2f}")
+        
+        with col3:
+            st.metric("Mínimo (HU)", f"{stats_data['Mínimo']:.2f}")
+            st.metric("Máximo (HU)", f"{stats_data['Máximo']:.2f}")
+            st.metric("IQR", f"{stats_data['IQR']:.2f}")
+        
+        with col4:
+            st.metric("Assimetria", f"{stats_data['Assimetria']:.3f}")
+            st.metric("Curtose", f"{stats_data['Curtose']:.3f}")
+            st.metric("Entropia", f"{stats_data['Entropia']:.3f}")
     
-    with col3:
-        st.metric("Mínimo (HU)", f"{stats_data['Mínimo']:.2f}")
-        st.metric("Máximo (HU)", f"{stats_data['Máximo']:.2f}")
+    with tab2:
+        st.markdown("### 📊 Análise de Distribuição")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 1. Histograma detalhado
+            fig1 = go.Figure()
+            fig1.add_trace(go.Histogram(
+                x=image_array.flatten(),
+                nbinsx=100,
+                name="Distribuição de Valores HU",
+                marker_color='lightblue',
+                opacity=0.7,
+                hovertemplate="Valor: %{x}<br>Frequência: %{y}<extra></extra>"
+            ))
+            fig1.update_layout(
+                title="Histograma de Distribuição de Valores HU",
+                xaxis_title="Unidades Hounsfield (HU)",
+                yaxis_title="Frequência",
+                height=400
+            )
+            st.plotly_chart(fig1, use_container_width=True)
+            
+            # 3. Gráfico de probabilidade normal (Q-Q Plot)
+            st.markdown("#### Gráfico de Probabilidade Normal (Q-Q Plot)")
+            try:
+                fig_qq = go.Figure()
+                
+                # Calcular quantis teóricos e amostrais
+                theoretical_quantiles = stats.norm.ppf(np.linspace(0.01, 0.99, 100))
+                sample_quantiles = np.percentile(image_array.flatten(), np.linspace(1, 99, 100))
+                
+                fig_qq.add_trace(go.Scatter(
+                    x=theoretical_quantiles,
+                    y=sample_quantiles,
+                    mode='markers',
+                    name='Q-Q Plot',
+                    marker=dict(color='blue', size=6)
+                ))
+                
+                # Adicionar linha de referência (y=x)
+                min_val = min(theoretical_quantiles.min(), sample_quantiles.min())
+                max_val = max(theoretical_quantiles.max(), sample_quantiles.max())
+                fig_qq.add_trace(go.Scatter(
+                    x=[min_val, max_val],
+                    y=[min_val, max_val],
+                    mode='lines',
+                    name='Linha de Referência',
+                    line=dict(color='red', dash='dash')
+                ))
+                
+                fig_qq.update_layout(
+                    title="Gráfico Q-Q: Normalidade dos Dados",
+                    xaxis_title="Quantis Teóricos",
+                    yaxis_title="Quantis Amostrais",
+                    height=400
+                )
+                st.plotly_chart(fig_qq, use_container_width=True)
+            except:
+                st.warning("Não foi possível gerar o gráfico Q-Q")
+        
+        with col2:
+            # 2. Box Plot
+            fig2 = go.Figure()
+            fig2.add_trace(go.Box(
+                y=image_array.flatten(),
+                name="Distribuição HU",
+                boxpoints='outliers',
+                marker_color='lightgreen',
+                jitter=0.3,
+                pointpos=-1.8
+            ))
+            fig2.update_layout(
+                title="Box Plot - Análise de Outliers",
+                yaxis_title="Unidades Hounsfield (HU)",
+                height=400,
+                showlegend=False
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+            
+            # 4. Densidade de probabilidade
+            st.markdown("#### Densidade de Probabilidade")
+            try:
+                from scipy.stats import gaussian_kde
+                density = gaussian_kde(image_array.flatten())
+                xs = np.linspace(image_array.min(), image_array.max(), 200)
+                
+                fig4 = go.Figure()
+                fig4.add_trace(go.Scatter(
+                    x=xs,
+                    y=density(xs),
+                    mode='lines',
+                    name="Densidade",
+                    fill='tozeroy',
+                    line=dict(color='purple', width=2)
+                ))
+                fig4.update_layout(
+                    title="Função de Densidade de Probabilidade",
+                    xaxis_title="Unidades Hounsfield (HU)",
+                    yaxis_title="Densidade",
+                    height=400
+                )
+                st.plotly_chart(fig4, use_container_width=True)
+            except:
+                st.warning("Não foi possível calcular a densidade de probabilidade")
     
-    with col4:
-        st.metric("Assimetria", f"{stats_data['Assimetria']:.3f}")
-        st.metric("urtose", f"{stats_data['Curtose']:.3f}")
-    
-    # Gráficos avançados
-    st.markdown("### Visualizações Estatísticas Avançadas")
-    
-    # 1. Histograma detalhado
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        fig1 = go.Figure()
-        fig1.add_trace(go.Histogram(
-            x=image_array.flatten(),
-            nbinsx=100,
-            name="Distribuição de Valores HU",
+    with tab3:
+        st.markdown("### 🗺️ Análise Estatística Regional")
+        
+        # Dividir imagem em regiões
+        h, w = image_array.shape
+        regions = {
+            'Superior Esquerda': image_array[:h//2, :w//2],
+            'Superior Direita': image_array[:h//2, w//2:],
+            'Inferior Esquerda': image_array[h//2:, :w//2],
+            'Inferior Direita': image_array[h//2:, w//2:],
+            'Centro': image_array[h//4:3*h//4, w//4:3*w//4]
+        }
+        
+        regional_stats = []
+        for region_name, region_data in regions.items():
+            if region_data.size > 0:
+                regional_stats.append({
+                    'Região': region_name,
+                    'Média': np.mean(region_data),
+                    'Desvio Padrão': np.std(region_data),
+                    'Mínimo': np.min(region_data),
+                    'Máximo': np.max(region_data),
+                    'Variância': np.var(region_data),
+                    'Tamanho': region_data.size
+                })
+        
+        df_regional = pd.DataFrame(regional_stats)
+        
+        # Gráfico de barras comparativo
+        fig7 = go.Figure()
+        
+        fig7.add_trace(go.Bar(
+            x=df_regional['Região'],
+            y=df_regional['Média'],
+            name='Média',
             marker_color='lightblue',
-            opacity=0.7
+            text=df_regional['Média'].round(2),
+            textposition='auto'
         ))
-        fig1.update_layout(
-            title="Histograma de Distribuição de Valores HU",
-            xaxis_title="Unidades Hounsfield (HU)",
-            yaxis_title="Frequência",
-            height=400
-        )
-        st.plotly_chart(fig1, use_container_width=True)
-    
-    with col2:
-        # 2. Box Plot
-        fig2 = go.Figure()
-        fig2.add_trace(go.Box(
-            y=image_array.flatten(),
-            name="Distribuição HU",
-            boxpoints='outliers',
-            marker_color='lightgreen'
-        ))
-        fig2.update_layout(
-            title="Box Plot - Análise de Outliers",
-            yaxis_title="Unidades Hounsfield (HU)",
-            height=400
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-    
-    # 3. Análise de percentis
-    col3, col4 = st.columns(2)
-    
-    with col3:
-        percentiles = [1, 5, 10, 25, 50, 75, 90, 95, 99]
-        percentile_values = [np.percentile(image_array, p) for p in percentiles]
         
-        fig3 = go.Figure()
-        fig3.add_trace(go.Scatter(
-            x=percentiles,
-            y=percentile_values,
-            mode='lines+markers',
-            name="Percentis",
-            line=dict(color='orange', width=3),
-            marker=dict(size=8)
+        fig7.add_trace(go.Bar(
+            x=df_regional['Região'],
+            y=df_regional['Desvio Padrão'],
+            name='Desvio Padrão',
+            marker_color='lightcoral',
+            text=df_regional['Desvio Padrão'].round(2),
+            textposition='auto'
         ))
-        fig3.update_layout(
-            title="Análise de Percentis",
-            xaxis_title="Percentil (%)",
-            yaxis_title="Valor HU",
-            height=400
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-    
-    with col4:
-        # 4. Densidade de probabilidade
-        from scipy.stats import gaussian_kde
-        density = gaussian_kde(image_array.flatten())
-        xs = np.linspace(image_array.min(), image_array.max(), 200)
         
-        fig4 = go.Figure()
-        fig4.add_trace(go.Scatter(
-            x=xs,
-            y=density(xs),
-            mode='lines',
-            name="Densidade",
-            fill='tonexty',
-            line=dict(color='purple', width=2)
-        ))
-        fig4.update_layout(
-            title="Densidade de Probabilidade",
-            xaxis_title="Unidades Hounsfield (HU)",
-            yaxis_title="Densidade",
-            height=400
+        fig7.update_layout(
+            title="Comparação Estatística Regional",
+            xaxis_title="Regiões da Imagem",
+            yaxis_title="Valores",
+            barmode='group',
+            height=500
         )
-        st.plotly_chart(fig4, use_container_width=True)
-    
-    # 5. Mapa de calor da imagem
-    col5, col6 = st.columns(2)
-    
-    with col5:
-        fig5 = go.Figure(data=go.Heatmap(
-            z=image_array,
-            colorscale='viridis',
-            showscale=True
-        ))
-        fig5.update_layout(
-            title="Mapa de Calor da Imagem",
-            height=400
-        )
-        st.plotly_chart(fig5, use_container_width=True)
-    
-    with col6:
-        # 6. Análise de correlação espacial
-        # Calcular gradientes
-        grad_x = np.gradient(image_array, axis=1)
-        grad_y = np.gradient(image_array, axis=0)
-        magnitude = np.sqrt(grad_x**2 + grad_y**2)
         
-        fig6 = go.Figure(data=go.Heatmap(
-            z=magnitude,
-            colorscale='plasma',
-            showscale=True
+        st.plotly_chart(fig7, use_container_width=True)
+        
+        # Mapa de calor das regiões
+        st.markdown("#### Mapa de Calor das Regiões")
+        
+        # Criar matriz de valores médios por região
+        region_matrix = np.zeros((3, 3))
+        region_matrix[0, 0] = regions['Superior Esquerda'].mean() if 'Superior Esquerda' in regions else 0
+        region_matrix[0, 2] = regions['Superior Direita'].mean() if 'Superior Direita' in regions else 0
+        region_matrix[2, 0] = regions['Inferior Esquerda'].mean() if 'Inferior Esquerda' in regions else 0
+        region_matrix[2, 2] = regions['Inferior Direita'].mean() if 'Inferior Direita' in regions else 0
+        region_matrix[1, 1] = regions['Centro'].mean() if 'Centro' in regions else 0
+        
+        fig_region_heatmap = go.Figure(data=go.Heatmap(
+            z=region_matrix,
+            colorscale='Viridis',
+            showscale=True,
+            text=[[f"SE: {region_matrix[0,0]:.1f}", "", f"SD: {region_matrix[0,2]:.1f}"],
+                  ["", f"C: {region_matrix[1,1]:.1f}", ""],
+                  [f"IE: {region_matrix[2,0]:.1f}", "", f"ID: {region_matrix[2,2]:.1f}"]],
+            texttemplate="%{text}",
+            textfont={"size": 12}
         ))
-        fig6.update_layout(
-            title="Magnitude do Gradiente",
+        
+        fig_region_heatmap.update_layout(
+            title="Valores Médios por Região",
             height=400
         )
-        st.plotly_chart(fig6, use_container_width=True)
+        
+        st.plotly_chart(fig_region_heatmap, use_container_width=True)
+        
+        # Tabela de estatísticas regionais
+        st.markdown("#### Tabela de Estatísticas Regionais")
+        st.dataframe(df_regional, use_container_width=True)
     
-    # Análise estatística regional
-    st.markdown("### 🗺️ Análise Estatística Regional")
+    with tab4:
+        st.markdown("### 📐 Estatísticas Avançadas")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 5. Mapa de calor da imagem
+            fig5 = go.Figure(data=go.Heatmap(
+                z=image_array,
+                colorscale='Viridis',
+                showscale=True,
+                hovertemplate='X: %{x}<br>Y: %{y}<br>Valor HU: %{z}<extra></extra>'
+            ))
+            fig5.update_layout(
+                title="Mapa de Calor da Imagem",
+                height=400
+            )
+            st.plotly_chart(fig5, use_container_width=True)
+            
+            # 7. Análise de valores outliers
+            st.markdown("#### 📌 Análise de Outliers")
+            
+            # Calcular limites para outliers
+            Q1 = np.percentile(image_array, 25)
+            Q3 = np.percentile(image_array, 75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            outliers = image_array[(image_array < lower_bound) | (image_array > upper_bound)]
+            
+            outlier_stats = {
+                'Total de Outliers': len(outliers),
+                'Percentual de Outliers': f"{(len(outliers) / image_array.size) * 100:.2f}%",
+                'Limite Inferior': lower_bound,
+                'Limite Superior': upper_bound,
+                'Outlier Mínimo': np.min(outliers) if len(outliers) > 0 else 0,
+                'Outlier Máximo': np.max(outliers) if len(outliers) > 0 else 0
+            }
+            
+            for key, value in outlier_stats.items():
+                st.metric(key, str(value))
+        
+        with col2:
+            # 6. Análise de correlação espacial
+            # Calcular gradientes
+            grad_x = np.gradient(image_array, axis=1)
+            grad_y = np.gradient(image_array, axis=0)
+            magnitude = np.sqrt(grad_x**2 + grad_y**2)
+            
+            fig6 = go.Figure(data=go.Heatmap(
+                z=magnitude,
+                colorscale='plasma',
+                showscale=True,
+                hovertemplate='X: %{x}<br>Y: %{y}<br>Magnitude: %{z:.2f}<extra></extra>'
+            ))
+            fig6.update_layout(
+                title="Magnitude do Gradiente (Bordas)",
+                height=400
+            )
+            st.plotly_chart(fig6, use_container_width=True)
+            
+            # 8. Análise de textura
+            st.markdown("#### 🔍 Análise de Textura")
+            
+            texture_metrics = calculate_glcm_features(image_array)
+            
+            texture_df = pd.DataFrame(list(texture_metrics.items()), columns=['Métrica', 'Valor'])
+            st.dataframe(texture_df, use_container_width=True, height=200)
+            
+            # Métricas de qualidade de imagem
+            st.markdown("#### ⭐ Métricas de Qualidade")
+            
+            quality_metrics = {
+                'SNR': calculate_snr(image_array),
+                'Ruído Estimado': estimate_noise(image_array),
+                'Contraste RMS': np.sqrt(np.mean((image_array - np.mean(image_array))**2))
+            }
+            
+            for metric, value in quality_metrics.items():
+                if np.isinf(value):
+                    st.metric(metric, "∞")
+                else:
+                    st.metric(metric, f"{value:.2f}")
     
-    # Dividir imagem em regiões
-    h, w = image_array.shape
-    regions = {
-        'Superior Esquerda': image_array[:h//2, :w//2],
-        'Superior Direita': image_array[:h//2, w//2:],
-        'Inferior Esquerda': image_array[h//2:, :w//2],
-        'Inferior Direita': image_array[h//2:, w//2:]
-    }
+    # Análise adicional
+    st.markdown("### 📋 Relatório Estatístico Completo")
     
-    regional_stats = []
-    for region_name, region_data in regions.items():
-        regional_stats.append({
-            'Região': region_name,
-            'Média': np.mean(region_data),
-            'Desvio Padrão': np.std(region_data),
-            'Mínimo': np.min(region_data),
-            'Máximo': np.max(region_data)
+    with st.expander("Visualizar Relatório Detalhado"):
+        # Estatísticas descritivas completas
+        st.markdown("#### Estatísticas Descritivas Completas")
+        
+        desc_stats = {
+            'Contagem': image_array.size,
+            'Média': stats_data['Média'],
+            'Desvio Padrão': stats_data['Desvio Padrão'],
+            'Variância': stats_data['Variância'],
+            'Mínimo': stats_data['Mínimo'],
+            '25%': stats_data['Q1'],
+            '50% (Mediana)': stats_data['Mediana'],
+            '75%': stats_data['Q3'],
+            'Máximo': stats_data['Máximo'],
+            'Intervalo': stats_data['Intervalo'],
+            'IQR': stats_data['IQR'],
+            'Assimetria': stats_data['Assimetria'],
+            'Curtose': stats_data['Curtose'],
+            'Entropia': stats_data['Entropia']
+        }
+        
+        desc_df = pd.DataFrame(list(desc_stats.items()), columns=['Estatística', 'Valor'])
+        st.dataframe(desc_df, use_container_width=True)
+        
+        # Teste de normalidade
+        st.markdown("#### Teste de Normalidade (Shapiro-Wilk)")
+        try:
+            if image_array.size > 3 and image_array.size <= 5000:  # Limitação do teste
+                stat, p_value = stats.shapiro(image_array.flatten())
+                normality = "Distribuição Normal" if p_value > 0.05 else "Não Normal"
+                
+                norm_test = {
+                    'Estatística de Teste': stat,
+                    'Valor-p': p_value,
+                    'Interpretação': normality
+                }
+                
+                norm_df = pd.DataFrame(list(norm_test.items()), columns=['Parâmetro', 'Valor'])
+                st.dataframe(norm_df, use_container_width=True)
+            else:
+                st.info("Teste de normalidade não aplicável para este tamanho de amostra")
+        except:
+            st.warning("Não foi possível realizar o teste de normalidade")
+    
+    # Opção de exportação
+    if st.button("📊 Exportar Relatório Estatístico", key="btn_export_stats"):
+        # Preparar dados para exportação
+        export_data = []
+        for region in regional_stats:
+            export_data.append({
+                'Região': region['Região'],
+                'Média_HU': region['Média'],
+                'Desvio_Padrão': region['Desvio Padrão'],
+                'Mínimo_HU': region['Mínimo'],
+                'Máximo_HU': region['Máximo'],
+                'Variância': region['Variância'],
+                'Tamanho_Amostra': region['Tamanho']
+            })
+        
+        # Adicionar estatísticas gerais
+        export_data.append({
+            'Região': 'GERAL',
+            'Média_HU': stats_data['Média'],
+            'Desvio_Padrão': stats_data['Desvio Padrão'],
+            'Mínimo_HU': stats_data['Mínimo'],
+            'Máximo_HU': stats_data['Máximo'],
+            'Variância': stats_data['Variância'],
+            'Tamanho_Amostra': image_array.size
         })
-    
-    df_regional = pd.DataFrame(regional_stats)
-    
-    # Gráfico de barras comparativo
-    fig7 = go.Figure()
-    
-    fig7.add_trace(go.Bar(
-        x=df_regional['Região'],
-        y=df_regional['Média'],
-        name='Média',
-        marker_color='lightblue'
-    ))
-    
-    fig7.add_trace(go.Bar(
-        x=df_regional['Região'],
-        y=df_regional['Desvio Padrão'],
-        name='Desvio Padrão',
-        marker_color='lightcoral'
-    ))
-    
-    fig7.update_layout(
-        title="Comparação Estatística Regional",
-        xaxis_title="Regiões da Imagem",
-        yaxis_title="Valores",
-        barmode='group',
-        height=400
-    )
-    
-    st.plotly_chart(fig7, use_container_width=True)
-    
-    # Tabela de estatísticas regionais
-    st.markdown("#### Tabela de Estatísticas Regionais")
-    st.dataframe(df_regional, use_container_width=True)
+        
+        export_df = pd.DataFrame(export_data)
+        csv = export_df.to_csv(index=False)
+        
+        st.download_button(
+            label="⬇️ Baixar Dados Estatísticos (CSV)",
+            data=csv,
+            file_name=f"estatisticas_imagem_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
+
 
 # ====== SEÇÃO 3: ANÁLISE TÉCNICA ======
 
@@ -2143,418 +2361,6 @@ def advanced_noise_analysis(image_array):
         return noise_levels
     except:
         return {'Método Diferença': 0.0, 'Método Residual': 0.0, 'Método Wavelet': 0.0}
-
-# ====== SEÇÃO 4: MÉTRICAS DE QUALIDADE PROFISSIONAL ======
-
-def calculate_psnr(original, processed=None):
-    """Calcula PSNR (Peak Signal-to-Noise Ratio)"""
-    if processed is None:
-        # Se não há imagem processada, usar ruído estimado
-        noise = estimate_noise(original)
-        if noise == 0:
-            return float('inf')
-        return 20 * np.log10(np.max(original) / noise)
-    else:
-        # Entre original e processada
-        mse = np.mean((original - processed) ** 2)
-        if mse == 0:
-            return float('inf')
-        return 20 * np.log10(np.max(original) / np.sqrt(mse))
-
-def calculate_ssim(original, processed=None):
-    """Calcula SSIM (Structural Similarity Index) simplificado"""
-    if processed is None:
-        return 1.0  # Sem imagem processada para comparação
-    
-    try:
-        from skimage.metrics import structural_similarity as ssim
-        # Normalizar imagens para 0-1
-        original_norm = (original - np.min(original)) / (np.max(original) - np.min(original))
-        processed_norm = (processed - np.min(processed)) / (np.max(processed) - np.min(processed))
-        return ssim(original_norm, processed_norm, data_range=1.0)
-    except ImportError:
-        # Fallback calculation
-        C1 = (0.01 * 255) ** 2
-        C2 = (0.03 * 255) ** 2
-        
-        mu_x = np.mean(original)
-        mu_y = np.mean(processed)
-        sigma_x = np.var(original)
-        sigma_y = np.var(processed)
-        sigma_xy = np.cov(original.flatten(), processed.flatten())[0, 1]
-        
-        ssim_val = ((2 * mu_x * mu_y + C1) * (2 * sigma_xy + C2)) / \
-                  ((mu_x ** 2 + mu_y ** 2 + C1) * (sigma_x + sigma_y + C2))
-        return ssim_val
-
-def calculate_mtf(image_array, dicom_data):
-    """Calcula MTF (Modulation Transfer Function) simplificado"""
-    try:
-        # Usar borda da imagem para estimar MTF
-        edge_profile = image_array[image_array.shape[0] // 2, :]
-        
-        # Derivada do perfil de borda (Edge Spread Function)
-        esf_derivative = np.gradient(edge_profile)
-        
-        # Normalizar e calcular MTF
-        mtf = np.abs(np.fft.fft(esf_derivative))
-        mtf = mtf[:len(mtf)//2]  # Manter apenas frequências positivas
-        mtf = mtf / np.max(mtf)  # Normalizar
-        
-        # Encontrar frequência onde MTF cai para 50%
-        freq_50 = np.argmax(mtf < 0.5) / len(mtf) if np.any(mtf < 0.5) else 1.0
-        
-        # Converter para lp/mm se PixelSpacing disponível
-        if hasattr(dicom_data, 'PixelSpacing'):
-            pixel_spacing = float(dicom_data.PixelSpacing[0])
-            freq_50 = freq_50 / (2 * pixel_spacing)  # Conversão para lp/mm
-        
-        return float(freq_50), mtf
-    except:
-        return 0.0, np.array([0.0])
-
-def calculate_cnr(image_array):
-    """Calcula CNR (Contrast-to-Noise Ratio)"""
-    try:
-        # Selecionar duas regiões diferentes para calcular contraste
-        h, w = image_array.shape
-        roi1 = image_array[h//4:h//2, w//4:w//2]  # Região central
-        roi2 = image_array[3*h//4:h, 3*w//4:w]    # Região periférica
-        
-        contrast = np.abs(np.mean(roi1) - np.mean(roi2))
-        noise = estimate_noise(image_array)
-        
-        return contrast / noise if noise > 0 else 0.0
-    except:
-        return 0.0
-
-def calculate_nps(image_array):
-    """Calcula NPS (Noise Power Spectrum)"""
-    try:
-        # Remover tendência linear
-        detrended = image_array - ndimage.uniform_filter(image_array, size=10)
-        
-        # Calcular espectro de potência do ruído
-        fft_nps = np.fft.fft2(detrended)
-        nps = np.abs(fft_nps) ** 2
-        nps = np.fft.fftshift(nps)
-        
-        # Perfil radial do NPS
-        center = np.array(nps.shape) // 2
-        y, x = np.indices(nps.shape)
-        r = np.sqrt((x - center[1])**2 + (y - center[0])**2)
-        r = r.astype(int)
-        
-        nps_radial = ndimage.mean(nps, labels=r, index=np.arange(0, np.max(r)))
-        
-        return nps, nps_radial
-    except:
-        return np.zeros_like(image_array), np.array([0.0])
-
-def advanced_noise_analysis(image_array):
-    """Análise avançada de ruído"""
-    try:
-        # Análise de ruído usando múltiplos métodos
-        noise_levels = {}
-        
-        # Método 1: Diferença entre pixels adjacentes
-        diff_h = image_array[:, 1:] - image_array[:, :-1]
-        diff_v = image_array[1:, :] - image_array[:-1, :]
-        noise_levels['Método Diferença'] = np.std(np.concatenate([diff_h.flatten(), diff_v.flatten()])) / np.sqrt(2)
-        
-        # Método 2: Filtro de uniformidade
-        uniform_filtered = ndimage.uniform_filter(image_array, size=3)
-        residual = image_array - uniform_filtered
-        noise_levels['Método Residual'] = np.std(residual)
-        
-        # Método 3: Análise wavelet 
-        from scipy import ndimage
-        wavelet_approx = ndimage.gaussian_filter(image_array, sigma=1)
-        wavelet_detail = image_array - wavelet_approx
-        noise_levels['Método Wavelet'] = np.std(wavelet_detail)
-        
-        return noise_levels
-    except:
-        return {'Método Diferença': 0.0, 'Método Residual': 0.0, 'Método Wavelet': 0.0}
-
-def professional_quality_metrics_tab(dicom_data, image_array, processed_image=None):
-    """
-    Aba de métricas de qualidade profissional para análise de imagem DICOM
-    """
-    st.subheader(" Métricas de Qualidade de Imagem Profissional")
-    
-    # Calcular métricas avançadas
-    with st.spinner("Calculando métricas avançadas de qualidade..."):
-        # Métricas básicas
-        snr_val = calculate_snr(image_array)
-        psnr_val = calculate_psnr(image_array, processed_image)
-        ssim_val = calculate_ssim(image_array, processed_image) if processed_image is not None else 1.0
-        cnr_val = calculate_cnr(image_array)
-        mtf_val, mtf_curve = calculate_mtf(image_array, dicom_data)
-        
-        # Análise de ruído avançada
-        noise_levels = advanced_noise_analysis(image_array)
-        nps_matrix, nps_radial = calculate_nps(image_array)
-        
-        # Cálculo de entropia e uniformidade corretos
-        hist, _ = np.histogram(image_array.flatten(), bins=256)
-        probabilities = hist / np.sum(hist)
-        probabilities = probabilities[probabilities > 0]
-        entropy_val = float(-np.sum(probabilities * np.log2(probabilities)))
-        uniformity_val = float(np.sum(probabilities**2))
-    
-    # Display de métricas principais em abas
-    tab1, tab2, tab3, tab4 = st.tabs(["Métricas Gerais", "Análise de Ruído", "Resolução", "Relatório Completo"])
-    
-    with tab1:
-        st.markdown("### Métricas Fundamentais de Qualidade")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("SNR", f"{snr_val:.2f}", help="Relação Sinal-Ruído")
-            st.metric("PSNR", f"{psnr_val:.2f} dB" if psnr_val != float('inf') else "∞ dB", 
-                     help="Pico de Relação Sinal-Ruído")
-        
-        with col2:
-            st.metric("CNR", f"{cnr_val:.2f}", help="Relação Contraste-Ruído")
-            st.metric("SSIM", f"{ssim_val:.4f}", help="Índice de Similaridade Estrutural")
-        
-        with col3:
-            st.metric("Entropia", f"{entropy_val:.2f} bits", help="Medida de informação/complexidade")
-            st.metric("Uniformidade", f"{uniformity_val:.4f}", help="Uniformidade da distribuição de intensidade")
-        
-        with col4:
-            st.metric("MTF₅₀", f"{mtf_val:.2f} lp/mm", help="Frequência espacial a 50% da modulação")
-            st.metric("Dinâmica", f"{image_array.max()-image_array.min():.0f} HU", 
-                     help="Faixa dinâmica da imagem")
-    
-    with tab2:
-        st.markdown("### Análise Avançada de Ruído")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Comparação de métodos de ruído
-            noise_df = pd.DataFrame(list(noise_levels.items()), columns=['Método', 'Nível de Ruído (HU)'])
-            fig_noise = px.bar(noise_df, x='Método', y='Nível de Ruído (HU)', 
-                              title="Comparação de Métodos de Análise de Ruído")
-            st.plotly_chart(fig_noise, use_container_width=True)
-            
-            # Perfil do NPS
-            fig_nps = go.Figure()
-            fig_nps.add_trace(go.Scatter(
-                x=np.arange(len(nps_radial)),
-                y=nps_radial,
-                mode='lines',
-                name='NPS Radial',
-                line=dict(color='blue', width=2)
-            ))
-            fig_nps.update_layout(
-                title="Espectro de Potência do Ruído (NPS) - Perfil Radial",
-                xaxis_title="Frequência Espacial",
-                yaxis_title="Potência do Ruído",
-                height=300
-            )
-            st.plotly_chart(fig_nps, use_container_width=True)
-        
-        with col2:
-            # Mapa de ruído
-            noise_map = image_array - ndimage.uniform_filter(image_array, size=5)
-            fig_noise_map = go.Figure(data=go.Heatmap(
-                z=noise_map,
-                colorscale='Viridis',
-                showscale=True,
-                title="Mapa de Distribuição de Ruído"
-            ))
-            fig_noise_map.update_layout(height=400)
-            st.plotly_chart(fig_noise_map, use_container_width=True)
-            
-            # Estatísticas de ruído
-            st.markdown("**Estatísticas de Ruído:**")
-            noise_stats = {
-                'Ruído Médio': f"{np.mean(noise_map):.2f} HU",
-                'Desvio Padrão': f"{np.std(noise_map):.2f} HU",
-                'Ruído Máximo': f"{np.max(np.abs(noise_map)):.2f} HU"
-            }
-            for stat, value in noise_stats.items():
-                st.write(f"{stat}: {value}")
-    
-    with tab3:
-        st.markdown("### 🔍 Análise de Resolução and Nitidez")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Curva MTF
-            fig_mtf = go.Figure()
-            fig_mtf.add_trace(go.Scatter(
-                x=np.linspace(0, 1, len(mtf_curve)),
-                y=mtf_curve,
-                mode='lines',
-                name='MTF',
-                line=dict(color='red', width=3)
-            ))
-            fig_mtf.add_hline(y=0.5, line_dash="dash", line_color="orange", 
-                             annotation_text="50% Modulação")
-            fig_mtf.update_layout(
-                title="Função de Transferência de Modulação (MTF)",
-                xaxis_title="Frequência Espacial Normalizada",
-                yaxis_title="Modulação",
-                height=400
-            )
-            st.plotly_chart(fig_mtf, use_container_width=True)
-        
-        with col2:
-            # Análise de bordas
-            try:
-                # Detecção de bordas para análise de nitidez
-                if processed_image is not None and len(processed_image.shape) == 2:
-                    edges = cv2.Canny(processed_image.astype(np.uint8), 50, 150)
-                else:
-                    edges = cv2.Canny(image_array.astype(np.uint8), 50, 150)
-                
-                fig_edges = go.Figure(data=go.Heatmap(
-                    z=edges,
-                    colorscale='Gray',
-                    showscale=False,
-                    title="Mapa de Bordas - Análise de Nitidez"
-                ))
-                fig_edges.update_layout(height=400)
-                st.plotly_chart(fig_edges, use_container_width=True)
-                
-                # Métricas de nitidez
-                edge_sharpness = np.mean(edges) if edges.size > 0 else 0
-                st.metric("Índice de Nitidez", f"{edge_sharpness:.4f}")
-                
-            except Exception as e:
-                st.warning("Análise de bordas não disponível")
-    
-    with tab4:
-        st.markdown("### Relatório Completo de Qualidade")
-        
-        # Gerar relatório abrangente
-        report_data = {
-            'Métrica': [
-                'SNR (Relação Sinal-Ruído)',
-                'PSNR (Pico SNR)',
-                'CNR (Relação Contraste-Ruído)',
-                'SSIM (Similaridade Estrutural)',
-                'Entropia',
-                'Uniformidade',
-                'MTF₅₀ (Resolução)',
-                'Faixa Dinâmica'
-            ],
-            'Valor': [
-                f"{snr_val:.2f}",
-                f"{psnr_val:.2f} dB" if psnr_val != float('inf') else "∞ dB",
-                f"{cnr_val:.2f}",
-                f"{ssim_val:.4f}",
-                f"{entropy_val:.2f} bits",
-                f"{uniformity_val:.4f}",
-                f"{mtf_val:.2f} lp/mm",
-                f"{image_array.max()-image_array.min():.0f} HU"
-            ],
-            'Status': [
-                'Excelente' if snr_val > 50 else 'Bom' if snr_val > 30 else 'Aceitável' if snr_val > 15 else 'Ruim',
-                'Excelente' if psnr_val > 60 else 'Bom' if psnr_val > 40 else 'Aceitável' if psnr_val > 20 else 'Ruim',
-                'Excelente' if cnr_val > 5 else 'Bom' if cnr_val > 3 else 'Aceitável' if cnr_val > 1 else 'Ruim',
-                'Excelente' if ssim_val > 0.9 else 'Bom' if ssim_val > 0.7 else 'Aceitável' if ssim_val > 0.5 else 'Ruim',
-                'Alta' if entropy_val > 6 else 'Média' if entropy_val > 4 else 'Baixa',
-                'Excelente' if uniformity_val > 0.1 else 'Boa' if uniformity_val > 0.05 else 'Baixa',
-                'Alta' if mtf_val > 2.0 else 'Média' if mtf_val > 1.0 else 'Baixa',
-                'Ampla' if (image_array.max()-image_array.min()) > 2000 else 'Média' if (image_array.max()-image_array.min()) > 1000 else 'Estreita'
-            ]
-        }
-        
-        report_df = pd.DataFrame(report_data)
-        st.dataframe(report_df, use_container_width=True, hide_index=True)
-        
-        # Recomendações baseadas na análise
-        st.markdown("#### Recomendações Técnicas")
-        
-        recommendations = []
-        if snr_val < 20:
-            recommendations.append("• Aumentar dose de radiação ou melhorar técnica de aquisição para melhorar SNR")
-        if cnr_val < 2:
-            recommendations.append("• Ajustar parâmetros de contraste ou usar meio de contraste para melhorar CNR")
-        if mtf_val < 1.0:
-            recommendations.append("• Verificar calibração do equipamento e parâmetros de reconstrução para melhorar resolução")
-        if (image_array.max()-image_array.min()) < 1000:
-            recommendations.append("• Ajustar janelamento Hounsfield para melhor utilizar a faixa dinâmica disponível")
-        
-        if recommendations:
-            for rec in recommendations:
-                st.info(rec)
-        else:
-            st.success("A imagem apresenta excelentes características de qualidade!")
-        
-        # Opção de exportar relatório
-        if st.button("📊 Exportar Relatório de Qualidade", use_container_width=True):
-            csv = report_df.to_csv(index=False)
-            st.download_button(
-                label="⬇️ Baixar Relatório (CSV)",
-                data=csv,
-                file_name=f"relatorio_qualidade_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
-    
-    # Análise comparativa se houver imagem processada
-    if processed_image is not None and np.any(processed_image != image_array):
-        st.markdown("### 🔄 Análise Comparativa: Original vs Processada")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Diferença entre imagens
-            difference = np.abs(image_array.astype(float) - processed_image.astype(float))
-            fig_diff = go.Figure(data=go.Heatmap(
-                z=difference,
-                colorscale='Hot',
-                showscale=True,
-                title="Mapa de Diferenças (Original - Processada)"
-            ))
-            fig_diff.update_layout(height=400)
-            st.plotly_chart(fig_diff, use_container_width=True)
-        
-        with col2:
-            # Métricas de comparação
-            mse = np.mean((image_array - processed_image) ** 2)
-            rmse = np.sqrt(mse)
-            nrmse = rmse / (np.max(image_array) - np.min(image_array))
-            
-            comp_metrics = {
-                'MSE (Erro Quadrático Médio)': f"{mse:.2f}",
-                'RMSE (Raiz do Erro Quadrático Médio)': f"{rmse:.2f} HU",
-                'NRMSE (RMSE Normalizado)': f"{nrmse:.4f}",
-                'PSNR (Original vs Processada)': f"{calculate_psnr(image_array, processed_image):.2f} dB",
-                'SSIM (Original vs Processada)': f"{calculate_ssim(image_array, processed_image):.4f}"
-            }
-            
-            st.markdown("**Métricas de Comparação:**")
-            for metric, value in comp_metrics.items():
-                st.write(f"{metric}: {value}")
-    
-    # Informações técnicas do DICOM relevantes para qualidade
-    st.markdown("### 🔧 Parâmetros Técnicos de Aquisição")
-    
-    tech_params = {}
-    if hasattr(dicom_data, 'KVP'):
-        tech_params['Tensão (kVp)'] = f"{dicom_data.KVP} kV"
-    if hasattr(dicom_data, 'ExposureTime'):
-        tech_params['Tempo de Exposição'] = f"{dicom_data.ExposureTime} ms"
-    if hasattr(dicom_data, 'XRayTubeCurrent'):
-        tech_params['Corrente do Tubo'] = f"{dicom_data.XRayTubeCurrent} mA"
-    if hasattr(dicom_data, 'PixelSpacing'):
-        tech_params['Espaçamento de Pixel'] = f"{dicom_data.PixelSpacing[0]} mm"
-    if hasattr(dicom_data, 'SliceThickness'):
-        tech_params['Espessura de Corte'] = f"{dicom_data.SliceThickness} mm"
-    
-    if tech_params:
-        tech_df = pd.DataFrame(list(tech_params.items()), columns=['Parâmetro', 'Valor'])
-        st.dataframe(tech_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("Informações técnicas de aquisição não disponíveis no arquivo DICOM")
 
 # ====== SEÇÃO 5: FUNÇÕES PRINCIPAIS DO SISTEMA ======
 
