@@ -1370,7 +1370,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     st.subheader("🔬 RA-Index - Análise de Risco Radiológico Avançada")
     
     # Introdução teórica
-    with st.expander("Fundamentação Teórica e Metodológica", expanded=False):
+    with st.expander("📚 Fundamentação Teórica e Metodológica", expanded=False):
         st.markdown("""
         ### Interface Multidisciplinar: Física Quântica e Radiologia Legal
         
@@ -1395,7 +1395,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     
     # Controles de parâmetros
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### Parámetros do RA-Index")
+    st.sidebar.markdown("### ⚙️ Parâmetros do RA-Index")
     
     pm_interval = st.sidebar.slider("Intervalo Post-Mortem Estimado (horas):", 
                                   0, 168, 24, 1,
@@ -1410,7 +1410,7 @@ def professional_ra_index_tab(dicom_data, image_array):
         ra_data_physical, _ = calculate_ra_index_physical(image_array, dicom_data, pm_interval)
     
     # Métricas comparativas
-    st.markdown("### Métricas Comparativas dos Métodos")
+    st.markdown("### 📊 Métricas Comparativas dos Métodos")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -1444,7 +1444,7 @@ def professional_ra_index_tab(dicom_data, image_array):
                  delta=f"{critical_phy - critical_std}")
     
     # Visualizações comparativas
-    st.markdown("### Visualizações Comparativas")
+    st.markdown("### 📈 Visualizações Comparativas")
     
     tab1, tab2, tab3, tab4 = st.tabs(["Mapas de Calor", "Distribuição", "Análise Física", "Correlações"])
     
@@ -1609,7 +1609,7 @@ def professional_ra_index_tab(dicom_data, image_array):
                 st.write(f"- Referência cadaverina: 0.12 mm²/h")
     
     with tab4:
-        st.markdown("### Análise de Correlações e Regressão")
+        st.markdown("### 📐 Análise de Correlações e Regressão")
         
         # Preparar dados para análise
         comparison_data = []
@@ -1706,14 +1706,14 @@ def professional_ra_index_tab(dicom_data, image_array):
             st.warning("Não foi possível calcular a matriz de correlação")
     
     # Relatório forense avançado
-    st.markdown("### Relatório Forense Avançado")
+    st.markdown("### 📋 Relatório Forense Avançado")
     
     with st.expander("🔍 Análise Discriminativa Detalhada", expanded=False):
         st.markdown("""
         #### Análise de Discordâncias entre Métodos
         
         As diferenças entre os métodos tradicional e físico revelam importantes
-        insights sobre a natureza das alterações radiológicas:
+        insights sobre la naturaleza de las alteraciones radiológicas:
         """)
         
         # Identificar regiões com maiores discordâncias
@@ -1748,7 +1748,7 @@ def professional_ra_index_tab(dicom_data, image_array):
             st.info("Não foram encontradas discordâncias significativas (>20 pontos) entre os métodos")
     
     # Conclusão e recomendações
-    st.markdown("### Conclusões e Recomendações")
+    st.markdown("### 🎯 Conclusões e Recomendações")
     
     col1, col2 = st.columns(2)
     
@@ -1770,25 +1770,35 @@ def professional_ra_index_tab(dicom_data, image_array):
         - 🔬 Potencial para maior objetividade e reprodutibilidade
         """)
     
-    # Recomendações finais
-    st.markdown("#### Recomendações para Análise Forense")
+    # Recomendações finais - SEÇÃO CORRIGIDA
+    st.markdown("#### 📋 Recomendações para Análise Forense")
     
     rec_col1, rec_col2, rec_col3 = st.columns(3)
     
     with rec_col1:
-        st.metric("Concordância Geral", 
-                 f"{(1 - (len(discrepancies) / len(ra_data_standard['ra_values'])) * 100:.1f}%",
-                 help="Percentual de regiões com concordância entre métodos")
+        # CORREÇÃO APPLICADA - cálculo separado para evitar erro de f-string
+        if discrepancies and ra_data_standard['ra_values']:
+            concordance = (1 - (len(discrepancies) / len(ra_data_standard['ra_values']))) * 100
+            st.metric("Concordância Geral", 
+                     f"{concordance:.1f}%",
+                     help="Percentual de regiões com concordância entre métodos")
+        else:
+            st.metric("Concordância Geral", "100.0%")
     
     with rec_col2:
-        avg_diff = np.mean([abs(a - b) for a, b in 
-                          zip(ra_data_standard['ra_values'], ra_data_physical['ra_values'])])
-        st.metric("Diferença Média", f"{avg_diff:.1f} pontos")
+        if ra_data_standard['ra_values'] and ra_data_physical['ra_values']:
+            avg_diff = np.mean([abs(a - b) for a, b in 
+                              zip(ra_data_standard['ra_values'], ra_data_physical['ra_values'])])
+            st.metric("Diferença Média", f"{avg_diff:.1f} pontos")
+        else:
+            st.metric("Diferença Média", "0.0 pontos")
     
     with rec_col3:
         if discrepancies:
             max_diff = max(discrepancies, key=lambda x: x['Diferença'])
             st.metric("Maior Discordância", f"{max_diff['Diferença']} pontos")
+        else:
+            st.metric("Maior Discordância", "0 pontos")
     
     st.markdown("""
     **Recomendações:**
@@ -1799,7 +1809,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     """)
     
     # Opção de exportação
-    if st.button("Exportar Relatório RA-Index Completo", use_container_width=True):
+    if st.button("📊 Exportar Relatório RA-Index Completo", use_container_width=True):
         # Preparar dados para exportação
         export_data = []
         for i in range(len(ra_data_standard['ra_values'])):
@@ -1826,7 +1836,8 @@ def professional_ra_index_tab(dicom_data, image_array):
             data=csv,
             file_name=f"ra_index_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
-        ) 
+        )
+        
 # ====== FUNÇÕES AUXILIARES PARA ANÁLISE DE QUALIDADE ======
 
 def estimate_noise(image):
