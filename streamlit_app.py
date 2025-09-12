@@ -2655,14 +2655,13 @@ def show_main_app():
                 
                 # Informações básicas do arquivo
                                
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3 = st.columns(4)
                 with col1:
                     st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
+                
                 with col2:
-                    st.metric("Tipo de Dados", str(image_array.dtype))
-                with col3:
                     st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
-                with col4:
+                with col3:
                     st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
                 
                 # Tabs principais
