@@ -328,7 +328,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     """
     Aba de estatísticas com múltiplas visualizações - AMPLIADA E CORRIGIDA
     """
-    st.subheader(" Análise Estatística Avançada")
+    st.subheader(" Análise Avançada")
     
     # Verificação de segurança
     if image_array is None or not isinstance(image_array, np.ndarray) or image_array.size == 0:
