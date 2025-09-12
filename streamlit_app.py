@@ -520,7 +520,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
                 st.warning(f"Não foi possível calcular a densidade de probabilidade: {str(e)}")
     
     with tab3:
-        st.markdown("### 🗺️ Análise Estatística Regional")
+        st.markdown("###  Análise Estatística Regional")
         
         # Dividir imagem em regiões
         h, w = image_array.shape
@@ -920,7 +920,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("#### 🛡️ Verificações de Integridade")
+        st.markdown("#### Verificações de Integridade")
         
         # Simulação de verificações (em um sistema real, estas seriam mais complexas)
         checks = {
@@ -1378,7 +1378,7 @@ def professional_quality_metrics_tab(dicom_data, image_array, processed_image=No
                 st.write(f"{metric}: {value}")
     
     # Informações técnicas do DICOM relevantes para qualidade
-    st.markdown("### 🔧 Parâmetros Técnicos de Aquisição")
+    st.markdown("### Parâmetros Técnicos de Aquisição")
     
     tech_params = {}
     if hasattr(dicom_data, 'KVP'):
@@ -1589,7 +1589,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     """
     Aba RA-Index profissional com comparação de métodos tradicionais vs. físicos
     """
-    st.subheader("🔬 RA-Index - Análise de Risco Radiológico Avançada")
+    st.subheader("RA-Index - Análise de Risco Radiológico Avançada")
     
     # Introdução teórica
     with st.expander(" Fundamentação Teórica e Metodológica", expanded=False):
@@ -1928,7 +1928,7 @@ def professional_ra_index_tab(dicom_data, image_array):
             st.warning("Não foi possível calcular a matriz de correlação")
     
     # Relatório forense avançado
-    st.markdown("### 📋 Relatório Forense Avançado")
+    st.markdown("### Relatório Forense Avançado")
     
     with st.expander("🔍 Análise Discriminativa Detalhada", expanded=False):
         st.markdown("""
@@ -1993,7 +1993,7 @@ def professional_ra_index_tab(dicom_data, image_array):
         """)
     
     # Recomendações finais 
-    st.markdown("#### 📋 Recomendações para Análise Forense")
+    st.markdown("#### Recomendações para Análise Forense")
     
     rec_col1, rec_col2, rec_col3 = st.columns(3)
     
@@ -2031,7 +2031,7 @@ def professional_ra_index_tab(dicom_data, image_array):
     """)
     
     # Opção de exportação
-    if st.button("📊 Exportar Relatório RA-Index Completo", use_container_width=True):
+    if st.button("Exportar Relatório RA-Index Completo", use_container_width=True):
         # Preparar dados para exportação
         export_data = []
         for i in range(len(ra_data_standard['ra_values'])):
@@ -2054,7 +2054,7 @@ def professional_ra_index_tab(dicom_data, image_array):
         csv = export_df.to_csv(index=False)
         
         st.download_button(
-            label="⬇️ Baixar Dados Completos (CSV)",
+            label="Baixar Dados Completos (CSV)",
             data=csv,
             file_name=f"ra_index_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
@@ -2530,12 +2530,12 @@ def show_user_form():
     Mostrar formulário de registro de usuário
     """
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown("# 🔬 DICOM Autopsy Viewer PRO")
+    st.markdown("# DICOM Autopsy Viewer PRO")
     st.markdown("### Sistema Avançado de Análise Forense Digital")
     st.markdown('</div>', unsafe_allow_html=True)
     
     with st.form("user_registration"):
-        st.markdown("## 👤 Informações do Usuário")
+        st.markdown("## Informações do Usuário")
         
         col1, col2 = st.columns(2)
         
@@ -2635,7 +2635,7 @@ def show_main_app():
     
     # Conteúdo principal
     st.markdown("# 🔬 DICOM Autopsy Viewer")
-    st.markdown(f"**Bem-vindo, {user_data['name']}!** 👋")
+    st.markdown(f"**Bem-vindo, {user_data['name']}!**")
     
     if uploaded_file is not None:
         try:
