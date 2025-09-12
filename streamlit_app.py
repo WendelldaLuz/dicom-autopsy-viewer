@@ -699,7 +699,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
         st.dataframe(desc_df, use_container_width=True)
         
         # Teste de normalidade
-        st.markdown("#### Teste de Normalidade (Shapiro-Wilk)")
+        st.markdown("#### Teste de Normalidade")
         try:
             if flat_array.size > 3 and flat_array.size <= 5000:  # Limitação do teste
                 stat, p_value = stats.shapiro(flat_array)
