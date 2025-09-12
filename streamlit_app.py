@@ -1870,27 +1870,47 @@ def calculate_snr(image_array):
 
 def calculate_glcm_features(image):
     """
-    Calcula características GLCM simplificadas
+    Calcula características GLCM simplificadas 
     """
     try:
-        # Normalizar imagem para 0-255
-        img_min = float(image.min())
-        img_max = float(image.max())
+        # Verificar se a imagem é válida
+        if image is None or image.size == 0:
+            return {
+                'Homogeneidade GLCM': 0.0,
+                'Contraste GLCM': 0.0,
+                'Correlação GLCM': 0.0,
+                'Energia GLCM': 0.0,
+                'Dissimilaridade': 0.0
+            }
         
-        if img_max > img_min:
+        # Normalizar imagem para 0-255
+        img_min = float(np.min(image))
+        img_max = float(np.max(image))
+        
+        # Evitar divisão por zero
+        if img_max <= img_min:
+            normalized = image.astype(np.uint8)
+        else:
             # Converter para float antes das operações
             normalized = ((image.astype(float) - img_min) / (img_max - img_min) * 255).astype(np.uint8)
-        else:
-            normalized = image.astype(np.uint8)
         
-        # Garantir que normalized é um array numpy
-        if not isinstance(normalized, np.ndarray):
-            normalized = np.array(normalized)
+        # Garantir que normalized é um array numpy válido
+        if not isinstance(normalized, np.ndarray) or normalized.size == 0:
+            return {
+                'Homogeneidade GLCM': 0.0,
+                'Contraste GLCM': 0.0,
+                'Correlação GLCM': 0.0,
+                'Energia GLCM': 0.0,
+                'Dissimilaridade': 0.0
+            }
         
-        # Calcular diferenças horizontais
-        if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
-            diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
-        else:
+        # Calcular diferenças horizontais - CORREÇÃO APPLICADA
+        diff_h = np.array([0.0])
+        try:
+            if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
+                # Garantir que estamos usando arrays numpy para operações matemáticas
+                diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
+        except:
             diff_h = np.array([0.0])
         
         # Métricas baseadas em diferenças
@@ -1898,10 +1918,10 @@ def calculate_glcm_features(image):
         homogeneity_val = float(1 / (1 + mean_diff)) if mean_diff > 0 else 1.0
         contrast_val = float(np.var(diff_h)) if diff_h.size > 0 else 0.0
         
-        # Correlação
+        # Correlação - apenas se houver dados suficientes
         correlation_val = 0.0
-        if normalized.shape[1] > 1 and normalized.size > 0:
-            try:
+        try:
+            if normalized.shape[1] > 1 and normalized.size > 0:
                 flat1 = normalized[:, :-1].flatten()
                 flat2 = normalized[:, 1:].flatten()
                 
@@ -1909,13 +1929,18 @@ def calculate_glcm_features(image):
                     corr_matrix = np.corrcoef(flat1, flat2)
                     if not np.isnan(corr_matrix[0, 1]):
                         correlation_val = float(corr_matrix[0, 1])
-            except:
-                correlation_val = 0.0
+        except:
+            correlation_val = 0.0
         
-        # Energia
-        if isinstance(normalized, np.ndarray) and normalized.size > 0:
-            energy_val = float(np.mean(normalized.astype(float) ** 2) / (255 ** 2))
-        else:
+        # Energia - CORREÇÃO APPLICADA AQUI
+        # Verificar se normalized é um array válido antes de operações matemáticas
+        energy_val = 0.0
+        try:
+            if isinstance(normalized, np.ndarray) and normalized.size > 0:
+                # Garantir que estamos elevando ao quadrado um array, não uma tupla
+                squared_values = normalized.astype(float) ** 2
+                energy_val = float(np.mean(squared_values) / (255 ** 2))
+        except:
             energy_val = 0.0
             
         dissimilarity_val = float(mean_diff / 255) if diff_h.size > 0 else 0.0
