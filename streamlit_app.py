@@ -2624,6 +2624,7 @@ def show_main_app():
         
         if st.button("Trocar Usuário"):
             st.session_state.user_data = None
+            st.session_state.authenticated = False
             st.rerun()
         
         # Informações do sistema
@@ -2654,8 +2655,7 @@ def show_main_app():
                 image_array = dicom_data.pixel_array
                 
                 # Informações básicas do arquivo
-                               
-                col1, col2, col3 = st.columns(4)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
                 
@@ -2664,146 +2664,85 @@ def show_main_app():
                 with col3:
                     st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
                 
-                # Tabs principais
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-                    "Visualização", "Estatísticas", "Análise Técnica", 
-                    "Qualidade", "RA-Index", "Relatórios", "Feedback"
-                ])
+                # Visualização da imagem
+                st.markdown("### Visualização da Imagem")
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.imshow(image_array, cmap='gray')
+                ax.axis('off')
+                st.pyplot(fig)
                 
-                with tab1:
-                    enhanced_visualization_tab(dicom_data, image_array)
+                # Histograma de distribuição de pixels
+                st.markdown("### Distribuição de Intensidade de Pixels")
+                hist_values = np.histogram(image_array.flatten(), bins=50)
+                fig_hist = px.line(x=hist_values[1][1:], y=hist_values[0], 
+                                 labels={'x': 'Intensidade', 'y': 'Frequência'})
+                st.plotly_chart(fig_hist, use_container_width=True)
                 
-                with tab2:
-                    enhanced_statistics_tab(dicom_data, image_array)
+                # Metadados DICOM
+                st.markdown("### Metadados DICOM")
+                metadata = []
+                for elem in dicom_data:
+                    if elem.keyword != "PixelData":
+                        metadata.append({"Tag": str(elem.tag), 
+                                       "Nome": elem.keyword, 
+                                       "Valor": str(elem.value)})
                 
-                with tab3:
-                    enhanced_technical_analysis_tab(dicom_data, image_array)
+                metadata_df = pd.DataFrame(metadata)
+                st.dataframe(metadata_df, use_container_width=True, height=300)
                 
-                with tab4:
-                    enhanced_quality_metrics_tab(dicom_data, image_array)
-                
-                with tab5:
-                    enhanced_ra_index_tab(dicom_data, image_array)
-                
-                with tab6:
-                    st.subheader("Geração de Relatórios")
-                    st.info("Funcionalidade de relatórios em desenvolvimento")
-                    
-                    # Placeholder para funcionalidades futuras
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("Gerar Relatório Completo"):
-                            st.success("Relatório em desenvolvimento...")
-                    
-                    with col2:
-                        if st.button("Exportar Análises"):
-                            st.success("Exportação em desenvolvimento...")
-                
-                with tab7:
-                    st.subheader("Feedback do Sistema")
-                    
-                    # Formulário de feedback
-                    if 'feedback_submitted' not in st.session_state:
-                        st.session_state.feedback_submitted = False
-                    
-                    if not st.session_state.feedback_submitted:
-                        st.markdown('<div class="feedback-form">', unsafe_allow_html=True)
-                        
-                        # Sistema de avaliação com estrelas
-                        st.markdown("#### Avalie o Sistema")
-                        
-                        # Usar colunas para as estrelas
-                        star_cols = st.columns(5)
-                        stars = []
-                        
-                        for i, col in enumerate(star_cols):
-                            with col:
-                                if st.button(f"⭐", key=f"star_{i+1}"):
-                                    st.session_state.rating = i + 1
-                                    st.rerun()
-                        
-                        # Mostrar rating atual
-                        current_rating = st.session_state.get('rating', 0)
-                        if current_rating > 0:
-                            st.write(f"Avaliação: {'⭐' * current_rating} ({current_rating}/5)")
-                        
-                        with st.form("feedback_form"):
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                feedback_text = st.text_area(
-                                    "Comentários sobre a análise:", 
-                                    placeholder="O que achou dos resultados? Sugestões de melhoria?",
-                                    height=100
-                                )
-                            
-                            with col2:
-                                feedback_category = st.selectbox(
-                                    "Categoria do feedback:",
-                                    ["Geral", "Visualização", "Precisão", "Interface", "Performance", "Relatórios"]
-                                )
-                                
-                                recommend_system = st.checkbox("Recomendaria este sistema para colegas?", value=True)
-                            
-                            submitted = st.form_submit_button("Enviar Avaliação Completa", use_container_width=True)
-                            
-                            if submitted:
-                                rating = st.session_state.get('rating', 0)
-                                if rating == 0:
-                                    st.error("Por favor, selecione uma avaliação com as estrelas.")
-                                else:
-                                    st.session_state.feedback_submitted = True
-                                    st.success("Avaliação enviada com sucesso! Obrigado por contribuir com a melhoria do sistema.")
-                                    st.balloons()  # Efeito visual de sucesso
-                                    st.rerun()
-                    else:
-                        st.success("Obrigado pela sua avaliação! Suas contribuições são fundamentais para o aprimoramento contínuo do sistema.")
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except:
-                    pass
-                    
+            except Exception as e:
+                st.error(f"Erro ao processar arquivo DICOM: {str(e)}")
+                log_security_event(user_data['email'], "PROCESSING_ERROR", 
+                                 f"Error: {str(e)}")
+            
         except Exception as e:
-            st.error(f"❌ Erro ao processar arquivo DICOM: {e}")
-            logging.error(f"Erro no processamento DICOM: {e}")
+            st.error(f"Erro ao ler arquivo: {str(e)}")
+            log_security_event(user_data['email'], "FILE_READ_ERROR", 
+                             f"Error: {str(e)}")
     else:
-        st.info("Carregue um arquivo DICOM na sidebar para começar a análise.")
+        # Mensagem de boas-vindas quando não há arquivo carregado
+        st.info("👈 Faça upload de um arquivo DICOM na barra lateral para começar a análise.")
         
-        # Informações sobre o sistema
-        st.markdown("## Funcionalidades Disponíveis")
-        
+        # Estatísticas de uso (apenas exemplo)
+        st.markdown("### Estatísticas de Uso")
         col1, col2, col3 = st.columns(3)
+        col1.metric("Usuários Ativos", "24", "3")
+        col2.metric("Exames Hoje", "127", "12")
+        col3.metric("Tempo Médio de Análise", "4.2 min", "-0.3 min")
         
-        with col1:
-            st.markdown("""
-            ### Visualização Avançada
-            - Janelamento Hounsfield personalizado
-            - Ferramentas colorimétricas
-            - Análise de pixels interativa
-            - Download de imagens processadas
-            """)
-        
-        with col2:
-            st.markdown("""
-            ### Análise Estatística
-            - 6+ tipos de visualizações
-            - Análise regional
-            - Correlações avançadas
-            - Densidade de probabilidade
-            """)
-        
-        with col3:
-            st.markdown("""
-            ### Análise Forense
-            - Metadados completos
-            - Verificação de integridade
-            - Detecção de anomalias
-            - Timeline forense
-            """)
+        # Guia de referência rápida
+        st.markdown("### Guia de Referência Rápida")
+        expander = st.expander("Dicas de Análise de Imagens DICOM")
+        expander.markdown("""
+        - Verifique sempre os metadados do paciente para confirmar a identidade
+        - Analise a distribuição de pixels para identificar possíveis anomalias
+        - Compare as dimensões da imagem com os padrões esperados para o exame
+        - Utilize as ferramentas de zoom e contraste para melhor visualização
+        """)
+
+# Verificar autenticação
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if st.session_state.authenticated:
+    show_main_app()
+else:
+    show_login()
+
+# Adicionar algum CSS personalizado
+st.markdown("""
+    <style>
+    .upload-section {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .stButton button {
+        width: 100%;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 def main():
     """
