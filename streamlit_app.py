@@ -337,22 +337,37 @@ def enhanced_statistics_tab(dicom_data, image_array):
     
     # Calcular estatísticas básicas com verificação de erro
     try:
+        # CORREÇÃO: Usar np.nanpercentile para evitar problemas com arrays vazios
+        flat_array = image_array.flatten()
+        
         stats_data = {
-            'Média': np.mean(image_array),
-            'Mediana': np.median(image_array),
-            'Desvio Padrão': np.std(image_array),
-            'Mínimo': np.min(image_array),
-            'Máximo': np.max(image_array),
-            'Variância': np.var(image_array),
-            'Assimetria': stats.skew(image_array.flatten()) if image_array.size > 1 else 0,
-            'Curtose': stats.kurtosis(image_array.flatten()) if image_array.size > 1 else 0,
-            'Intervalo': np.max(image_array) - np.min(image_array),
-            'Q1': np.percentile(image_array, 25),
-            'Q3': np.percentile(image_array, 75),
-            'IQR': np.percentile(image_array, 75) - np.percentile(image_array, 25),
-            'Energia': np.sum(image_array**2) / image_array.size,
-            'Entropia': stats.entropy(np.histogram(image_array, bins=256, density=True)[0]) if image_array.size > 1 else 0
+            'Média': np.mean(flat_array),
+            'Mediana': np.median(flat_array),
+            'Desvio Padrão': np.std(flat_array),
+            'Mínimo': np.min(flat_array),
+            'Máximo': np.max(flat_array),
+            'Variância': np.var(flat_array),
+            'Intervalo': np.max(flat_array) - np.min(flat_array),
+            'Q1': np.percentile(flat_array, 25) if flat_array.size > 0 else 0,
+            'Q3': np.percentile(flat_array, 75) if flat_array.size > 0 else 0,
+            'IQR': np.percentile(flat_array, 75) - np.percentile(flat_array, 25) if flat_array.size > 0 else 0,
+            'Energia': np.sum(flat_array**2) / flat_array.size if flat_array.size > 0 else 0
         }
+        
+        # Adicionar assimetria e curtose apenas se houver dados suficientes
+        if flat_array.size > 1:
+            stats_data['Assimetria'] = stats.skew(flat_array)
+            stats_data['Curtose'] = stats.kurtosis(flat_array)
+            
+            # Calcular entropia
+            hist, _ = np.histogram(flat_array, bins=256, density=True)
+            hist = hist[hist > 0]  # Remover zeros
+            stats_data['Entropia'] = -np.sum(hist * np.log2(hist)) if len(hist) > 0 else 0
+        else:
+            stats_data['Assimetria'] = 0
+            stats_data['Curtose'] = 0
+            stats_data['Entropia'] = 0
+            
     except Exception as e:
         st.error(f"Erro ao calcular estatísticas: {e}")
         return
@@ -368,7 +383,13 @@ def enhanced_statistics_tab(dicom_data, image_array):
         with col1:
             st.metric("Média (HU)", f"{stats_data['Média']:.2f}")
             st.metric("Mediana (HU)", f"{stats_data['Mediana']:.2f}")
-            st.metric("Moda (HU)", f"{stats.mode(image_array.flatten())[0][0] if image_array.size > 1 else 0:.2f}")
+            # CORREÇÃO: Moda calculada de forma segura
+            try:
+                mode_result = stats.mode(flat_array, keepdims=True)
+                mode_value = mode_result.mode[0] if hasattr(mode_result, 'mode') else flat_array[0] if flat_array.size > 0 else 0
+                st.metric("Moda (HU)", f"{mode_value:.2f}")
+            except:
+                st.metric("Moda (HU)", "N/A")
         
         with col2:
             st.metric("Desvio Padrão", f"{stats_data['Desvio Padrão']:.2f}")
@@ -394,7 +415,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             # 1. Histograma detalhado
             fig1 = go.Figure()
             fig1.add_trace(go.Histogram(
-                x=image_array.flatten(),
+                x=flat_array,
                 nbinsx=100,
                 name="Distribuição de Valores HU",
                 marker_color='lightblue',
@@ -412,46 +433,49 @@ def enhanced_statistics_tab(dicom_data, image_array):
             # 3. Gráfico de probabilidade normal (Q-Q Plot)
             st.markdown("#### Gráfico de Probabilidade Normal (Q-Q Plot)")
             try:
-                fig_qq = go.Figure()
-                
-                # Calcular quantis teóricos e amostrais
-                theoretical_quantiles = stats.norm.ppf(np.linspace(0.01, 0.99, 100))
-                sample_quantiles = np.percentile(image_array.flatten(), np.linspace(1, 99, 100))
-                
-                fig_qq.add_trace(go.Scatter(
-                    x=theoretical_quantiles,
-                    y=sample_quantiles,
-                    mode='markers',
-                    name='Q-Q Plot',
-                    marker=dict(color='blue', size=6)
-                ))
-                
-                # Adicionar linha de referência (y=x)
-                min_val = min(theoretical_quantiles.min(), sample_quantiles.min())
-                max_val = max(theoretical_quantiles.max(), sample_quantiles.max())
-                fig_qq.add_trace(go.Scatter(
-                    x=[min_val, max_val],
-                    y=[min_val, max_val],
-                    mode='lines',
-                    name='Linha de Referência',
-                    line=dict(color='red', dash='dash')
-                ))
-                
-                fig_qq.update_layout(
-                    title="Gráfico Q-Q: Normalidade dos Dados",
-                    xaxis_title="Quantis Teóricos",
-                    yaxis_title="Quantis Amostrais",
-                    height=400
-                )
-                st.plotly_chart(fig_qq, use_container_width=True)
-            except:
-                st.warning("Não foi possível gerar o gráfico Q-Q")
+                if flat_array.size > 10:  # Apenas para amostras razoáveis
+                    fig_qq = go.Figure()
+                    
+                    # Calcular quantis teóricos e amostrais
+                    theoretical_quantiles = stats.norm.ppf(np.linspace(0.01, 0.99, 100))
+                    sample_quantiles = np.percentile(flat_array, np.linspace(1, 99, 100))
+                    
+                    fig_qq.add_trace(go.Scatter(
+                        x=theoretical_quantiles,
+                        y=sample_quantiles,
+                        mode='markers',
+                        name='Q-Q Plot',
+                        marker=dict(color='blue', size=6)
+                    ))
+                    
+                    # Adicionar linha de referência (y=x)
+                    min_val = min(theoretical_quantiles.min(), sample_quantiles.min())
+                    max_val = max(theoretical_quantiles.max(), sample_quantiles.max())
+                    fig_qq.add_trace(go.Scatter(
+                        x=[min_val, max_val],
+                        y=[min_val, max_val],
+                        mode='lines',
+                        name='Linha de Referência',
+                        line=dict(color='red', dash='dash')
+                    ))
+                    
+                    fig_qq.update_layout(
+                        title="Gráfico Q-Q: Normalidade dos Dados",
+                        xaxis_title="Quantis Teóricos",
+                        yaxis_title="Quantis Amostrais",
+                        height=400
+                    )
+                    st.plotly_chart(fig_qq, use_container_width=True)
+                else:
+                    st.info("Amostra muito pequena para análise Q-Q")
+            except Exception as e:
+                st.warning(f"Não foi possível gerar o gráfico Q-Q: {str(e)}")
         
         with col2:
             # 2. Box Plot
             fig2 = go.Figure()
             fig2.add_trace(go.Box(
-                y=image_array.flatten(),
+                y=flat_array,
                 name="Distribuição HU",
                 boxpoints='outliers',
                 marker_color='lightgreen',
@@ -469,28 +493,31 @@ def enhanced_statistics_tab(dicom_data, image_array):
             # 4. Densidade de probabilidade
             st.markdown("#### Densidade de Probabilidade")
             try:
-                from scipy.stats import gaussian_kde
-                density = gaussian_kde(image_array.flatten())
-                xs = np.linspace(image_array.min(), image_array.max(), 200)
-                
-                fig4 = go.Figure()
-                fig4.add_trace(go.Scatter(
-                    x=xs,
-                    y=density(xs),
-                    mode='lines',
-                    name="Densidade",
-                    fill='tozeroy',
-                    line=dict(color='purple', width=2)
-                ))
-                fig4.update_layout(
-                    title="Função de Densidade de Probabilidade",
-                    xaxis_title="Unidades Hounsfield (HU)",
-                    yaxis_title="Densidade",
-                    height=400
-                )
-                st.plotly_chart(fig4, use_container_width=True)
-            except:
-                st.warning("Não foi possível calcular a densidade de probabilidade")
+                if flat_array.size > 10:  # Apenas para amostras razoáveis
+                    from scipy.stats import gaussian_kde
+                    density = gaussian_kde(flat_array)
+                    xs = np.linspace(np.min(flat_array), np.max(flat_array), 200)
+                    
+                    fig4 = go.Figure()
+                    fig4.add_trace(go.Scatter(
+                        x=xs,
+                        y=density(xs),
+                        mode='lines',
+                        name="Densidade",
+                        fill='tozeroy',
+                        line=dict(color='purple', width=2)
+                    ))
+                    fig4.update_layout(
+                        title="Função de Densidade de Probabilidade",
+                        xaxis_title="Unidades Hounsfield (HU)",
+                        yaxis_title="Densidade",
+                        height=400
+                    )
+                    st.plotly_chart(fig4, use_container_width=True)
+                else:
+                    st.info("Amostra muito pequena para análise de densidade")
+            except Exception as e:
+                st.warning(f"Não foi possível calcular a densidade de probabilidade: {str(e)}")
     
     with tab3:
         st.markdown("### 🗺️ Análise Estatística Regional")
@@ -508,81 +535,56 @@ def enhanced_statistics_tab(dicom_data, image_array):
         regional_stats = []
         for region_name, region_data in regions.items():
             if region_data.size > 0:
+                flat_region = region_data.flatten()
                 regional_stats.append({
                     'Região': region_name,
-                    'Média': np.mean(region_data),
-                    'Desvio Padrão': np.std(region_data),
-                    'Mínimo': np.min(region_data),
-                    'Máximo': np.max(region_data),
-                    'Variância': np.var(region_data),
-                    'Tamanho': region_data.size
+                    'Média': np.mean(flat_region),
+                    'Desvio Padrão': np.std(flat_region),
+                    'Mínimo': np.min(flat_region),
+                    'Máximo': np.max(flat_region),
+                    'Variância': np.var(flat_region),
+                    'Tamanho': flat_region.size
                 })
         
-        df_regional = pd.DataFrame(regional_stats)
-        
-        # Gráfico de barras comparativo
-        fig7 = go.Figure()
-        
-        fig7.add_trace(go.Bar(
-            x=df_regional['Região'],
-            y=df_regional['Média'],
-            name='Média',
-            marker_color='lightblue',
-            text=df_regional['Média'].round(2),
-            textposition='auto'
-        ))
-        
-        fig7.add_trace(go.Bar(
-            x=df_regional['Região'],
-            y=df_regional['Desvio Padrão'],
-            name='Desvio Padrão',
-            marker_color='lightcoral',
-            text=df_regional['Desvio Padrão'].round(2),
-            textposition='auto'
-        ))
-        
-        fig7.update_layout(
-            title="Comparação Estatística Regional",
-            xaxis_title="Regiões da Imagem",
-            yaxis_title="Valores",
-            barmode='group',
-            height=500
-        )
-        
-        st.plotly_chart(fig7, use_container_width=True)
-        
-        # Mapa de calor das regiões
-        st.markdown("#### Mapa de Calor das Regiões")
-        
-        # Criar matriz de valores médios por região
-        region_matrix = np.zeros((3, 3))
-        region_matrix[0, 0] = regions['Superior Esquerda'].mean() if 'Superior Esquerda' in regions else 0
-        region_matrix[0, 2] = regions['Superior Direita'].mean() if 'Superior Direita' in regions else 0
-        region_matrix[2, 0] = regions['Inferior Esquerda'].mean() if 'Inferior Esquerda' in regions else 0
-        region_matrix[2, 2] = regions['Inferior Direita'].mean() if 'Inferior Direita' in regions else 0
-        region_matrix[1, 1] = regions['Centro'].mean() if 'Centro' in regions else 0
-        
-        fig_region_heatmap = go.Figure(data=go.Heatmap(
-            z=region_matrix,
-            colorscale='Viridis',
-            showscale=True,
-            text=[[f"SE: {region_matrix[0,0]:.1f}", "", f"SD: {region_matrix[0,2]:.1f}"],
-                  ["", f"C: {region_matrix[1,1]:.1f}", ""],
-                  [f"IE: {region_matrix[2,0]:.1f}", "", f"ID: {region_matrix[2,2]:.1f}"]],
-            texttemplate="%{text}",
-            textfont={"size": 12}
-        ))
-        
-        fig_region_heatmap.update_layout(
-            title="Valores Médios por Região",
-            height=400
-        )
-        
-        st.plotly_chart(fig_region_heatmap, use_container_width=True)
-        
-        # Tabela de estatísticas regionais
-        st.markdown("#### Tabela de Estatísticas Regionais")
-        st.dataframe(df_regional, use_container_width=True)
+        if regional_stats:
+            df_regional = pd.DataFrame(regional_stats)
+            
+            # Gráfico de barras comparativo
+            fig7 = go.Figure()
+            
+            fig7.add_trace(go.Bar(
+                x=df_regional['Região'],
+                y=df_regional['Média'],
+                name='Média',
+                marker_color='lightblue',
+                text=df_regional['Média'].round(2),
+                textposition='auto'
+            ))
+            
+            fig7.add_trace(go.Bar(
+                x=df_regional['Região'],
+                y=df_regional['Desvio Padrão'],
+                name='Desvio Padrão',
+                marker_color='lightcoral',
+                text=df_regional['Desvio Padrão'].round(2),
+                textposition='auto'
+            ))
+            
+            fig7.update_layout(
+                title="Comparação Estatística Regional",
+                xaxis_title="Regiões da Imagem",
+                yaxis_title="Valores",
+                barmode='group',
+                height=500
+            )
+            
+            st.plotly_chart(fig7, use_container_width=True)
+            
+            # Tabela de estatísticas regionais
+            st.markdown("#### Tabela de Estatísticas Regionais")
+            st.dataframe(df_regional, use_container_width=True)
+        else:
+            st.warning("Não foi possível calcular estatísticas regionais")
     
     with tab4:
         st.markdown("### 📐 Estatísticas Avançadas")
@@ -607,44 +609,47 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.markdown("#### 📌 Análise de Outliers")
             
             # Calcular limites para outliers
-            Q1 = np.percentile(image_array, 25)
-            Q3 = np.percentile(image_array, 75)
-            IQR = Q3 - Q1
+            Q1 = stats_data['Q1']
+            Q3 = stats_data['Q3']
+            IQR = stats_data['IQR']
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
             
-            outliers = image_array[(image_array < lower_bound) | (image_array > upper_bound)]
+            outliers = flat_array[(flat_array < lower_bound) | (flat_array > upper_bound)]
             
             outlier_stats = {
                 'Total de Outliers': len(outliers),
-                'Percentual de Outliers': f"{(len(outliers) / image_array.size) * 100:.2f}%",
-                'Limite Inferior': lower_bound,
-                'Limite Superior': upper_bound,
-                'Outlier Mínimo': np.min(outliers) if len(outliers) > 0 else 0,
-                'Outlier Máximo': np.max(outliers) if len(outliers) > 0 else 0
+                'Percentual de Outliers': f"{(len(outliers) / flat_array.size) * 100:.2f}%" if flat_array.size > 0 else "0%",
+                'Limite Inferior': f"{lower_bound:.2f}",
+                'Limite Superior': f"{upper_bound:.2f}",
+                'Outlier Mínimo': f"{np.min(outliers):.2f}" if len(outliers) > 0 else "N/A",
+                'Outlier Máximo': f"{np.max(outliers):.2f}" if len(outliers) > 0 else "N/A"
             }
             
             for key, value in outlier_stats.items():
-                st.metric(key, str(value))
+                st.metric(key, value)
         
         with col2:
             # 6. Análise de correlação espacial
             # Calcular gradientes
-            grad_x = np.gradient(image_array, axis=1)
-            grad_y = np.gradient(image_array, axis=0)
-            magnitude = np.sqrt(grad_x**2 + grad_y**2)
-            
-            fig6 = go.Figure(data=go.Heatmap(
-                z=magnitude,
-                colorscale='plasma',
-                showscale=True,
-                hovertemplate='X: %{x}<br>Y: %{y}<br>Magnitude: %{z:.2f}<extra></extra>'
-            ))
-            fig6.update_layout(
-                title="Magnitude do Gradiente (Bordas)",
-                height=400
-            )
-            st.plotly_chart(fig6, use_container_width=True)
+            try:
+                grad_x = np.gradient(image_array.astype(float), axis=1)
+                grad_y = np.gradient(image_array.astype(float), axis=0)
+                magnitude = np.sqrt(grad_x**2 + grad_y**2)
+                
+                fig6 = go.Figure(data=go.Heatmap(
+                    z=magnitude,
+                    colorscale='plasma',
+                    showscale=True,
+                    hovertemplate='X: %{x}<br>Y: %{y}<br>Magnitude: %{z:.2f}<extra></extra>'
+                ))
+                fig6.update_layout(
+                    title="Magnitude do Gradiente (Bordas)",
+                    height=400
+                )
+                st.plotly_chart(fig6, use_container_width=True)
+            except Exception as e:
+                st.warning(f"Não foi possível calcular gradientes: {str(e)}")
             
             # 8. Análise de textura
             st.markdown("#### 🔍 Análise de Textura")
@@ -658,16 +663,13 @@ def enhanced_statistics_tab(dicom_data, image_array):
             st.markdown("#### ⭐ Métricas de Qualidade")
             
             quality_metrics = {
-                'SNR': calculate_snr(image_array),
-                'Ruído Estimado': estimate_noise(image_array),
-                'Contraste RMS': np.sqrt(np.mean((image_array - np.mean(image_array))**2))
+                'SNR': f"{calculate_snr(image_array):.2f}" if not np.isinf(calculate_snr(image_array)) else "∞",
+                'Ruído Estimado': f"{estimate_noise(image_array):.2f}",
+                'Contraste RMS': f"{np.sqrt(np.mean((flat_array - np.mean(flat_array))**2)):.2f}" if flat_array.size > 0 else "0"
             }
             
             for metric, value in quality_metrics.items():
-                if np.isinf(value):
-                    st.metric(metric, "∞")
-                else:
-                    st.metric(metric, f"{value:.2f}")
+                st.metric(metric, value)
     
     # Análise adicional
     st.markdown("### 📋 Relatório Estatístico Completo")
@@ -677,7 +679,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
         st.markdown("#### Estatísticas Descritivas Completas")
         
         desc_stats = {
-            'Contagem': image_array.size,
+            'Contagem': flat_array.size,
             'Média': stats_data['Média'],
             'Desvio Padrão': stats_data['Desvio Padrão'],
             'Variância': stats_data['Variância'],
@@ -699,13 +701,13 @@ def enhanced_statistics_tab(dicom_data, image_array):
         # Teste de normalidade
         st.markdown("#### Teste de Normalidade (Shapiro-Wilk)")
         try:
-            if image_array.size > 3 and image_array.size <= 5000:  # Limitação do teste
-                stat, p_value = stats.shapiro(image_array.flatten())
+            if flat_array.size > 3 and flat_array.size <= 5000:  # Limitação do teste
+                stat, p_value = stats.shapiro(flat_array)
                 normality = "Distribuição Normal" if p_value > 0.05 else "Não Normal"
                 
                 norm_test = {
-                    'Estatística de Teste': stat,
-                    'Valor-p': p_value,
+                    'Estatística de Teste': f"{stat:.4f}",
+                    'Valor-p': f"{p_value:.4f}",
                     'Interpretação': normality
                 }
                 
@@ -713,23 +715,25 @@ def enhanced_statistics_tab(dicom_data, image_array):
                 st.dataframe(norm_df, use_container_width=True)
             else:
                 st.info("Teste de normalidade não aplicável para este tamanho de amostra")
-        except:
-            st.warning("Não foi possível realizar o teste de normalidade")
+        except Exception as e:
+            st.warning(f"Não foi possível realizar o teste de normalidade: {str(e)}")
     
     # Opção de exportação
     if st.button("📊 Exportar Relatório Estatístico", key="btn_export_stats"):
         # Preparar dados para exportação
         export_data = []
-        for region in regional_stats:
-            export_data.append({
-                'Região': region['Região'],
-                'Média_HU': region['Média'],
-                'Desvio_Padrão': region['Desvio Padrão'],
-                'Mínimo_HU': region['Mínimo'],
-                'Máximo_HU': region['Máximo'],
-                'Variância': region['Variância'],
-                'Tamanho_Amostra': region['Tamanho']
-            })
+        
+        if regional_stats:
+            for region in regional_stats:
+                export_data.append({
+                    'Região': region['Região'],
+                    'Média_HU': region['Média'],
+                    'Desvio_Padrão': region['Desvio Padrão'],
+                    'Mínimo_HU': region['Mínimo'],
+                    'Máximo_HU': region['Máximo'],
+                    'Variância': region['Variância'],
+                    'Tamanho_Amostra': region['Tamanho']
+                })
         
         # Adicionar estatísticas gerais
         export_data.append({
@@ -739,7 +743,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             'Mínimo_HU': stats_data['Mínimo'],
             'Máximo_HU': stats_data['Máximo'],
             'Variância': stats_data['Variância'],
-            'Tamanho_Amostra': image_array.size
+            'Tamanho_Amostra': flat_array.size
         })
         
         export_df = pd.DataFrame(export_data)
