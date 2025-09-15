@@ -272,65 +272,6 @@ def get_user_reports(email):
 def log_security_event(email, event_type, description):
     """Registra evento de segurança"""
     pass
-
-def show_main_app():
-    """
-    Mostra a aplicação principal com interface profissional
-    """
-    user_data = st.session_state.user_data
-
-    # Sidebar com informações do usuário e navegação
-    with st.sidebar:
-        st.markdown(f"""
-        <div style="padding: 1rem; border-bottom: 1px solid #E0E0E0; margin-bottom: 1rem;">
-            <h3 style="color: #000000; margin-bottom: 0.5rem;"> {user_data['name']}</h3>
-            <p style="color: #666666; margin: 0;"><strong>Função:</strong> {user_data['role']}</p>
-            <p style="color: #666666; margin: 0;"><strong>Email:</strong> {user_data['email']}</p>
-            {f'<p style="color: #666666; margin: 0;"><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
-        </div>
-        """, unsafe_allow_html=True)
-       
-        st.markdown("### Navegação")
-       
-        st.markdown("---")
-        st.markdown("### Upload de Arquivo")
-        uploaded_file = st.file_uploader(
-            "Selecione um arquivo DICOM para análise:",
-            type=['dcm', 'dicom'],
-            help="Formatos suportados: .dcm, .dicom"
-        )
-       
-        st.markdown("---")
-        st.markdown("### Relatórios Salvos")
-        user_reports = get_user_reports(user_data['email'])
-        if user_reports:
-            for report_id, report_name, generated_at in user_reports:
-                if st.button(f"{report_name} - {generated_at.split()[0]}", key=f"report_{report_id}"):
-                    st.session_state.selected_report = report_id
-        else:
-            st.info("Nenhum relatório salvo ainda.")
-
-        st.markdown("---")
-        with st.expander("Informações do Sistema", key="system_info"):
-            st.write("**Versão:** 3.0 Professional")
-            st.write("**Última Atualização:** 2025-09-15")
-            st.write("**Status:** Online")
-            st.write("**Armazenamento:** 2.5 GB disponíveis")
-
-        if st.button("Trocar Usuário", use_container_width=True):
-            st.session_state.user_data = None
-            st.rerun()
-
-    
-    st.markdown(f"""
-    <div style="display: flex; align-items: center; margin-bottom: 2rem;">
-        <h1 style="color: #000000; margin-right: 1rem; margin-bottom: 0;">DICOM Autopsy Viewer</h1>
-        <span style="background-color: #000000; color: #FFFFFF; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
-            v3.0 Professional
-        </span>
-    </div>
-    <p style="color: #666666; margin-bottom: 2rem;">Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>
-    """, unsafe_allow_html=True)
   
     if uploaded_file is not None:
         try:
