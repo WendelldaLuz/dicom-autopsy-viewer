@@ -600,7 +600,6 @@ def enhanced_statistics_tab(dicom_data, image_array):
         st.markdown("""
         **Referências para Análise Tanatometabolômica:**
         
-        - SILVA, W. L. **Análise quantitativa de alterações post-mortem por tomografia computadorizada**. 2023.
         - EGGER, C. et al. **Development and validation of a postmortem radiological alteration index**. Int J Legal Med, 2012.
         - ALTAIMIRANO, R. **Técnicas de imagem aplicadas à tanatologia forense**. Revista de Medicina Legal, 2022.
         - MEGO, M. et al. **Análise quantitativa de fenômenos cadavéricos através de TC multidetectores**. J Forensic Sci, 2017.
@@ -713,7 +712,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
         st.markdown("###  Mapa Preditivo de Alterações Post-Mortem")
         
         st.info("""
-        **Base Científica:** Modelos baseados em Silva (2023) e Egger et al. (2012),
+        **Base Científica:** Modelos baseados em Egger et al. (2012),
         correlacionando mudanças de densidade tissular com intervalos post-mortem.
         """)
         
@@ -1311,7 +1310,6 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         st.markdown("""
         **Referências para Análise Técnica Forense:**
         
-        - SILVA, W. L. **Análise quantitativa de alterações post-mortem por tomografia computadorizada**. 2023.
         - EGGER, C. et al. **Development and validation of a postmortem radiological alteration index**. Int J Legal Med, 2012.
         - ALTAIMIRANO, R. **Técnicas de imagem aplicadas à tanatologia forense**. Revista de Medicina Legal, 2022.
         - INTERPOL. **Guidelines for Forensic Imaging**. 2014.
@@ -4204,94 +4202,91 @@ def generate_report_visualizations(image_array, include_3d, include_heatmaps, in
     """
     return {"Exemplo": "Valor"}
 
-    # Layout com duas colunas para o formulário
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        # Imagem ou logo do sistema
-        st.image("https://via.placeholder.com/300x300/FFFFFF/000000?text=DICOM+Viewer", 
-                 use_column_width=True, caption="Sistema de Análise de Imagens Forenses")
-    
-    with col2:
-        with st.form("user_registration"):
-            st.markdown("### Registro de Usuário")
+# Layout com duas colunas para o formulário
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    # Imagem ou logo do sistema
+    st.image("https://via.placeholder.com/300x300/FFFFFF/000000?text=DICOM+Viewer", 
+             use_column_width=True, caption="Sistema de Análise de Imagens Forenses")
+
+with col2:
+    with st.form("user_registration"):
+        st.markdown("### Registro de Usuário")
+        
+        name = st.text_input("Nome Completo *", placeholder="Dr. João Silva", 
+                            help="Informe seu nome completo")
+        email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com", 
+                             help="Utilize email institucional para registro")
+        
+        col_a, col_b = st.columns(2)
+        with col_a:
+            role = st.selectbox("Função *", [
+                "Radiologista", "Médico Legista", "Técnico em Radiologia",
+                "Pesquisador", "Estudante", "Outro"
+            ], help="Selecione sua função principal")
+        
+        with col_b:
+            department = st.text_input("Departamento/Instituição",
+                                     placeholder="Departamento de Radiologia",
+                                     help="Informe seu departamento ou instituição")
+        
+        # Termos de uso em expansor
+        with st.expander(" Termos de Uso e Política de Privacidade"):
+            st.markdown("""
+            **Termos de Uso:**
             
-            name = st.text_input("Nome Completo *", placeholder="Dr. João Silva", 
-                                help="Informe seu nome completo")
-            email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com", 
-                                 help="Utilize email institucional para registro")
+            1. Utilização autorizada apenas para fins educacionais e de pesquisa
+            2. Proibido o carregamento de dados de pacientes reais não autorizados
+            3. Compromisso com a confidencialidade das informações processadas
+            4. Os relatórios gerados são de responsabilidade do usuário
+            5. O sistema não armazena imagens médicas, apenas metadados anônimos
             
-            col_a, col_b = st.columns(2)
-            with col_a:
-                role = st.selectbox("Função *", [
-                    "Radiologista", "Médico Legista", "Técnico em Radiologia",
-                    "Pesquisador", "Estudante", "Outro"
-                ], help="Selecione sua função principal")
+            **Política de Privacidade:**
             
-            with col_b:
-                department = st.text_input("Departamento/Instituição",
-                                         placeholder="Departamento de Radiologia",
-                                         help="Informe seu departamento ou instituição")
+            - Seus dados de registro são armazenados de forma segura
+            - As análises realizadas são confidenciais
+            - Metadados das imagens são anonimizados para análise estatística
+            - Relatórios gerados podem ser excluídos a qualquer momento
+            """)
             
-            # Termos de uso em expansor
-            with st.expander(" Termos de Uso e Política de Privacidade"):
-                st.markdown("""
-                **Termos de Uso:**
-                
-                1. Utilização autorizada apenas para fins educacionais e de pesquisa
-                2. Proibido o carregamento de dados de pacientes reais sem autorização apropriada
-                3. Compromisso com a confidencialidade das informações processadas
-                4. Os relatórios gerados são de responsabilidade do usuário
-                5. O sistema não armazena imagens médicas, apenas metadados anônimos
-                
-                **Política de Privacidade:**
-                
-                - Seus dados de registro são armazenados de forma segura
-                - As análises realizadas são confidenciais
-                - Metadados das imagens são anonimizados para análise estatística
-                - Relatórios gerados podem ser excluídos a qualquer momento
-                """)
-                
-                terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
-            
-            submitted = st.form_submit_button("Iniciar Sistema →", use_container_width=True,
-                                            use_container_width=True)
+            terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
+        
+        submitted = st.form_submit_button("Iniciar Sistema →", use_container_width=True)
 
-            if submitted:
-                if not all([name, email, terms_accepted]):
-                    st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
-                else:
-                    try:
-                        # Registrar usuário
-                        conn = sqlite3.connect("dicom_viewer.db")
-                        cursor = conn.cursor()
+        if submitted:
+            if not all([name, email, terms_accepted]):
+                st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
+            else:
+                try:
+                    # Registrar usuário
+                    conn = sqlite3.connect("dicom_viewer.db")
+                    cursor = conn.cursor()
 
-                        cursor.execute("""
-                            INSERT INTO users (name, email, role, department)
-                            VALUES (?, ?, ?, ?)
-                        """, (name, email, role, department))
+                    cursor.execute("""
+                        INSERT INTO users (name, email, role, department)
+                        VALUES (?, ?, ?, ?)
+                    """, (name, email, role, department))
 
-                        conn.commit()
-                        conn.close()
+                    conn.commit()
+                    conn.close()
 
-                        # Armazenar dados do usuário na sessão
-                        st.session_state.user_data = {
-                            'name': name,
-                            'email': email,
-                            'role': role,
-                            'department': department
-                        }
+                    # Armazenar dados do usuário na sessão
+                    st.session_state.user_data = {
+                        'name': name,
+                        'email': email,
+                        'role': role,
+                        'department': department
+                    }
 
-                        # Log do evento
-                        log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
+                    # Log do evento
+                    log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
 
-                        st.success(" Usuário registrado com sucesso!")
-                        st.rerun()
+                    st.success(" Usuário registrado com sucesso!")
+                    st.rerun()
 
-                    except Exception as e:
-                        st.error(f"Erro ao registrar usuário: {e}")
-
-
+                except Exception as e:
+                    st.error(f"Erro ao registrar usuário: {e}")
 def show_main_app():
     """
     Mostrar aplicação principal com interface profissional
