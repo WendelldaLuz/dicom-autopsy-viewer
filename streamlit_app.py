@@ -4155,16 +4155,22 @@ def update_css_theme():
     """, unsafe_allow_html=True)
 
 
-def st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-    <h1 style="color: #000000; font-size: 2.8rem; margin-bottom: 0.5rem; font-weight: 700;">
-        DICOM Autopsy Viewer PRO
-    </h1>
-    <h2 style="color: #333333; font-weight: 500; margin-top: 0;">
-        Sistema Avançado de Análise Forense Digital
-    </h2>
-    </div>
-    """, unsafe_allow_html=True)
+# Remova a linha "def st.markdown("""..."")" separada e coloque a chamada dentro de uma função.
+
+def show_user_form():
+    """
+    Mostra o formulário de registro de usuário com um design profissional.
+    """
+    st.markdown("""
+        <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #000000; font-size: 2.8rem; margin-bottom: 0.5rem; font-weight: 700;">
+             DICOM Autopsy Viewer PRO
+        </h1>
+        <h2 style="color: #333333; font-weight: 500; margin-top: 0;">
+            Sistema Avançado de Análise Forense Digital
+        </h2>
+        </div>
+        """, unsafe_allow_html=True)
     
 def extract_dicom_metadata(dicom_data):
     """
