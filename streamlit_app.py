@@ -1,4 +1,3 @@
-# Seu código completo com as correções
 authenticity_report = {}
 import sqlite3
 import logging
@@ -78,6 +77,7 @@ def apply_hounsfield_windowing(image, window_center, window_width):
 
 def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
     st.subheader("Análise Avançada de Períodos Post-Mortem")
+    
     with st.expander("Referências Científicas (Normas ABNT)"):
         st.markdown("""
         **Base Científica desta Análise:**
@@ -87,15 +87,24 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
         - ESPINOZA, C. et al. **Correlação entre fenômenos abióticos e achados de imagem em cadáveres**. Arquivos de Medicina Legal, 2019.
         - HOFER, P. **Mudanças densitométricas teciduais no período post-mortem**. J Radiol Forense, 2005.
         """)
+    
     tab_algor, tab_livor, tab_rigor, tab_putrefaction, tab_conservation = st.tabs([
         "Algor Mortis", "Livor Mortis", "Rigor Mortis", "Putrefação", "Fenômenos Conservadores"
     ])
+
+    # Calcule as variáveis antes dos blocos `with`
+    thermal_simulation = simulate_body_cooling(image_array)
+    blood_pooling_map = detect_blood_pooling(image_array)
+    muscle_mask = segment_muscle_tissue(image_array)
+    muscle_density = calculate_muscle_density(image_array, muscle_mask)
+    gas_map = detect_putrefaction_gases(image_array)
+    conservation_map = analyze_conservation_features(image_array)
+    
     with tab_algor:
-        st.markdown("###  Algor Mortis (Esfriamento Cadavérico)")
+        st.markdown("### Algor Mortis (Esfriamento Cadavérico)")
         col1, col2 = st.columns([2, 1])
         with col1:
             st.markdown("#### Análise de Distribuição Térmica Simulada")
-            thermal_simulation = simulate_body_cooling(image_array)
             fig = go.Figure(data=go.Heatmap(
                 z=thermal_simulation,
                 colorscale='jet',
@@ -108,7 +117,7 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
             )
             st.plotly_chart(fig, use_container_width=True)
         with col2:
-            st.markdown("####  Parâmetros de Esfriamento")
+            st.markdown("#### Parâmetros de Esfriamento")
             ambient_temp = st.slider("Temperatura Ambiente (°C)", 10, 40, 25)
             body_mass = st.slider("Massa Corporal (kg)", 40, 120, 70)
             clothing = st.select_slider("Vestuário", options=["Leve", "Moderado", "Abrigado"], value="Moderado")
@@ -119,20 +128,19 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
                 cooling_data = generate_cooling_curve(ipm_estimate, ambient_temp)
                 st.line_chart(cooling_data)
     with tab_livor:
-        st.markdown("###  Livor Mortis (Manchas de Hipóstase)")
+        st.markdown("### Livor Mortis (Manchas de Hipóstase)")
         st.info("""
         **Referência:** Manchas começam em 30min-2h, fixam em 12-18h (Altamirano, 2022; Gómez H., 2021)
         """)
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Análise de Distribuição Sanguínea")
-            blood_pooling_map = detect_blood_pooling(image_array)
             fig = px.imshow(blood_pooling_map,
                             color_continuous_scale='hot',
                             title="Mapa de Provável Acúmulo Sanguíneo")
             st.plotly_chart(fig, use_container_width=True)
         with col2:
-            st.markdown("####  Métricas de Hipóstase")
+            st.markdown("#### Métricas de Hipóstase")
             pooling_intensity = np.mean(blood_pooling_map)
             pooling_variance = np.var(blood_pooling_map)
             st.metric("Intensidade Média de Acúmulo", f"{pooling_intensity:.3f}")
@@ -152,14 +160,12 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Análise de Densidade Muscular")
-            muscle_mask = segment_muscle_tissue(image_array)
-            muscle_density = calculate_muscle_density(image_array, muscle_mask)
             fig = px.imshow(muscle_mask,
                             title="Segmentação de Tecido Muscular",
                             color_continuous_scale='gray')
             st.plotly_chart(fig, use_container_width=True)
         with col2:
-            st.markdown("####  Estágio do Rigor Mortis")
+            st.markdown("#### Estágio do Rigor Mortis")
             rigor_stage = estimate_rigor_stage(muscle_density)
             if rigor_stage == "inicial":
                 st.success("**Estágio Inicial (2-4h):** Rigidez começando em músculos faciais")
@@ -175,7 +181,7 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
                 st.progress(0.3)
             st.metric("Densidade Muscular Média", f"{muscle_density:.1f} HU")
     with tab_putrefaction:
-        st.markdown("###  Processos de Putrefação")
+        st.markdown("### Processos de Putrefação")
         st.info("""
         **Referência:** Coloração (20-24h), Gasoso (48-72h), Coliquativo (3 semanas)
         (Mego et al., 2017; Gómez H., 2021)
@@ -183,13 +189,12 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Detecção de Gases de Decomposição")
-            gas_map = detect_putrefaction_gases(image_array)
             fig = px.imshow(gas_map,
                             color_continuous_scale='viridis',
                             title="Mapa de Distribuição de Gases")
             st.plotly_chart(fig, use_container_width=True)
         with col2:
-            st.markdown("####  Estágio de Putrefação")
+            st.markdown("#### Estágio de Putrefação")
             putrefaction_stage = classify_putrefaction_stage(image_array)
             stages = {
                 "initial": ("Estágio Inicial (0-24h)", "Mancha verde abdominal incipiente", 0.2),
@@ -212,7 +217,6 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Identificação de Processos Conservadores")
-            conservation_map = analyze_conservation_features(image_array)
             fig = px.imshow(conservation_map,
                             color_continuous_scale='earth',
                             title="Mapa de Características Conservadoras")
@@ -236,7 +240,7 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
                 st.success("**Sem evidências de fenômenos conservadores significativos**")
                 st.metric("Tempo Estimado", "<3 meses")
     st.markdown("---")
-    st.markdown("###  Relatório Consolidado de Análise Post-Mortem")
+    st.markdown("### Relatório Consolidado de Análise Post-Mortem")
     if st.button("Gerar Relatório Forense Completo"):
         report_data = generate_post_mortem_report(
             image_array, thermal_simulation, blood_pooling_map,
@@ -247,25 +251,25 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
             ## Relatório de Análise Post-Mortem por Imagem
             **Data da Análise:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
             **Sistema:** DICOM Autopsy Viewer Pro - Módulo Forense
-            ###  Estimativas de Intervalo Post-Mortem (IPM)
+            ### Estimativas de Intervalo Post-Mortem (IPM)
             - **Por Algor Mortis:** {report_data['ipm_algor']:.1f} horas
             - **Por Livor Mortis:** {report_data['ipm_livor']}
             - **Por Rigor Mortis:** {report_data['ipm_rigor']}
             - **Por Putrefação:** {report_data['ipm_putrefaction']}
-            ###  Estágios dos Fenômenos Cadavéricos
+            ### Estágios dos Fenômenos Cadavéricos
             - **Algor Mortis:** {report_data['algor_stage']}
             - **Livor Mortis:** {report_data['livor_stage']}
             - **Rigor Mortis:** {report_data['rigor_stage']}
             - **Putrefação:** {report_data['putrefaction_stage']}
             - **Fenômeno Conservador:** {report_data['conservation_type']}
-            ###  Métricas Quantitativas
+            ### Métricas Quantitativas
             - **Temperatura Corporal Estimada:** {report_data['estimated_temp']:.1f}°C
             - **Intensidade de Hipóstase:** {report_data['pooling_intensity']:.3f}
             - **Densidade Muscular Média:** {report_data['muscle_density']:.1f} HU
             - **Volume Gasoso:** {report_data['gas_volume']:.1f}%
-            ###  Observações Forenses
+            ### Observações Forenses
             {report_data['forensic_notes']}
-            ###  Referências Científicas Utilizadas
+            ### Referências Científicas Utilizadas
             - Análise baseada nas técnicas descritas por Altamirano (2022)
             - Parâmetros de putrefação conforme Mego et al. (2017)
             - Modelos de esfriamento segundo Gómez H. (2021)
