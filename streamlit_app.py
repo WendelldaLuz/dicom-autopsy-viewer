@@ -1271,7 +1271,7 @@ def enhanced_reporting_tab(dicom_data, image_array, user_data):
         if st.button("Salvar Configurações", use_container_width=True):
             st.success("Configurações salvas com sucesso!")
 def extract_dicom_metadata(dicom_data):
-    return {"Exemplo": "Valor"}
+    return {"Exemplo":"Valor"}
 def perform_technical_analysis(image_array):
     return {"Exemplo": "Valor"}
 def calculate_quality_metrics(image_array):
