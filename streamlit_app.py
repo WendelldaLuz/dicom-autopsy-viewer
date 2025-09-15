@@ -4180,12 +4180,9 @@ def show_user_form():
     # Início da seção de login e registro
     with st.form("user_registration"):
         # Layout com duas colunas para o formulário
-        col1, col2 = st.columns([1, 2])
-
+        col1 = st.columns([1])
+               
         with col1:
-            st.image("logo.png", use_container_width=True, caption="Sistema de Análise de Imagens Forenses")
-        
-        with col2:
             st.markdown("### Registro de Usuário")
             
             name = st.text_input("Nome Completo *", placeholder="Dr. João Silva",
