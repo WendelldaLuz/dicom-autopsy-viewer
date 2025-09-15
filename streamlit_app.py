@@ -1,4 +1,10 @@
 # ==============================================================================
+# DICOM Autopsy Viewer Pro - Versão Final e Completa
+# Código Consolidado, Otimizado e Aprimorado
+# Data da Revisão: 2025-09-15
+# ==============================================================================
+
+# ==============================================================================
 # SEÇÃO 1: IMPORTS DE BIBLIOTECAS
 # ==============================================================================
 import base64
@@ -861,9 +867,18 @@ def generate_advanced_ra_index_data(image_array):
     h, w = image_array.shape; grid_size = 8; h_step, w_step = h // grid_size, w // grid_size
     ra_data = {'coords': [], 'ra_values': [], 'risk_categories': [], 'tissue_types': [], 'intensities': []}
     def categorize_risk(mean_intensity):
-        if mean_intensity < -500: return 'Baixo', 'Gás/Ar'; elif -500 <= mean_intensity < 0: return 'Baixo', 'Gordura'
-        elif 0 <= mean_intensity < 100: return 'Médio', 'Tecido Mole'; elif 100 <= mean_intensity < 400: return 'Médio', 'Músculo'
-        elif 400 <= mean_intensity < 1000: return 'Alto', 'Osso'; else: return 'Crítico', 'Metal/Implante'
+        if mean_intensity < -500:
+            return 'Baixo', 'Gás/Ar'
+        elif -500 <= mean_intensity < 0:
+            return 'Baixo', 'Gordura'
+        elif 0 <= mean_intensity < 100:
+            return 'Médio', 'Tecido Mole'
+        elif 100 <= mean_intensity < 400:
+            return 'Médio', 'Músculo'
+        elif 400 <= mean_intensity < 1000:
+            return 'Alto', 'Osso'
+        else:
+            return 'Crítico', 'Metal/Implante'
     for i in range(grid_size):
         for j in range(grid_size):
             region = image_array[i * h_step:(i + 1) * h_step, j * w_step:(j + 1) * w_step]
@@ -997,117 +1012,6 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
     with tab_artifacts: st.markdown("### Detecção de Artefatos"); artifact_report = detect_artifacts(image_array); col1, col2 = st.columns(2); with col1: st.markdown("#### Artefatos Detectados"); if artifact_report['artifacts']: st.warning(f"{len(artifact_report['artifacts'])} artefatos detectados:"); [st.markdown(f"- **{a['type']}**: {a['description']}; Severidade: {a['severity']}") for a in artifact_report['artifacts']]; else: st.success("Nenhum artefato significativo detectado")
     with col2: st.markdown("#### Mapa de Artefatos"); if artifact_report['artifact_map'] is not None: fig = px.imshow(artifact_report['artifact_map'], color_continuous_scale='hot'); fig.update_layout(title="Mapa de Localização de Artefatos"); st.plotly_chart(fig, use_container_width=True); if artifact_report['artifacts']: st.metric("Área Afetada por Artefatos", f"{artifact_report['affected_area']:.1f}%"); st.metric("Artefatos por Tipo", str(artifact_report['artifacts_by_type']))
     st.markdown("#### Mitigação de Artefatos"); if artifact_report['artifacts']: st.info("Recomendações para mitigação:"); mitigation_strategies = {'noise': "Aplicar filtros de redução de ruído adaptativos", 'motion': "Considerar técnicas de correção de movimento", 'metal': "Aplicar algoritmos de correção de artefatos metálicos", 'ring': "Aplicar correção de artefatos em anel"}; [st.markdown(f"- Para {a['type']}: {mitigation_strategies.get(a['type'], 'N/A')}") for a in artifact_report['artifacts']]
-    
-def enhanced_ra_index_tab(dicom_data, image_array):
-    st.subheader("RA-Index - Análise de Risco Aprimorada"); ra_data, grid_size = generate_advanced_ra_index_data(image_array); st.markdown("### Estatísticas Gerais do RA-Index")
-    col1, col2, col3, col4 = st.columns(4); with col1: avg_ra = np.mean(ra_data['ra_values']); st.metric("RA-Index Médio", f"{avg_ra:.1f}")
-    with col2: max_ra = np.max(ra_data['ra_values']); st.metric("RA-Index Máximo", f"{max_ra:.1f}")
-    with col3: risk_counts = pd.Series(ra_data['risk_categories']).value_counts(); critical_count = risk_counts.get('Crítico', 0); st.metric("Regiões Críticas", critical_count)
-    with col4: high_risk_count = risk_counts.get('Alto', 0); st.metric("Regiões Alto Risco", high_risk_count)
-    st.markdown("### Mapas de Calor Avançados"); col1, col2 = st.columns(2); with col1: ra_matrix = np.array(ra_data['ra_values']).reshape(grid_size, grid_size); fig1 = go.Figure(data=go.Heatmap(z=ra_matrix, colorscale='RdYlBu_r', showscale=True, text=ra_matrix.round(1), texttemplate="%{text}", textfont={"size": 12, "color": "white"}, hoverongaps=False)); fig1.update_layout(title="Mapa de Calor - RA-Index", xaxis_title="Região X", yaxis_title="Região Y", height=500); st.plotly_chart(fig1, use_container_width=True)
-    with col2: tissue_mapping = {'Gás/Ar': 1, 'Gordura': 2, 'Tecido Mole': 3, 'Músculo': 4, 'Osso': 5, 'Metal/Implante': 6}; tissue_matrix = np.array([tissue_mapping[t] for t in ra_data['tissue_types']]).reshape(grid_size, grid_size); fig2 = go.Figure(data=go.Heatmap(z=tissue_matrix, colorscale='viridis', showscale=True, text=np.array(ra_data['tissue_types']).reshape(grid_size, grid_size), texttemplate="%{text}", textfont={"size": 8, "color": "white"}, hoverongaps=False)); fig2.update_layout(title=" Mapa de Tipos de Tecido", xaxis_title="Região X", yaxis_title="Região Y", height=500); st.plotly_chart(fig2, use_container_width=True)
-    st.markdown("### Análise de Distribuição de Risco"); col1, col2 = st.columns(2); with col1: fig3 = go.Figure(data=[go.Pie(labels=list(risk_counts.index), values=list(risk_counts.values), hole=.3, marker_colors=['#FF4B4B', '#FFA500', '#FFFF00', '#90EE90'])]); fig3.update_layout(title="Distribuição de Categorias de Risco", height=400); st.plotly_chart(fig3, use_container_width=True)
-    with col2: fig4 = go.Figure(); fig4.add_trace(go.Histogram(x=ra_data['ra_values'], nbinsx=20, name="RA-Index", marker_color='lightcoral', opacity=0.7)); fig4.add_vline(x=np.mean(ra_data['ra_values']), line_dash="dash", line_color="red", annotation_text="Média"); fig4.add_vline(x=np.percentile(ra_data['ra_values'], 90), line_dash="dash", line_color="orange", annotation_text="P90"); fig4.update_layout(title="Distribuição de Valores RA-Index", xaxis_title="RA-Index", yaxis_title="Frequência", height=400); st.plotly_chart(fig4, use_container_width=True)
-    st.markdown("### Análise Temporal Simulada"); time_points = ['T0', 'T1', 'T2', 'T3', 'T4', 'T5']; temporal_data = {'Crítico': [], 'Alto': [], 'Médio': [], 'Baixo': []}; base_counts = risk_counts.to_dict(); [temporal_data[rl].append(max(0, int(base_counts.get(rl, 0) * (1 + 0.1 * np.sin(i * np.pi / 3) + np.random.normal(0, 0.05))))) for i in range(len(time_points)) for rl in temporal_data.keys()]
-    fig5 = go.Figure(); colors = {'Crítico': 'red', 'Alto': 'orange', 'Médio': 'yellow', 'Baixo': 'green'}; [fig5.add_trace(go.Scatter(x=time_points, y=v, mode='lines+markers', name=rl, line=dict(color=colors[rl], width=3), marker=dict(size=8))) for rl, v in temporal_data.items()]
-    fig5.update_layout(title="Evolução Temporal das Categorias de Risco", xaxis_title="Ponto Temporal", yaxis_title="Número de Regiões", height=400, hovermode='x unified'); st.plotly_chart(fig5, use_container_width=True)
-    st.markdown("### Análise de Correlações"); col1, col2 = st.columns(2); with col1: fig6 = go.Figure(); colors_by_risk = {'Crítico': 'red', 'Alto': 'orange', 'Médio': 'yellow', 'Baixo': 'green'}
-    for r in colors_by_risk.keys(): mask = np.array(ra_data['risk_categories']) == r; if np.any(mask): fig6.add_trace(go.Scatter(x=np.array(ra_data['intensities'])[mask], y=np.array(ra_data['ra_values'])[mask], mode='markers', name=r, marker=dict(color=colors_by_risk[r], size=8, opacity=0.7)))
-    fig6.update_layout(title="Correlação: RA-Index vs Intensidade HU", xaxis_title="Intensidade (HU)", yaxis_title="RA-Index", height=400); st.plotly_chart(fig6, use_container_width=True)
-    with col2: x_coords = [c[0] for c in ra_data['coords']]; y_coords = [c[1] for c in ra_data['coords']]; fig7 = go.Figure(data=[go.Scatter3d(x=x_coords, y=y_coords, z=ra_data['ra_values'], mode='markers', marker=dict(size=8, color=ra_data['ra_values'], colorscale='RdYlBu_r', showscale=True, opacity=0.8), text=[f"Região ({x},{y})<br>RA-Index: {ra:.1f}<br>Tipo: {t}" for (x, y), ra, t in zip(ra_data['coords'], ra_data['ra_values'], ra_data['tissue_types'])], hovertemplate='%{text}<extra></extra>')]); fig7.update_layout(title="Visualização 3D do RA-Index", scene=dict(xaxis_title="Região X", yaxis_title="Região Y", zaxis_title="RA-Index"), height=400); st.plotly_chart(fig7, use_container_width=True)
-    st.markdown("### Relatório de Recomendações"); col1, col2 = st.columns(2)
-    with col1: st.markdown("#### Regiões de Atenção"); high_risk_indices = [i for i, ra in enumerate(ra_data['ra_values']) if ra > 70]; 
-    if high_risk_indices: [st.warning(f"**Região ({c[0]}, {c[1]})**\n- RA-Index: {r:.1f}\n- Tipo: {t}\n- Categoria: {risk}") for idx in high_risk_indices[:5] for c, r, t, risk in [(ra_data['coords'][idx], ra_data['ra_values'][idx], ra_data['tissue_types'][idx], ra_data['risk_categories'][idx])]]; else: st.success("Nenhuma região de alto risco identificada")
-    with col2: st.markdown("#### Estatísticas de Monitoramento"); monitoring_stats = {"Cobertura de Análise": "100%", "Precisão Estimada": "94.2%", "Sensibilidade": "89.7%", "Especificidade": "96.1%", "Valor Preditivo Positivo": "87.3%", "Valor Preditivo Negativo": "97.8%"}; [st.metric(m, v) for m, v in monitoring_stats.items()]
-    st.markdown("### Exportar Dados RA-Index")
-    if st.button("Gerar Relatório RA-Index"):
-        df_export = pd.DataFrame({'Região_X': [c[0] for c in ra_data['coords']], 'Região_Y': [c[1] for c in ra_data['coords']], 'RA_Index': ra_data['ra_values'], 'Categoria_Risco': ra_data['risk_categories'], 'Tipo_Tecido': ra_data['tissue_types'], 'Intensidade_Media': ra_data['intensities']}); csv_buffer = BytesIO(); df_export.to_csv(csv_buffer, index=False, encoding='utf-8'); csv_buffer.seek(0); st.download_button(label="Baixar Dados RA-Index (CSV)", data=csv_buffer, file_name=f"ra_index_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv"); st.success("Relatório RA-Index preparado para download!")
-
-def enhanced_reporting_tab(dicom_data, image_array, user_data):
-    st.subheader("Relatórios Completos"); report_tab1, report_tab2, report_tab3 = st.tabs(["Gerar Relatório", "Relatórios Salvos", "Configurações"])
-    with report_tab1: st.markdown("### Personalizar Relatório"); col1, col2 = st.columns(2)
-    with col1: report_name = st.text_input("Nome do Relatório", value=f"Análise_{datetime.now().strftime('%Y%m%d_%H%M')}", help="Nome personalizado para o relatório"); report_type = st.selectbox("Tipo de Relatório", ["Completo", "Forense", "Qualidade", "Estatístico", "Técnico"], help="Selecione o tipo de relatório a ser gerado"); include_sections = st.multiselect("Seções a Incluir", ["Metadados", "Estatísticas", "Análise Técnica", "Qualidade", "Análise Post-Mortem", "RA-Index", "Visualizações", "Imagens"], default=["Metadados", "Estatísticas", "Análise Técnica", "Qualidade", "Análise Post-Mortem", "RA-Index"], help="Selecione as seções a incluir no relatório")
-    with col2: format_options = st.selectbox("Formato de Exportação", ["PDF", "HTML", "CSV"]); st.markdown("**Opções de Visualização:**"); include_3d = st.checkbox("Incluir visualizações 3D", value=True); include_heatmaps = st.checkbox("Incluir mapas de calor", value=True); include_graphs = st.checkbox("Incluir gráficos estatísticos", value=True)
-    if st.button("Gerar Relatório Completo", type="primary", use_container_width=True):
-        with st.spinner("Gerando relatório... Isso pode levar alguns minutos"):
-            try:
-                report_data = generate_comprehensive_report(dicom_data, image_array, include_sections, include_3d, include_heatmaps, include_graphs)
-                if format_options == "PDF": report_file, mime_type, file_ext = generate_pdf_report(report_data, report_name), "application/pdf", "pdf"
-                elif format_options == "HTML": report_file, mime_type, file_ext = generate_html_report(report_data, report_name), "text/html", "html"
-                else: report_file, mime_type, file_ext = generate_csv_report(report_data, report_name), "text/csv", "csv"
-                save_report_to_db(st.session_state.user_data['email'], report_name, report_file.getvalue(), {'report_type': report_type, 'include_sections': include_sections, 'format': format_options, 'timestamp': datetime.now().isoformat()})
-                st.success("Relatório gerado com sucesso!"); st.download_button(label=f"Download do Relatório ({format_options})", data=report_file, file_name=f"{report_name}.{file_ext}", mime=mime_type, use_container_width=True)
-            except Exception as e: st.error(f"Erro ao gerar relatório: {e}"); logging.error(f"Erro na geração de relatório: {e}")
-    with report_tab2:
-        st.markdown("### Relatórios Salvos"); user_reports = get_user_reports(st.session_state.user_data['email'])
-        if user_reports:
-            for report_id, report_name, generated_at in user_reports:
-                col1, col2, col3 = st.columns([3, 1, 1]); with col1: st.markdown(f"**{report_name}**"); st.caption(f"Gerado em: {generated_at}")
-                with col2: st.button("Visualizar", key=f"view_{report_id}")
-                with col3: st.button("Download", key=f"download_{report_id}")
-                st.divider()
-        else: st.info("Nenhum relatório salvo ainda. Gere seu primeiro relatório na aba 'Gerar Relatório'.")
-    with report_tab3: st.markdown("### Configurações de Relatórios"); st.markdown("#### Preferências de Exportação"); st.selectbox("Formato Padrão", ["PDF", "HTML", "CSV"]); st.checkbox("Salvar automaticamente após gerar"); st.checkbox("Incluir timestamp no nome do arquivo", value=True)
-    st.markdown("#### Configurações de Visualização"); st.selectbox("Tema Visual", ["Claro", "Escuro", "Automático"]); st.slider("Resolução dos Gráficos (DPI)", 72, 300, 150); st.slider("Qualidade das Imagens", 50, 100, 85)
-    if st.button("Salvar Configurações", use_container_width=True): st.success("Configurações salvas com sucesso!")
-
-def show_user_form():
-    st.markdown("""<div style="text-align: center; margin-bottom: 2rem;"><h1 style="color: #000000; font-size: 2.8rem; margin-bottom: 0.5rem; font-weight: 700;">DICOM Autopsy Viewer PRO</h1><h2 style="color: #333333; font-weight: 500; margin-top: 0;">Sistema Avançado de Análise Forense Digital</h2></div>""", unsafe_allow_html=True)
-    with st.form("user_registration"):
-        col1, col2 = st.columns([1, 2])
-        with col1: st.empty(); st.markdown("<br><br>", unsafe_allow_html=True)
-        with col2: st.markdown("### Registro de Usuário"); name = st.text_input("Nome Completo *", placeholder="Dr. João Silva", help="Informe seu nome completo"); email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com", help="Utilize email institucional para registro")
-        col_a, col_b = st.columns(2); with col_a: role = st.selectbox("Função *", ["Radiologista", "Médico Legista", "Técnico em Radiologia", "Pesquisador", "Estudante", "Outro"], help="Selecione sua função principal"); with col_b: department = st.text_input("Departamento/Instituição", placeholder="Departamento de Radiologia", help="Informe seu departamento ou instituição")
-        with st.expander("Termos de Uso e Política de Privacidade"): st.markdown("""**Termos de Uso:**\n1. Utilização autorizada apenas para fins educacionais e de pesquisa\n2. Proibido o carregamento de dados de pacientes reais não autorizados\n3. Compromisso com a confidencialidade das informações processadas\n4. Os relatórios gerados são de responsabilidade do usuário\n5. O sistema não armazena imagens médicas, apenas metadados anônimos\n\n**Política de Privacidade:**\n- Seus dados de registro são armazenados de forma segura\n- As análises realizadas são confidenciais\n- Metadados das imagens são anonimizados para análise estatística\n- Relatórios gerados podem ser excluídos a qualquer momento\n"""); terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
-        submitted = st.form_submit_button("Iniciar Sistema →", use_container_width=True)
-        if submitted:
-            if not all([name, email, terms_accepted]): st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
-            else:
-                try:
-                    conn = sqlite3.connect("dicom_viewer.db"); cursor = conn.cursor(); cursor.execute("""INSERT INTO users (name, email, role, department) VALUES (?, ?, ?, ?)""", (name, email, role, department)); conn.commit(); conn.close()
-                    st.session_state.user_data = {'name': name, 'email': email, 'role': role, 'department': department}
-                    log_security_event(email, "USER_REGISTRATION", f"Role: {role}"); st.success("Usuário registrado com sucesso!"); st.rerun()
-                except Exception as e: st.error(f"Erro ao registrar usuário: {e}")
-
-def show_main_app():
-    user_data = st.session_state.user_data
-    with st.sidebar:
-        st.markdown(f"""<div style="padding: 1rem; border-bottom: 1px solid #E0E0E0; margin-bottom: 1rem;"><h3 style="color: #000000; margin-bottom: 0.5rem;">{user_data['name']}</h3><p style="color: #666666; margin: 0;"><strong>Função:</strong> {user_data['role']}</p><p style="color: #666666; margin: 0;"><strong>Email:</strong> {user_data['email']}</p>{f'<p style="color: #666666; margin: 0;"><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}</div>""", unsafe_allow_html=True)
-        st.markdown("### Navegação"); st.markdown("---")
-        uploaded_file = st.file_uploader("Selecione um arquivo DICOM:", type=['dcm', 'dicom'], help="Carregue um arquivo DICOM para análise forense avançada")
-        st.markdown("---"); st.markdown("### Relatórios Salvos"); user_reports = get_user_reports(user_data['email'])
-        if user_reports: [st.button(f"{r[1]} - {r[2].split()[0]}", key=f"report_{r[0]}") for r in user_reports]
-        else: st.info("Nenhum relatório salvo ainda.")
-        st.markdown("---"); with st.expander("Informações do Sistema"): st.write("**Versão:** 3.0 Professional"); st.write("**Última Atualização:** 2025-09-15"); st.write("**Status:** Online"); st.write("**Armazenamento:** 2.5 GB disponíveis")
-        if st.button("Trocar Usuário", use_container_width=True): st.session_state.user_data = None; st.rerun()
-    st.markdown(f"""<div style="display: flex; align-items: center; margin-bottom: 2rem;"><h1 style="color: #000000; margin-right: 1rem; margin-bottom: 0;">DICOM Autopsy Viewer</h1><span style="background-color: #000000; color: #FFFFFF; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">v3.0 Professional</span></div><p style="color: #666666; margin-bottom: 2rem;">Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>""", unsafe_allow_html=True)
-    if uploaded_file is not None:
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file: tmp_file.write(uploaded_file.read()); tmp_path = tmp_file.name
-            log_security_event(user_data['email'], "FILE_UPLOAD", f"Filename: {uploaded_file.name}")
-            try:
-                dicom_data = pydicom.dcmread(tmp_path); image_array = dicom_data.pixel_array
-                st.session_state.dicom_data = dicom_data; st.session_state.image_array = image_array; st.session_state.uploaded_file_name = uploaded_file.name
-                st.markdown("### Informações do Arquivo"); col1, col2, col3, col4 = st.columns(4); with col1: st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
-                with col2: st.metric("Tipo de Dados", str(image_array.dtype)); with col3: st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}"); with col4: st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Visualização", "Estatísticas", "Análise Técnica", "Qualidade", "Análise Post-Mortem", "RA-Index", "Relatórios"])
-                with tab1: enhanced_visualization_tab(dicom_data, image_array); with tab2: enhanced_statistics_tab(dicom_data, image_array); with tab3: enhanced_technical_analysis_tab(dicom_data, image_array); with tab4: enhanced_quality_metrics_tab(dicom_data, image_array); with tab5: enhanced_post_mortem_analysis_tab(dicom_data, image_array); with tab6: enhanced_ra_index_tab(dicom_data, image_array); with tab7: enhanced_reporting_tab(dicom_data, image_array, user_data)
-            except pydicom.errors.NotImplementedError as e: st.error(f"Erro ao processar arquivo DICOM: A compressão '{dicom_data.file_meta.TransferSyntaxUID.name}' não é suportada ou a biblioteca necessária está faltando."); st.info("Para arquivos comprimidos, certifique-se de que as bibliotecas `pydicom`, `jpeg_ls`, `gdcm` e `reportlab` estão instaladas corretamente."); logging.error(f"Erro de compressão DICOM: {e}")
-            except Exception as e: st.error(f"Erro no processamento do arquivo DICOM: {e}"); logging.error(f"Erro no processamento DICOM: {e}")
-            finally: os.unlink(tmp_path)
-        except Exception as e: st.error(f"Erro ao carregar arquivo: {e}"); logging.error(f"Erro no carregamento: {e}")
-    else:
-        st.info("Carregue um arquivo DICOM na barra lateral para começar a análise."); st.markdown("## Funcionalidades Disponíveis"); col1, col2, col3 = st.columns(3)
-        with col1: st.markdown("""<div class="info-card"><h4>Visualização Avançada</h4><ul><li>Janelamento Hounsfield personalizado</li><li>Ferramentas colorimétricas</li><li>Análise de pixels interativa</li><li>Visualização 3D multiplana</li><li>Download de imagens processadas</li></ul></div>""", unsafe_allow_html=True)
-        with col2: st.markdown("""<div class="info-card"><h4>Análise Estatística</h4><ul><li>6+ tipos de visualizações</li><li>Análise regional detalhada</li><li>Correlações avançadas</li><li>Densidade de probabilidade</li><li>Mapas de calor interativos</li></ul></div>""", unsafe_allow_html=True)
-        with col3: st.markdown("""<div class="info-card"><h4>Análise Forense</h4><ul><li>Metadados completos DICOM</li><li>Verificação de integridade</li><li>Detecção de anomalias</li><li>Timeline forense</li><li>Autenticidade de imagens</li></ul></div>""", unsafe_allow_html=True)
-        col4, col5, col6 = st.columns(3)
-        with col4: st.markdown("""<div class="info-card"><h4>Controle de Qualidade</h4><ul><li>Métricas de qualidade de imagem</li><li>Análise de ruído e artefatos</li><li>Detecção de compressão</li><li>Uniformidade e resolução</li><li>Relatórios de qualidade</li></ul></div>""", unsafe_allow_html=True)
-        with col5: st.markdown("""<div class="info-card"><h4>Análise Post-Mortem</h4><ul><li>Estimativa de intervalo post-mortem</li><li>Análise de fenômenos cadavéricos</li><li>Modelos de decomposição</li><li>Mapas de alterações teciduais</li><li>Correlações temporais</li></ul></div>""", unsafe_allow_html=True)
-        with col6: st.markdown("""<div class="info-card"><h4>Relatórios Completos</h4><ul><li>Relatórios personalizáveis</li><li>Exportação em PDF/CSV</li><li>Histórico de análises</li><li>Comparativo entre exames</li><li>Banco de dados de casos</li></ul></div>""", unsafe_allow_html=True)
-        st.markdown("## Casos de Uso Exemplares"); use_case_col1, use_case_col2 = st.columns(2); 
-        with use_case_col1: st.expander("Identificação de Metais e Projéteis").markdown("1. Carregue a imagem DICOM\n2. Acesse a aba **Visualização**\n3. Utilize as ferramentas colorimétricas para destacar metais\n4. Ajuste a janela Hounsfield para a faixa de 1000-3000 HU\n5. Use os filtros de detecção de bordas para melhorar a visualização\n6. Gere um relatório completo com as medidas e localizações")
-        with use_case_col2: st.expander("Estimativa de Intervalo Post-Mortem").markdown("1. Carregue a imagem DICOM\n2. Acesse a aba **Análise Post-Mortem**\n3. Configure os parâmetros ambientais\n4. Analise os mapas de distribuição gasosa\n5. Consulte as estimativas temporais\n6. Exporte o relatório forense completo")
 
 def main():
     if 'user_data' not in st.session_state: st.session_state.user_data = None
