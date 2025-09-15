@@ -30,7 +30,6 @@ from scipy import ndimage
 from scipy.optimize import curve_fit
 from skimage import feature
 try:
-try:
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
     from reportlab.lib.utils import ImageReader
