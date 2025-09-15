@@ -1693,35 +1693,35 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                 st.error("Alta probabilidade de manipulação")
         
         with col2:
-    st.markdown("#### Detecção de Manipulação")
+        st.markdown("#### Detecção de Manipulação")
     
-    # Detalhes sobre possíveis manipulações
-    if authenticity_report['anomalies']:
+        # Detalhes sobre possíveis manipulações
+        if authenticity_report['anomalies']:
         st.error("Anomalias detectadas:")
         for anomaly in authenticity_report['anomalies']:
             st.markdown(f"- {anomaly}")
-    else:
+        else:
         st.success("Nenhuma anomalia evidente detectada")
     
-    # Análise de região suspeitas
-    if 'suspicious_regions' in authenticity_report and authenticity_report['suspicious_regions']:
+        # Análise de região suspeitas
+        if 'suspicious_regions' in authenticity_report and authenticity_report['suspicious_regions']:
         st.warning("Regiões suspeitas identificadas")
         
         fig = px.imshow(authenticity_report['suspicion_map'], color_continuous_scale='hot')
         fig.update_layout(title="Mapa de Suspeição de Manipulação")
         st.plotly_chart(fig, use_container_width=True)
     
-    # Recomendações
-    st.markdown("#### Recomendações")
+        # Recomendações
+        st.markdown("#### Recomendações")
     
-    if authenticity_score > 0.8:
+        if authenticity_score > 0.8:
         st.info("Imagem considerada autêntica. Proceda com a análise.")
-    elif authenticity_score > 0.5:
+        elif authenticity_score > 0.5:
         st.warning("Imagem com questões de autenticidade. Verifique cuidadosamente.")
-    else:
+        else:
         st.error("Imagem potencialmente manipulada. Considere descartar ou investigar profundamente.")
 
-with tab_quality:
+    with tab_quality:
     st.markdown("###  Análise de Qualidade Forense")
     
     # Análise de qualidade para fins forenses
