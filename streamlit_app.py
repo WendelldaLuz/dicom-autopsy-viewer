@@ -4259,7 +4259,7 @@ def show_user_form():
                         st.error(f"Erro ao registrar usuário: {e}")
 def show_main_app():
     """
-    Mostrar aplicação principal com interface profissional
+    Mostra a aplicação principal com interface profissional
     """
     user_data = st.session_state.user_data
 
@@ -4277,7 +4277,7 @@ def show_main_app():
         # Navegação principal
         st.markdown("### Navegação")
         
-        # Upload de arquivo
+        # --- COMPONENTE DE UPLOAD DE ARQUIVO MOVIDO PARA AQUI ---
         uploaded_file = st.file_uploader(
             "Selecione um arquivo DICOM:",
             type=['dcm', 'dicom'],
@@ -4303,7 +4303,7 @@ def show_main_app():
             st.write("**Última Atualização:** 2025-09-15")
             st.write("**Status:** Online")
             st.write("**Armazenamento:** 2.5 GB disponíveis")
-            
+        
         if st.button("Trocar Usuário", use_container_width=True):
             st.session_state.user_data = None
             st.rerun()
@@ -4417,6 +4417,7 @@ def show_main_app():
             <div class="info-card">
                 <h4>Análise Estatística</h4>
                 <ul>
+                    <li>6+ tipos de visualizações</li>
                     <li>Análise regional detalhada</li>
                     <li>Correlações avançadas</li>
                     <li>Densidade de probabilidade</li>
@@ -4438,7 +4439,7 @@ def show_main_app():
                 </ul>
             </div>
             """, unsafe_allow_html=True)
-        
+            
         # Segunda linha de funcionalidades
         col4, col5, col6 = st.columns(3)
         
@@ -4510,7 +4511,6 @@ def show_main_app():
                 5. Consulte as estimativas temporais
                 6. Exporte o relatório forense completo
                 """)
-
 
 def enhanced_reporting_tab(dicom_data, image_array, user_data):
     """
@@ -4774,20 +4774,18 @@ def generate_pdf_report(report_data, report_name):
         story.append(Paragraph(f"<b>ID do Relatório:</b> {report_data['report_id']}", styles['Normal']))
         story.append(Spacer(1, 24))
         
-        # Adicionar seções baseadas nos dados
         if report_data['metadata']:
             story.append(Paragraph("METADADOS DICOM", styles['Heading2']))
-            # Adicionar tabela de metadados...
+            
         
-        # Adicionar outras seções...
-        
+               
         # Gerar PDF
         doc.build(story)
         buffer.seek(0)
         return buffer
         
     except ImportError:
-        # Fallback se ReportLab não estiver disponível
+        
         st.error("Biblioteca ReportLab não disponível para geração de PDF")
         return BytesIO(b"PDF generation requires ReportLab library")
 
@@ -4861,7 +4859,6 @@ def generate_html_report(report_data, report_name):
         </div>
     """
     
-    # Adicionar seções baseadas nos dados disponíveis
     if report_data['metadata']:
         html_content += """
         <div class="section">
@@ -4886,7 +4883,6 @@ def generate_html_report(report_data, report_name):
         </div>
         """
     
-    # Adicionar outras seções...
     
     html_content += f"""
         <div class="footer">
@@ -4906,17 +4902,14 @@ def generate_csv_report(report_data, report_name):
     """
     output = BytesIO()
     
-    # Criar um escritor CSV
     writer = csv.writer(output)
     
-    # Escrever cabeçalho
     writer.writerow(["DICOM AUTOPSY VIEWER PRO - RELATÓRIO DE ANÁLISE"])
     writer.writerow(["Nome do Relatório", report_name])
     writer.writerow(["Data de Geração", datetime.now().strftime('%d/%m/%Y %H:%M')])
     writer.writerow(["ID do Relatório", report_data['report_id']])
     writer.writerow([])
-    
-    # Adicionar seções
+  
     if report_data['metadata']:
         writer.writerow(["METADADOS DICOM"])
         writer.writerow(["Campo", "Valor"])
@@ -4924,8 +4917,7 @@ def generate_csv_report(report_data, report_name):
             writer.writerow([key, value])
         writer.writerow([])
     
-    # Adicionar outras seções...
-    
+        
     output.seek(0)
     return output
 
@@ -5013,7 +5005,7 @@ def main():
     """
     Função principal da aplicação
     """
-    # Inicializar sessão
+    
     if 'user_data' not in st.session_state:
         st.session_state.user_data = None
     
@@ -5026,18 +5018,14 @@ def main():
     if 'current_report' not in st.session_state:
         st.session_state.current_report = None
 
-    # Configurar matplotlib
     setup_matplotlib_for_plotting()
 
-    # Inicializar base de dados
     if not safe_init_database():
         st.error(" Erro crítico: Não foi possível inicializar o sistema. Contate o administrador.")
         return
 
-    # Aplicar tema CSS profissional
     update_css_theme()
 
-    # Mostrar aplicação baseada no estado da sessão
     if st.session_state.user_data is None:
         show_user_form()
     else:
