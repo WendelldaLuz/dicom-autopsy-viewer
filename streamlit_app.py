@@ -1,6 +1,3 @@
-# Seu código completo e corrigido
-
-# Imports de bibliotecas
 import streamlit as st
 import sqlite3
 import logging
