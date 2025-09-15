@@ -1,6 +1,3 @@
-
-O seu código já possui uma boa estrutura e segue algumas boas práticas. No entanto, posso ajudar a finalizar a implementação e garantir que esteja funcionando como um visualizador de DICOM com algumas funcionalidades adicionais opcionalmente. Segue um código Python completo e executável que conclui suas funções e garante a visualização e análise das imagens DICOM.
-python
 import base64
 import csv
 import json
