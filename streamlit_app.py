@@ -4417,7 +4417,6 @@ def show_main_app():
             <div class="info-card">
                 <h4>Análise Estatística</h4>
                 <ul>
-                    <li>6+ tipos de visualizações</li>
                     <li>Análise regional detalhada</li>
                     <li>Correlações avançadas</li>
                     <li>Densidade de probabilidade</li>
