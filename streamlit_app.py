@@ -81,7 +81,6 @@ def apply_hounsfield_windowing(image, window_center, window_width):
     windowed_image[windowed_image < min_value] = min_value
     windowed_image[windowed_image > max_value] = max_value
 
-    # Normalizar para 0-255
     windowed_image = (windowed_image - min_value) / (max_value - min_value) * 255
     return windowed_image.astype(np.uint8)
 
@@ -120,7 +119,6 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
             # Simulação de análise térmica
             st.markdown("#### Análise de Distribuição Térmica Simulada")
             
-            # Gerar mapa térmico simulado baseado na imagem
             thermal_simulation = simulate_body_cooling(image_array)
             
             fig = go.Figure(data=go.Heatmap(
@@ -144,12 +142,12 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
             body_mass = st.slider("Massa Corporal (kg)", 40, 120, 70)
             clothing = st.select_slider("Vestuário", options=["Leve", "Moderado", "Abrigado"], value="Moderado")
             
-            # Calcular estimativa de tempo post-mortem
+            # Calculo de  estimativa de tempo post-mortem
             if st.button("Estimar IPM por Algor Mortis"):
                 ipm_estimate = estimate_pmi_from_cooling(thermal_simulation, ambient_temp, body_mass, clothing)
                 st.metric("Intervalo Post-Mortem Estimado", f"{ipm_estimate:.1f} horas")
                 
-                # Exibir curva de resfriamento teórica
+                # Curva de resfriamento teórica
                 st.markdown("**Curva Teórica de Resfriamento:**")
                 cooling_data = generate_cooling_curve(ipm_estimate, ambient_temp)
                 st.line_chart(cooling_data)
@@ -167,7 +165,7 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
         with col1:
             st.markdown("#### Análise de Distribuição Sanguínea")
             
-            # Detectar regiões de possível hipóstase
+            # Regiões de possível hipóstase
             blood_pooling_map = detect_blood_pooling(image_array)
             
             fig = px.imshow(blood_pooling_map, 
@@ -178,14 +176,14 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
         with col2:
             st.markdown("####  Métricas de Hipóstase")
             
-            # Calcular métricas de distribuição
+            # Calculo métricas de distribuição
             pooling_intensity = np.mean(blood_pooling_map)
             pooling_variance = np.var(blood_pooling_map)
             
             st.metric("Intensidade Média de Acúmulo", f"{pooling_intensity:.3f}")
             st.metric("Variância da Distribuição", f"{pooling_variance:.6f}")
             
-            # Avaliar fixação das manchas
+            # Fixação das manchas
             fixation_ratio = assess_livor_fixation(blood_pooling_map)
             if fixation_ratio > 0.7:
                 st.error(f"Alta probabilidade de manchas fixas (>12h post-mortem)")
@@ -195,7 +193,7 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
                 st.success(f"Manchas não fixas (<6h post-mortem)")
     
     with tab_rigor:
-        st.markdown("### 💪 Rigor Mortis (Rigidez Cadavérica)")
+        st.markdown("### Rigor Mortis (Rigidez Cadavérica)")
         
         st.info("""
         **Referência:** Início 2-3h, pico 8h, desaparece 24h (Espinoza et al., 2019; Hofer, 2005)
@@ -320,7 +318,7 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
                 st.metric("Tempo Estimado", "6-12 meses")
                 
             elif conservation_type == "calcification":
-                st.error("**🪨 Calcificação**")
+                st.error("** Calcificação**")
                 st.markdown("Deposição de sais cálcicos nos tecidos")
                 st.metric("Tempo Estimado", "Variável")
                 
@@ -769,7 +767,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
         st.plotly_chart(fig, use_container_width=True)
     
     with tab_tanatometric:
-        st.markdown("### 🧪 Análise Tanatometabolômica Avançada")
+        st.markdown("### Análise Tanatometabolômica Avançada")
         
         st.info("""
         **Base Científica:** Integração de dados de imagem com modelos metabólicos post-mortem,
@@ -4032,7 +4030,7 @@ def update_css_theme():
         color: #FFFFFF !important;
         border-bottom: 2px solid #000000;
     }
-
+    
     /* Campos de entrada e seleção */
     .stTextInput>div>div>input, 
     .stSelectbox>div>div>div[role="button"],
@@ -4157,7 +4155,7 @@ def update_css_theme():
     # Adicionar footer
     st.markdown("""
     <div class="footer">
-        DICOM Autopsy Viewer PRO v3.0 | Interface Profissional | © 2025
+        v3.0 Professional | © 2025
     </div>
     """, unsafe_allow_html=True)
 
