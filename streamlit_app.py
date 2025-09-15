@@ -4277,13 +4277,6 @@ def show_main_app():
         # Navegação principal
         st.markdown("### Navegação")
         
-        # --- COMPONENTE DE UPLOAD DE ARQUIVO MOVIDO PARA AQUI ---
-        uploaded_file = st.file_uploader(
-            "Selecione um arquivo DICOM:",
-            type=['dcm', 'dicom'],
-            help="Carregue um arquivo DICOM para análise forense avançada"
-        )
-        
         # Seção de relatórios salvos
         st.markdown("---")
         st.markdown("### Relatórios Salvos")
@@ -4319,14 +4312,21 @@ def show_main_app():
     <p style="color: #666666; margin-bottom: 2rem;">Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>
     """, unsafe_allow_html=True)
 
+    # --- COMPONENTE DE UPLOAD MOVIDO PARA A ÁREA PRINCIPAL ---
+    uploaded_file = st.file_uploader(
+        "Selecione um arquivo DICOM:",
+        type=['dcm', 'dicom'],
+        help="Carregue um arquivo DICOM para análise forense avançada"
+    )
+    
     if uploaded_file is not None:
+       
         try:
-            # Salvar arquivo temporariamente
+            
             with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
                 tmp_file.write(uploaded_file.read())
                 tmp_path = tmp_file.name
 
-            # Log do evento
             log_security_event(user_data['email'], "FILE_UPLOAD",
                                f"Filename: {uploaded_file.name}")
 
