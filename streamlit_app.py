@@ -1070,10 +1070,9 @@ def enhanced_statistics_tab(dicom_data, image_array):
                 elif metabolic_changes['gas_production'] > 2.0:
                     st.warning("Produção moderada de gases - estágio inicial de putrefação")
 
-# Funções auxiliares para a análise estatística avançada
 def calculate_extended_statistics(image_array):
     """Calcula estatísticas descritivas expandidas"""
-    flattened = image_array.flatten()
+    flattened = image_array.astype(float).flatten()
     
     return {
         'Média': np.mean(flattened),
@@ -1098,7 +1097,6 @@ def create_enhanced_histogram(image_array):
     flattened = image_array.flatten()
     
     fig = go.Figure()
-    
     # Histograma dos dados
     fig.add_trace(go.Histogram(
         x=flattened, 
@@ -1107,12 +1105,10 @@ def create_enhanced_histogram(image_array):
         opacity=0.7,
         marker_color='lightblue'
     ))
-    
     # Ajustar distribuição normal
     mu, sigma = np.mean(flattened), np.std(flattened)
     x_range = np.linspace(np.min(flattened), np.max(flattened), 200)
     pdf = stats.norm.pdf(x_range, mu, sigma)
-    
     # Escalar o PDF para corresponder ao histograma
     scale_factor = len(flattened) * (np.max(flattened) - np.min(flattened)) / 100
     fig.add_trace(go.Scatter(
@@ -1130,21 +1126,17 @@ def create_enhanced_histogram(image_array):
     )
     
     return fig
-
 def create_qq_plot(image_array):
     """Cria QQ plot para análise de normalidade"""
     flattened = image_array.flatten()
-    
     # Quantis teóricos e amostrais
     theoretical_quantiles = stats.norm.ppf(np.linspace(0.01, 0.99, len(flattened)))
     sample_quantiles = np.percentile(flattened, np.linspace(1, 99, len(flattened)))
-    
     # Linha de referência
     min_val = min(theoretical_quantiles.min(), sample_quantiles.min())
     max_val = max(theoretical_quantiles.max(), sample_quantiles.max())
     
     fig = go.Figure()
-    
     # Pontos do QQ plot
     fig.add_trace(go.Scatter(
         x=theoretical_quantiles,
@@ -1152,7 +1144,6 @@ def create_qq_plot(image_array):
         mode='markers',
         name='Quantis Amostrais'
     ))
-    
     # Linha de referência (y=x)
     fig.add_trace(go.Scatter(
         x=[min_val, max_val],
