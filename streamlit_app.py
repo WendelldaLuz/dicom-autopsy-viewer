@@ -30,11 +30,12 @@ from scipy import ndimage
 from scipy.optimize import curve_fit
 from skimage import feature
 try:
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.utils import ImageReader
 except ImportError:
-st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
+    st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
 try:
 import cv2
 except ImportError:
