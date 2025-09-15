@@ -1,3 +1,6 @@
+
+O seu código já possui uma boa estrutura e segue algumas boas práticas. No entanto, posso ajudar a finalizar a implementação e garantir que esteja funcionando como um visualizador de DICOM com algumas funcionalidades adicionais opcionalmente. Segue um código Python completo e executável que conclui suas funções e garante a visualização e análise das imagens DICOM.
+python
 import base64
 import csv
 import json
@@ -30,74 +33,69 @@ from scipy import ndimage
 from scipy.optimize import curve_fit
 from skimage import feature
 try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.utils import ImageReader
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 except ImportError:
-    st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
+st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
 try:
-    import cv2
+import cv2
 except ImportError:
-    st.warning("OpenCV não instalado. Algumas funcionalidades de processamento de imagem limitadas.")
-
+st.warning("OpenCV não instalado. Algumas funcionalidades de processamento de imagem limitadas.")
 st.set_page_config(
-    page_title="DICOM Autopsy Viewer",
-    page_icon="🩻",
-    layout="wide",
-    initial_sidebar_state="expanded"
+page_title="DICOM Autopsy Viewer",
+page_icon="🩻",
+layout="wide",
+initial_sidebar_state="expanded"
 )
-
 st.markdown("""
-<style>
-    .stApp {
-        background-color: #ffffff;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-    .info-card {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        height: 280px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .info-card h4 {
-        color: #2c3e50;
-        margin-bottom: 1rem;
-        font-weight: 600;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 0.5rem;
-    }
-    .info-card ul {
-        color: #555555;
-        padding-left: 1.2rem;
-        margin: 0;
-    }
-    .info-card li {
-        margin-bottom: 0.4rem;
-        line-height: 1.4;
-    }
-    .sidebar-header {
-        background-color: #2c3e50;
-        color: white;
-        padding: 1rem;
-        margin: -1rem -1rem 1rem -1rem;
-        border-radius: 0 0 8px 8px;
-    }
-    .metric-card {
-        background-color: #f8f9fa;
-        border-left: 4px solid #3498db;
-        padding: 0.8rem;
-        margin-bottom: 0.5rem;
-        border-radius: 4px;
-    }
-</style>
-""", unsafe_allow_html=True)
+.stApp {
+background-color: #ffffff;
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.main .block-container {
+padding-top: 2rem;
+padding-bottom: 2rem;
+}
+.info-card {
+background-color: #f8f9fa;
+border: 1px solid #dee2e6;
+border-radius: 6px;
+padding: 1.5rem;
+margin-bottom: 1rem;
+height: 280px;
+box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.info-card h4 {
+color: #2c3e50;
+margin-bottom: 1rem;
+font-weight: 600;
+border-bottom: 2px solid #3498db;
+padding-bottom: 0.5rem;
+}
+.info-card ul {
+color: #555555;
+padding-left: 1.2rem;
+margin: 0;
+}
+.info-card li {
+margin-bottom: 0.4rem;
+line-height: 1.4;
+}
+.sidebar-header {
+background-color: #2c3e50;
+color: white;
+padding: 1rem;
+margin: -1rem -1rem 1rem -1rem;
+border-radius: 0 0 8px 8px;
+}
+.metric-card {
+background-color: #f8f9fa;
+border-left: 4px solid #3498db;
+padding: 0.8rem;
+margin-bottom: 0.5rem;
+border-radius: 4px;
+}""", unsafe_allow_html=True)
 
 # Funções para as abas de análise
 def enhanced_visualization_tab(dicom_data, image_array):
