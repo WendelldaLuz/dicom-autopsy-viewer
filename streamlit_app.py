@@ -64,6 +64,13 @@ except ImportError:
 # ==============================================================================
 # SEÇÃO 3: CONFIGURAÇÃO DA PÁGINA E ESTILOS
 # ==============================================================================
+st.set_page_config(
+    page_title="DICOM Autopsy Viewer Pro - Enhanced",
+    page_icon="🩻",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 def update_css_theme():
     """
     Aplicar tema CSS profissional branco com preto.
@@ -785,7 +792,10 @@ def analyze_noise_pattern(noise_residual):
     correlation = signal.correlate2d(small_noise, small_noise, mode='same'); correlation = correlation / np.max(correlation)
     center = np.array(correlation.shape) // 2
     peripheral_correlation = np.mean(correlation) - correlation[center[0], center[1]]
-    if peripheral_correlation < 0.1: return "random"; else: return "periodic"
+    if peripheral_correlation < 0.1: 
+        return "random"
+    else: 
+        return "periodic"
 
 def detect_repetitive_patterns(image_array):
     """Detecta padrões repetitivos na imagem."""
@@ -883,9 +893,8 @@ class DispersaoGasosaCalculator:
         return interpretacao
     def calcular_index_ra_original(self, dados):
         try:
-            coef_cranio = 4.5; coef_torax = 3.5; coef_abdome = 2.0; escore_cranio = dados.get('Cavidade Craniana', 0) * coef_cranio; escore_torax = dados.get('Cavidade Torácica', 0) * coef_torax; escore_abdome = dados.get('Cavidade Abdominal', 0) * coef_abdome
-            escore_total = escore_cranio + escore_torax + escore_abdome; escore_maximo = 3 * (coef_cranio + coef_torax + coef_abdome); index_ra = (escore_total / escore_maximo) * 100
-            return round(index_ra, 2)
+            pontuacao_total = sum(self.locais_anatomicos_qualitativos.get(local, {}).get(grau, 0) for local, grau in dados.items())
+            return pontuacao_total
         except Exception as e: logging.error(f"Erro no cálculo do Index-RA original: {e}"); return None
     def segunda_lei_fick(self, C, t, D, x): return C * np.exp(-D * t / x**2)
     def modelo_mitscherlich_ajustado(self, t, a, b, c): return a * (1 - np.exp(-b * t)) + c
@@ -934,61 +943,6 @@ class DispersaoGasosaCalculator:
             else: logging.warning(f"Dados insuficientes para {gas} no {sitio}")
         except Exception as e: logging.error(f"Erro ao gerar gráfico: {e}")
 
-# ==============================================================================
-# SEÇÃO 5: FUNÇÕES DE INTERFACE DO STREAMLIT
-# ==============================================================================
-
-def enhanced_visualization_tab(dicom_data, image_array):
-    st.header("Visualização de Imagem DICOM"); col1, col2 = st.columns([3, 1])
-    with col1: fig, ax = plt.subplots(figsize=(10, 8)); ax.imshow(image_array, cmap='gray'); ax.axis('off'); ax.set_title('Visualização da Imagem DICOM', fontsize=14, fontweight='bold'); st.pyplot(fig)
-    with col2: st.subheader("Controles de Visualização"); st.slider("Contraste", min_value=0.1, max_value=5.0, value=1.0, step=0.1, key="contrast_ctrl"); st.slider("Brilho", min_value=-100, max_value=100, value=0, step=1, key="brightness_ctrl"); st.selectbox("Mapa de Cores", ["gray", "viridis", "plasma", "bone"], key="colormap_ctrl")
-    if st.button("Aplicar Ajustes", key="apply_visualization"): st.success("Configurações aplicadas com sucesso")
-
-def enhanced_statistics_tab(dicom_data, image_array):
-    st.header("Análise Estatística Avançada"); with st.expander("Base Científica (Normas ABNT)"): st.markdown("""
-        **Referências para Análise Tanatometabolômica:**
-        - SILVA, W. L. **Análise quantitativa de alterações post-mortem por tomografia computadorizada**. 2023.
-        - EGGER, C. et al. **Development and validation of a postmortem radiological alteration index**. Int J Legal Med, 2012.
-        - ALTAIMIRANO, R. **Técnicas de imagem aplicadas à tanatologia forense**. Revista de Medicina Legal, 2022.
-        - MEGO, M. et al. **Análise quantitativa de fenômenos cadavéricos através de TC multidetectores**. J Forensic Sci, 2017.
-        """); tab_basic, tab_advanced, tab_predictive, tab_tanatometric = st.tabs(["Estatísticas Básicas", "Análises Avançadas", "Mapa Preditivo", "Análise Tanatometabolômica"])
-    with tab_basic:
-        st.markdown("### Estatísticas Descritivas Básicas"); stats_data = calculate_extended_statistics(image_array); col1, col2, col3, col4 = st.columns(4)
-        with col1: st.metric("Média (HU)", f"{stats_data['Média']:.2f}"); st.metric("Erro Padrão", f"{stats_data['Erro Padrão']:.3f}")
-        with col2: st.metric("Mediana (HU)", f"{stats_data['Mediana']:.2f}"); st.metric("Intervalo Interquartil", f"{stats_data['IQR']:.2f}")
-        with col3: st.metric("Desvio Padrão", f"{stats_data['Desvio Padrão']:.2f}"); st.metric("Coeficiente de Variação", f"{stats_data['CV']:.3f}")
-        with col4: st.metric("Assimetria", f"{stats_data['Assimetria']:.3f}"); st.metric("Curtose", f"{stats_data['Curtose']:.3f}")
-    with tab_advanced:
-        st.markdown("### Análises Estatísticas Avançadas"); chart_tab1, chart_tab2, chart_tab3, chart_tab4 = st.tabs(["Distribuição", "Análise Espacial", "Regional", "Correlações"])
-        with chart_tab1: col1, col2 = st.columns(2); with col1: fig = create_enhanced_histogram(image_array); st.plotly_chart(fig, use_container_width=True); with col2: fig = create_qq_plot(image_array); st.plotly_chart(fig, use_container_width=True)
-        with chart_tab2: col1, col2 = st.columns(2); with col1: fig = create_annotated_heatmap(image_array); st.plotly_chart(fig, use_container_width=True); with col2: fig = create_gradient_analysis(image_array); st.plotly_chart(fig, use_container_width=True)
-        with chart_tab3: st.markdown("#### 🗺️ Análise Estatística Regional Avançada"); grid_size = st.slider("Tamanho da Grade para Análise Regional", 2, 8, 4); regional_stats = calculate_regional_statistics(image_array, grid_size); fig = create_regional_heatmap(regional_stats, grid_size); st.plotly_chart(fig, use_container_width=True); st.dataframe(regional_stats, use_container_width=True)
-        with chart_tab4: st.markdown("#### Análise de Correlação Espacial"); fig = create_spatial_correlation_analysis(image_array); st.plotly_chart(fig, use_container_width=True); st.markdown("##### Variograma Experimental"); fig = create_variogram_analysis(image_array); st.plotly_chart(fig, use_container_width=True)
-    with tab_predictive:
-        st.markdown("### Mapa Preditivo de Alterações Post-Mortem"); st.info("Base Científica: Modelos baseados em Silva (2023) e Egger et al. (2012), correlacionando mudanças de densidade tissular com intervalos post-mortem.")
-        col1, col2 = st.columns([2, 1]); with col1: st.markdown("#### Mapa de Previsão de Alterações"); time_horizon = st.slider("Horizonte Temporal de Previsão (horas)", 1, 72, 24); prediction_map = generate_tissue_change_predictions(image_array, time_horizon); fig = create_prediction_heatmap(prediction_map, time_horizon); st.plotly_chart(fig, use_container_width=True)
-        with col2: st.markdown("#### Parâmetros do Modelo Preditivo"); ambient_temp = st.slider("Temperatura Ambiente (°C)", 5, 40, 22); humidity = st.slider("Umidade Relativa (%)", 20, 100, 60); body_position = st.selectbox("Posição do Corpo", ["Decúbito Dorsal", "Decúbito Ventral", "Lateral", "Sentado"])
-        if st.button("Executar Simulação Preditiva", type="primary"):
-            with st.spinner("Executando modelo preditivo..."):
-                results = run_predictive_simulation(image_array, time_horizon, ambient_temp, humidity, body_position); st.metric("Taxa de Mudança Prevista", f"{results['change_rate']:.2f} HU/hora"); st.metric("Área com Mudança Significativa", f"{results['changed_area']:.1f}%")
-                if results['change_rate'] > 5.0: st.warning("Alta taxa de alteração detectada - possível estágio avançado de decomposição"); elif results['change_rate'] > 2.0: st.info("Taxa moderada de alteração - estágio intermediário de decomposição"); else: st.success("Baixa taxa de alteração - estágio inicial de decomposição")
-        st.markdown("#### Projeção Temporal de Alterações"); time_points = np.arange(0, 73, 6); trend_data = simulate_temporal_trends(image_array, time_points, ambient_temp, humidity); fig = create_temporal_trend_chart(trend_data, time_points); st.plotly_chart(fig, use_container_width=True)
-    with tab_tanatometric:
-        st.markdown("### 🧪 Análise Tanatometabolômica Avançada"); st.info("Base Científica: Integração de dados de imagem com modelos metabólicos post-mortem, baseado em Mego et al. (2017) e Altamirano (2022).")
-        st.markdown("#### Composição Tecidual por Faixas de HU"); tissue_ranges = {"Ar/Gases": (-1000, -100), "Gordura": (-100, 0), "Tecidos Moles": (0, 100), "Músculo": (40, 60), "Sangue": (50, 80), "Osso": (100, 400), "Calcificações": (400, 1000), "Metais": (1000, 3000)}; tissue_composition = calculate_tissue_composition(image_array, tissue_ranges)
-        col1, col2 = st.columns([2, 1]); with col1: fig = create_tissue_composition_chart(tissue_composition); st.plotly_chart(fig, use_container_width=True)
-        with col2: st.markdown("##### Distribuição Tecidual"); [st.metric(t, f"{p:.1f}%") for t, p in tissue_composition.items()]
-        st.markdown("#### Simulação de Processos Metabólicos Post-Mortem"); col1, col2 = st.columns(2)
-        with col1: metabolic_rate = st.slider("Taxa Metabólica Residual", 0.1, 2.0, 1.0, 0.1, help="Fator que influencia a velocidade dos processos metabólicos post-mortem")
-        with col2: enzyme_activity = st.slider("Atividade Enzimática", 0.1, 2.0, 1.0, 0.1, help="Fator que influencia a autólise e decomposição")
-        if st.button("Simular Processos Tanatometabolômicos", type="primary"):
-            with st.spinner("Simulando processos metabólicos..."):
-                metabolic_changes = simulate_metabolic_changes(image_array, metabolic_rate, enzyme_activity); st.markdown("##### Resultados da Simulação Metabólica"); col1, col2, col3 = st.columns(3)
-                with col1: st.metric("Autólise Estimada", f"{metabolic_changes['autolysis']:.2f}%")
-                with col2: st.metric("Produção de Gases", f"{metabolic_changes['gas_production']:.2f} mL/kg/h")
-                with col3: st.metric("Acidificação Tecidual", f"pH {metabolic_changes['acidity']:.2f}")
-                st.markdown("##### Interpretação Forense"); if metabolic_changes['autolysis'] > 30: st.error("Alto grau de autólise detectado - sugerindo IPM prolongado (>24h)"); elif metabolic_changes['autolysis'] > 15: st.warning("Autólise moderada - sugerindo IPM intermediário (12-24h)"); else: st.success("Autólise mínima - sugerindo IPM recente (<12h)"); if metabolic_changes['gas_production'] > 5.0: st.error("Produção significativa de gases - estágio avançado de putrefação"); elif metabolic_changes['gas_production'] > 2.0: st.warning("Produção moderada de gases - estágio inicial de putrefação")
-
 def enhanced_technical_analysis_tab(dicom_data, image_array):
     st.header("Análise Técnica Forense Avançada"); with st.expander("Base Científica (Normas ABNT)"): st.markdown("""
         **Referências para Análise Técnica Forense:**
@@ -1030,14 +984,13 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         with col2: st.markdown("##### Análise Estrutural"); structural_analysis = analyze_structures(image_array); st.metric("Densidade de Bordas", f"{structural_analysis['edge_density']:.4f}"); st.metric("Componentes Conectados", structural_analysis['connected_components']); st.metric("Tamanho Médio de Componentes", f"{structural_analysis['avg_component_size']:.1f} px"); st.metric("Razão de Aspecto Média", f"{structural_analysis['avg_aspect_ratio']:.2f}"); if structural_analysis['repetitive_patterns']: st.warning("Padrões repetitivos detectados"); else: st.success("Sem padrões repetitivos evidentes"); fig = px.imshow(structural_analysis['structure_map'], color_continuous_scale='gray'); fig.update_layout(title="Mapa de Estruturas Detectadas"); st.plotly_chart(fig, use_container_width=True)
         with forensic_tab4: st.markdown("#### Análise Temporal"); temporal_analysis = analyze_temporal_information(dicom_data); col1, col2 = st.columns(2); with col1: st.markdown("##### Metadados Temporais"); if temporal_analysis['study_date']: st.metric("Data do Estudo", temporal_analysis['study_date']); if temporal_analysis['acquisition_time']: st.metric("Tempo de Aquisição", temporal_analysis['acquisition_time']); if temporal_analysis['content_date']: st.metric("Data do Conteúdo", temporal_analysis['content_date']); if temporal_analysis['time_consistency'] == "consistent": st.success("Consistência temporal validada"); else: st.warning("Consistência temporal indeterminada")
         with col2: st.markdown("##### Linha do Tempo Forense"); timeline_events = []; if temporal_analysis['study_date']: timeline_events.append(f"Estudo: {temporal_analysis['study_date']}"); if temporal_analysis['acquisition_time']: timeline_events.append(f"Aquisição: {temporal_analysis['acquisition_time']}"); if temporal_analysis['content_date']: timeline_events.append(f"Conteúdo: {temporal_analysis['content_date']}"); timeline_events.append(f"Análise: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"); [st.markdown(f"- {e}") for e in timeline_events]; if temporal_analysis['estimated_age_days'] is not None: age_days = temporal_analysis['estimated_age_days']; if age_days < 7: st.info(f"Imagem recente ({age_days} dias)"); elif age_days < 30: st.info(f"Imagem com {age_days} dias"); else: st.info(f"Imagem antiga ({age_days} dias)")
-    with tab_authentication:
-        st.markdown("### Análise de Autenticidade"); authenticity_report = analyze_authenticity(dicom_data, image_array); col1, col2 = st.columns(2); with col1: st.markdown("#### Verificações de Integridade"); checks = [{"name": "Estrutura DICOM válida", "status": authenticity_report['dicom_structure']}, {"name": "Metadados consistentes", "status": authenticity_report['metadata_consistency']}, {"name": "Assinatura digital presente", "status": authenticity_report['digital_signature']}, {"name": "Sequência temporal coerente", "status": authenticity_report['temporal_coherence']}, {"name": "Padrões de ruído naturais", "status": authenticity_report['noise_patterns']}, {"name": "Sem evidências de edição", "status": authenticity_report['editing_evidence']}]
-        for check in checks:
-            if check['status'] == "pass": st.success(f" {check['name']}"); elif check['status'] == "warning": st.warning(f" {check['name']}"); else: st.error(f" {check['name']}")
-        authenticity_score = authenticity_report['authenticity_score']; st.metric("Score de Autenticidade", f"{authenticity_score:.0%}"); if authenticity_score > 0.8: st.success("Alta probabilidade de autenticidade"); elif authenticity_score > 0.5: st.warning("Autenticidade questionável"); else: st.error("Alta probabilidade de manipulação")
-        with col2: st.markdown("#### Detecção de Manipulação"); if 'anomalies' in authenticity_report and authenticity_report['anomalies']: st.error("Anomalias detectadas:"); [st.markdown(f"- {a}") for a in authenticity_report['anomalies']]; else: st.success("Nenhuma anomalia evidente detectada")
-        if 'suspicion_map' in authenticity_report and authenticity_report['suspicion_map'] is not None: st.warning("Regiões suspeitas identificadas"); fig = px.imshow(authenticity_report['suspicion_map'], color_continuous_scale='hot'); fig.update_layout(title="Mapa de Suspeição de Manipulação"); st.plotly_chart(fig, use_container_width=True)
-        st.markdown("#### Recomendações"); if authenticity_report['authenticity_score'] > 0.8: st.info("Imagem considerada autêntica. Proceda com a análise."); elif authenticity_report['authenticity_score'] > 0.5: st.warning("Imagem com questões de autenticidade. Verifique cuidadosamente."); else: st.error("Imagem potencialmente manipulada. Considere descartar ou investigar profundamente.")
+    with tab_authentication: st.markdown("### Análise de Autenticidade"); authenticity_report = analyze_authenticity(dicom_data, image_array); col1, col2 = st.columns(2); with col1: st.markdown("#### Verificações de Integridade"); checks = [{"name": "Estrutura DICOM válida", "status": authenticity_report['dicom_structure']}, {"name": "Metadados consistentes", "status": authenticity_report['metadata_consistency']}, {"name": "Assinatura digital presente", "status": authenticity_report['digital_signature']}, {"name": "Sequência temporal coerente", "status": authenticity_report['temporal_coherence']}, {"name": "Padrões de ruído naturais", "status": authenticity_report['noise_patterns']}, {"name": "Sem evidências de edição", "status": authenticity_report['editing_evidence']}]
+    for check in checks:
+        if check['status'] == "pass": st.success(f" {check['name']}"); elif check['status'] == "warning": st.warning(f" {check['name']}"); else: st.error(f" {check['name']}")
+    authenticity_score = authenticity_report['authenticity_score']; st.metric("Score de Autenticidade", f"{authenticity_score:.0%}"); if authenticity_score > 0.8: st.success("Alta probabilidade de autenticidade"); elif authenticity_score > 0.5: st.warning("Autenticidade questionável"); else: st.error("Alta probabilidade de manipulação")
+    with col2: st.markdown("#### Detecção de Manipulação"); if 'anomalies' in authenticity_report and authenticity_report['anomalies']: st.error("Anomalias detectadas:"); [st.markdown(f"- {a}") for a in authenticity_report['anomalies']]; else: st.success("Nenhuma anomalia evidente detectada")
+    if 'suspicion_map' in authenticity_report and authenticity_report['suspicion_map'] is not None: st.warning("Regiões suspeitas identificadas"); fig = px.imshow(authenticity_report['suspicion_map'], color_continuous_scale='hot'); fig.update_layout(title="Mapa de Suspeição de Manipulação"); st.plotly_chart(fig, use_container_width=True)
+    st.markdown("#### Recomendações"); if 'authenticity_score' in authenticity_report: if authenticity_report['authenticity_score'] > 0.8: st.info("Imagem considerada autêntica. Proceda com a análise."); elif authenticity_report['authenticity_score'] > 0.5: st.warning("Imagem com questões de autenticidade. Verifique cuidadosamente."); else: st.error("Imagem potencialmente manipulada. Considere descartar ou investigar profundamente.")
     with tab_quality: st.markdown("### Análise de Qualidade Forense"); quality_metrics = calculate_forensic_quality(image_array); col1, col2, col3 = st.columns(3); with col1: st.markdown("#### Métricas de Qualidade"); st.metric("Qualidade Geral", f"{quality_metrics['overall_quality']:.0%}"); st.metric("Resolução Efetiva", f"{quality_metrics['effective_resolution']:.1f} LP/mm"); st.metric("Contraste Detectável", f"{quality_metrics['detectable_contrast']:.2f}")
     with col2: st.markdown("#### Adequação Forense"); st.metric("Adequação para Identificação", f"{quality_metrics['suitability_identification']:.0%}"); st.metric("Adequação para Análise", f"{quality_metrics['suitability_analysis']:.0%}"); st.metric("Adequação para Documentação", f"{quality_metrics['suitability_documentation']:.0%}")
     with col3: st.markdown("#### Limitações"); if quality_metrics['limitations']: st.warning("Limitações identificadas:"); [st.markdown(f"- {l}") for l in quality_metrics['limitations']]; else: st.success("Sem limitações significativas"); st.markdown("#### Recomendações Técnicas"); if quality_metrics['overall_quality'] > 0.8: st.success("Qualidade excelente para todos os fins forenses"); elif quality_metrics['overall_quality'] > 0.6: st.info("Qualidade adequada para a maioria dos fins forenses"); elif quality_metrics['overall_quality'] > 0.4: st.warning("Qualidade limitada - use com cautela para análise forense"); else: st.error("Qualidade inadequada para análise forense")
@@ -1104,9 +1057,7 @@ def show_user_form():
         col1, col2 = st.columns([1, 2])
         with col1: st.empty(); st.markdown("<br><br>", unsafe_allow_html=True)
         with col2: st.markdown("### Registro de Usuário"); name = st.text_input("Nome Completo *", placeholder="Dr. João Silva", help="Informe seu nome completo"); email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com", help="Utilize email institucional para registro")
-        col_a, col_b = st.columns(2)
-        with col_a: role = st.selectbox("Função *", ["Radiologista", "Médico Legista", "Técnico em Radiologia", "Pesquisador", "Estudante", "Outro"], help="Selecione sua função principal")
-        with col_b: department = st.text_input("Departamento/Instituição", placeholder="Departamento de Radiologia", help="Informe seu departamento ou instituição")
+        col_a, col_b = st.columns(2); with col_a: role = st.selectbox("Função *", ["Radiologista", "Médico Legista", "Técnico em Radiologia", "Pesquisador", "Estudante", "Outro"], help="Selecione sua função principal"); with col_b: department = st.text_input("Departamento/Instituição", placeholder="Departamento de Radiologia", help="Informe seu departamento ou instituição")
         with st.expander("Termos de Uso e Política de Privacidade"): st.markdown("""**Termos de Uso:**\n1. Utilização autorizada apenas para fins educacionais e de pesquisa\n2. Proibido o carregamento de dados de pacientes reais não autorizados\n3. Compromisso com a confidencialidade das informações processadas\n4. Os relatórios gerados são de responsabilidade do usuário\n5. O sistema não armazena imagens médicas, apenas metadados anônimos\n\n**Política de Privacidade:**\n- Seus dados de registro são armazenados de forma segura\n- As análises realizadas são confidenciais\n- Metadados das imagens são anonimizados para análise estatística\n- Relatórios gerados podem ser excluídos a qualquer momento\n"""); terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
         submitted = st.form_submit_button("Iniciar Sistema →", use_container_width=True)
         if submitted:
@@ -1164,7 +1115,7 @@ def main():
     if 'image_array' not in st.session_state: st.session_state.image_array = None
     if 'current_report' not in st.session_state: st.session_state.current_report = None
     setup_matplotlib_for_plotting()
-    if not safe_init_database(): st.error(" Erro crítico: Não foi possível inicializar o sistema. Contate o administrador."); return
+    if not safe_init_database(): st.error("Erro crítico: Não foi possível inicializar o sistema. Contate o administrador."); return
     update_css_theme()
     if st.session_state.user_data is None: show_user_form()
     else: show_main_app()
