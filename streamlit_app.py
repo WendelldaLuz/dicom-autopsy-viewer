@@ -4035,8 +4035,8 @@ def update_css_theme():
     
     /* Campos de entrada */
     .stTextInput>div>div>input, .stSelectbox>div>div>select {
-        background-color: #FFFFFF;
-        color: #000000;
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
         border: 1px solid #E0E0E0;
         border-radius: 4px;
     }
@@ -4153,9 +4153,6 @@ def update_css_theme():
         DICOM Autopsy Viewer PRO v3.0 | Interface Profissional | © 2025
     </div>
     """, unsafe_allow_html=True)
-
-
-# Remova a linha "def st.markdown("""..."")" separada e coloque a chamada dentro de uma função.
 
 def show_user_form():
     """
@@ -4965,22 +4962,6 @@ def generate_csv_report(report_data, report_name):
     
     output.seek(0)
     return output
-
-
-def show_user_form():
-    """
-    Mostra o formulário de registro de usuário com um design profissional.
-    """
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: #000000; font-size: 2.8rem; margin-bottom: 0.5rem; font-weight: 700;">
-            DICOM Autopsy Viewer PRO
-        </h1>
-        <h2 style="color: #333333; font-weight: 500; margin-top: 0;">
-            Sistema Avançado de Análise Forense Digital
-        </h2>
-    </div>
-    """, unsafe_allow_html=True)
 
     col1, col2 = st.columns([1, 2])
 
