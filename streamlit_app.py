@@ -1697,12 +1697,11 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             
             # Detalhes sobre possíveis manipulações
 if authenticity_report['anomalies']:
-                st.error("Anomalias detectadas:")
-                for anomaly in authenticity_report['anomalies']:
-                    st.markdown(f"- {anomaly}")
-
-            else:
-                st.success("Nenhuma anomalia evidente detectada")
+    st.error("Anomalias detectadas:")
+    for anomaly in authenticity_report['anomalies']:
+        st.markdown(f"- {anomaly}")
+else:
+    st.success("Nenhuma anomalia evidente detectada")
             
             # Análise de região suspeitas
             if 'suspicious_regions' in authenticity_report and authenticity_report['suspicious_regions']:
