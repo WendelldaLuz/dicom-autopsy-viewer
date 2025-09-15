@@ -1497,7 +1497,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                 if compression_analysis['likely_compressed']:
                     st.warning("Possível compressão com perdas detectada")
                 else:
-                    st.success("Sem evidências de compressão com perdas")
+                    st.success("Sem evidências de compressão with perdas")
         
         with forensic_tab2:
             st.markdown("#### 📊 Análise Espectral")
@@ -1693,77 +1693,77 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                 st.error("Alta probabilidade de manipulação")
         
         with col2:
-        st.markdown("#### Detecção de Manipulação")
-    
-        # Detalhes sobre possíveis manipulações
-        if authenticity_report['anomalies']:
-        st.error("Anomalias detectadas:")
-        for anomaly in authenticity_report['anomalies']:
-            st.markdown(f"- {anomaly}")
-        else:
-        st.success("Nenhuma anomalia evidente detectada")
-    
-        # Análise de região suspeitas
-        if 'suspicious_regions' in authenticity_report and authenticity_report['suspicious_regions']:
-        st.warning("Regiões suspeitas identificadas")
-        
-        fig = px.imshow(authenticity_report['suspicion_map'], color_continuous_scale='hot')
-        fig.update_layout(title="Mapa de Suspeição de Manipulação")
-        st.plotly_chart(fig, use_container_width=True)
-    
-        # Recomendações
-        st.markdown("#### Recomendações")
-    
-        if authenticity_score > 0.8:
-        st.info("Imagem considerada autêntica. Proceda com a análise.")
-        elif authenticity_score > 0.5:
-        st.warning("Imagem com questões de autenticidade. Verifique cuidadosamente.")
-        else:
-        st.error("Imagem potencialmente manipulada. Considere descartar ou investigar profundamente.")
+            st.markdown("#### Detecção de Manipulação")
+            
+            # Detalhes sobre possíveis manipulações
+            if authenticity_report['anomalies']:
+                st.error("Anomalias detectadas:")
+                for anomaly in authenticity_report['anomalies']:
+                    st.markdown(f"- {anomaly}")
+            else:
+                st.success("Nenhuma anomalia evidente detectada")
+            
+            # Análise de região suspeitas
+            if 'suspicious_regions' in authenticity_report and authenticity_report['suspicious_regions']:
+                st.warning("Regiões suspeitas identificadas")
+                
+                fig = px.imshow(authenticity_report['suspicion_map'], color_continuous_scale='hot')
+                fig.update_layout(title="Mapa de Suspeição de Manipulação")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Recomendações
+            st.markdown("#### Recomendações")
+            
+            if authenticity_score > 0.8:
+                st.info("Imagem considerada autêntica. Proceda com a análise.")
+            elif authenticity_score > 0.5:
+                st.warning("Imagem com questões de autenticidade. Verifique cuidadosamente.")
+            else:
+                st.error("Imagem potencialmente manipulada. Considere descartar ou investigar profundamente.")
 
     with tab_quality:
-    st.markdown("###  Análise de Qualidade Forense")
-    
-    # Análise de qualidade para fins forenses
-    quality_metrics = calculate_forensic_quality(image_array)
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("#### Métricas de Qualidade")
+        st.markdown("###  Análise de Qualidade Forense")
         
-        st.metric("Qualidade Geral", f"{quality_metrics['overall_quality']:.0%}")
-        st.metric("Resolução Efetiva", f"{quality_metrics['effective_resolution']:.1f} LP/mm")
-        st.metric("Contraste Detectável", f"{quality_metrics['detectable_contrast']:.2f}")
-    
-    with col2:
-        st.markdown("#### Adequação Forense")
+        # Análise de qualidade para fins forenses
+        quality_metrics = calculate_forensic_quality(image_array)
         
-        st.metric("Adequação para Identificação", f"{quality_metrics['suitability_identification']:.0%}")
-        st.metric("Adequação para Análise", f"{quality_metrics['suitability_analysis']:.0%}")
-        st.metric("Adequação para Documentação", f"{quality_metrics['suitability_documentation']:.0%}")
-    
-    with col3:
-        st.markdown("#### Limitações")
+        col1, col2, col3 = st.columns(3)
         
-        if quality_metrics['limitations']:
-            st.warning("Limitações identificadas:")
-            for limitation in quality_metrics['limitations']:
-                st.markdown(f"- {limitation}")
-        else:
-            st.success("Sem limitações significativas")
+        with col1:
+            st.markdown("#### Métricas de Qualidade")
+            
+            st.metric("Qualidade Geral", f"{quality_metrics['overall_quality']:.0%}")
+            st.metric("Resolução Efetiva", f"{quality_metrics['effective_resolution']:.1f} LP/mm")
+            st.metric("Contraste Detectável", f"{quality_metrics['detectable_contrast']:.2f}")
         
-        # Recomendações baseadas na qualidade
-        st.markdown("#### Recomendações Técnicas")
+        with col2:
+            st.markdown("#### Adequação Forense")
+            
+            st.metric("Adequação para Identificação", f"{quality_metrics['suitability_identification']:.0%}")
+            st.metric("Adequação para Análise", f"{quality_metrics['suitability_analysis']:.0%}")
+            st.metric("Adequação para Documentação", f"{quality_metrics['suitability_documentation']:.0%}")
         
-        if quality_metrics['overall_quality'] > 0.8:
-            st.success("Qualidade excelente para todos os fins forenses")
-        elif quality_metrics['overall_quality'] > 0.6:
-            st.info("Qualidade adequada para a maioria dos fins forenses")
-        elif quality_metrics['overall_quality'] > 0.4:
-            st.warning("Qualidade limitada - use com cautela para análise forense")
-        else:
-            st.error("Qualidade inadequada para análise forense")
+        with col3:
+            st.markdown("#### Limitações")
+            
+            if quality_metrics['limitations']:
+                st.warning("Limitações identificadas:")
+                for limitation in quality_metrics['limitations']:
+                    st.markdown(f"- {limitation}")
+            else:
+                st.success("Sem limitações significativas")
+            
+            # Recomendações baseadas na qualidade
+            st.markdown("#### Recomendações Técnicas")
+            
+            if quality_metrics['overall_quality'] > 0.8:
+                st.success("Qualidade excelente para todos os fins forenses")
+            elif quality_metrics['overall_quality'] > 0.6:
+                st.info("Qualidade adequada para a maioria dos fins forenses")
+            elif quality_metrics['overall_quality'] > 0.4:
+                st.warning("Qualidade limitada - use com cautela para análise forense")
+            else:
+                st.error("Qualidade inadequada para análise forense")
     
     with tab_artifacts:
         st.markdown("### Detecção de Artefatos")
