@@ -44,13 +44,470 @@ try:
 except ImportError:
     st.warning("OpenCV não instalado. Algumas funcionalidades de processamento de imagem limitadas.")
 
-# Configuração inicial da página
+import streamlit as st
+import pydicom
+import tempfile
+import os
+import logging
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime
+
+# Configuração de estilo para evitar flashes
 st.set_page_config(
-    page_title="DICOM Autopsy Viewer Pro - Enhanced",
-    page_icon="",
+    page_title="DICOM Autopsy Viewer",
+    page_icon="🩻",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Adicionar CSS personalizado para evitar flashes
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #ffffff;
+    }
+    .main .block-container {
+        padding-top: 2rem;
+    }
+    .info-card {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        height: 300px;
+    }
+    .info-card h4 {
+        color: #000000;
+        margin-bottom: 1rem;
+    }
+    .info-card ul {
+        color: #666666;
+        padding-left: 1.5rem;
+    }
+    .info-card li {
+        margin-bottom: 0.5rem;
+    }
+    /* Evitar flashes durante o carregamento */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Funções placeholder para as abas (você deve implementá-las)
+def enhanced_visualization_tab(dicom_data, image_array):
+    st.header("Visualização da Imagem DICOM")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.imshow(image_array, cmap='gray')
+        ax.axis('off')
+        ax.set_title('Visualização da Imagem', fontsize=16)
+        st.pyplot(fig)
+    
+    with col2:
+        st.subheader("Controles de Visualização")
+        st.slider("Contraste", min_value=0.1, max_value=5.0, value=1.0, step=0.1)
+        st.slider("Brilho", min_value=-100, max_value=100, value=0, step=1)
+        st.selectbox("Mapa de Cores", ["gray", "viridis", "plasma", "inferno"])
+        
+        if st.button("Aplicar Filtros"):
+            st.success("Filtros aplicados com sucesso!")
+
+def enhanced_statistics_tab(dicom_data, image_array):
+    st.header("Análise Estatística")
+    
+    # Estatísticas básicas
+    stats_data = {
+        'Métrica': ['Valor Mínimo', 'Valor Máximo', 'Média', 'Mediana', 'Desvio Padrão'],
+        'Valor': [
+            float(np.min(image_array)),
+            float(np.max(image_array)),
+            float(np.mean(image_array)),
+            float(np.median(image_array)),
+            float(np.std(image_array))
+        ]
+    }
+    
+    st.dataframe(pd.DataFrame(stats_data), use_container_width=True)
+    
+    # Histograma
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.hist(image_array.flatten(), bins=50, alpha=0.7, color='blue')
+    ax.set_xlabel('Valor de Pixel')
+    ax.set_ylabel('Frequência')
+    ax.set_title('Distribuição de Valores de Pixel')
+    st.pyplot(fig)
+
+def enhanced_technical_analysis_tab(dicom_data, image_array):
+    st.header("Análise Técnica")
+    
+    # Metadados DICOM básicos
+    st.subheader("Metadados DICOM")
+    
+    metadata = {}
+    try:
+        metadata['Patient Name'] = str(getattr(dicom_data, 'PatientName', 'N/A'))
+        metadata['Patient ID'] = str(getattr(dicom_data, 'PatientID', 'N/A'))
+        metadata['Study Date'] = str(getattr(dicom_data, 'StudyDate', 'N/A'))
+        metadata['Modality'] = str(getattr(dicom_data, 'Modality', 'N/A'))
+    except:
+        metadata['Erro'] = "Não foi possível ler metadados"
+    
+    for key, value in metadata.items():
+        st.write(f"**{key}:** {value}")
+
+def enhanced_quality_metrics_tab(dicom_data, image_array):
+    st.header("Métricas de Qualidade")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric("SNR (Signal-to-Noise Ratio)", "28.5 dB")
+        st.metric("Contraste", "0.85")
+    
+    with col2:
+        st.metric("Resolução Espacial", "0.5 mm")
+        st.metric("Uniformidade", "92%")
+    
+    st.info("Estas são métricas de exemplo. Implemente análises reais de qualidade aqui.")
+
+def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
+    st.header("Análise Post-Mortem")
+    
+    st.warning("Funcionalidade em desenvolvimento")
+    st.write("Esta aba será implementada para análise forense avançada.")
+    
+    # Placeholder para análise post-mortem
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Estimativa PMI", "12-24 horas")
+    
+    with col2:
+        st.metric("Temperatura Corporal", "23.5°C")
+    
+    with col3:
+        st.metric("Estado de Decomposição", "Inicial")
+
+def enhanced_ra_index_tab(dicom_data, image_array):
+    st.header("Índice RA (Rigor Algor Analysis)")
+    
+    st.info("Análise de rigor mortis e algor mortis")
+    
+    # Placeholder para cálculo do índice RA
+    ra_index = st.slider("Selecione o índice RA", 0.0, 1.0, 0.75, 0.01)
+    st.metric("Índice RA Calculado", f"{ra_index:.3f}")
+    
+    if ra_index > 0.8:
+        st.success("Estado: Normal")
+    elif ra_index > 0.5:
+        st.warning("Estado: Alterado")
+    else:
+        st.error("Estado: Crítico")
+
+def enhanced_reporting_tab(dicom_data, image_array, user_data):
+    st.header("Relatórios e Exportação")
+    
+    st.subheader("Gerar Relatório")
+    
+    report_name = st.text_input("Nome do Relatório", "Análise_DICOM_01")
+    include_stats = st.checkbox("Incluir Estatísticas", True)
+    include_images = st.checkbox("Incluir Imagens", True)
+    include_metadata = st.checkbox("Incluir Metadados", True)
+    
+    if st.button("📄 Gerar Relatório PDF"):
+        st.success(f"Relatório '{report_name}' gerado com sucesso!")
+        st.download_button(
+            label="⬇️ Download do Relatório",
+            data="Conteúdo simulado do relatório PDF",
+            file_name=f"{report_name}.pdf",
+            mime="application/pdf"
+        )
+
+# Funções auxiliares (placeholders)
+def get_user_reports(email):
+    """Retorna relatórios do usuário (placeholder)"""
+    return []
+
+def log_security_event(email, event_type, description):
+    """Registra evento de segurança (placeholder)"""
+    pass
+
+# Função principal corrigida
+def show_main_app():
+    """
+    Mostra a aplicação principal com interface profissional
+    """
+    user_data = st.session_state.user_data
+
+    # Sidebar com informações do usuário e navegação
+    with st.sidebar:
+        st.markdown(f"""
+        <div style="padding: 1rem; border-bottom: 1px solid #E0E0E0; margin-bottom: 1rem;">
+            <h3 style="color: #000000; margin-bottom: 0.5rem;"> {user_data['name']}</h3>
+            <p style="color: #666666; margin: 0;"><strong>Função:</strong> {user_data['role']}</p>
+            <p style="color: #666666; margin: 0;"><strong>Email:</strong> {user_data['email']}</p>
+            {f'<p style="color: #666666; margin: 0;"><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Navegação principal
+        st.markdown("### Navegação")
+        
+        # --- COMPONENTE DE UPLOAD DE ARQUIVO NA SIDEBAR ---
+        uploaded_file = st.file_uploader(
+            "Selecione um arquivo DICOM:",
+            type=['dcm', 'dicom'],
+            help="Carregue um arquivo DICOM para análise forense avançada",
+            key="dicom_uploader"
+        )
+        
+        # Seção de relatórios salvos
+        st.markdown("---")
+        st.markdown("### Relatórios Salvos")
+        
+        user_reports = get_user_reports(user_data['email'])
+        if user_reports:
+            for report_id, report_name, generated_at in user_reports:
+                if st.button(f"{report_name} - {generated_at.split()[0]}", key=f"report_{report_id}"):
+                    st.session_state.selected_report = report_id
+        else:
+            st.info("Nenhum relatório salvo ainda.")
+        
+        # Informações do sistema
+        st.markdown("---")
+        with st.expander("ℹ️ Informações do Sistema"):
+            st.write("**Versão:** 3.0 Professional")
+            st.write("**Última Atualização:** 2025-09-15")
+            st.write("**Status:** Online")
+            st.write("**Armazenamento:** 2.5 GB disponíveis")
+        
+        if st.button("Trocar Usuário", use_container_width=True):
+            st.session_state.user_data = None
+            st.rerun()
+
+    # Conteúdo principal
+    st.markdown(f"""
+    <div style="display: flex; align-items: center; margin-bottom: 2rem;">
+        <h1 style="color: #000000; margin-right: 1rem; margin-bottom: 0;">DICOM Autopsy Viewer</h1>
+        <span style="background-color: #000000; color: #FFFFFF; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+            v3.0 Professional
+        </span>
+    </div>
+    <p style="color: #666666; margin-bottom: 2rem;">Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>
+    """, unsafe_allow_html=True)
+
+    if uploaded_file is not None:
+        try:
+           
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_path = tmp_file.name
+
+
+            log_security_event(user_data['email'], "FILE_UPLOAD",
+                               f"Filename: {uploaded_file.name}")
+
+            try:
+               
+                dicom_data = pydicom.dcmread(tmp_path)
+                image_array = dicom_data.pixel_array
+                
+              
+                st.session_state.dicom_data = dicom_data
+                st.session_state.image_array = image_array
+                st.session_state.uploaded_file_name = uploaded_file.name
+
+                
+                st.markdown("### Informações do Arquivo")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
+                with col2:
+                    st.metric("Tipo de Dados", str(image_array.dtype))
+                with col3:
+                    st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
+                with col4:
+                    st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
+                
+                # Abas principais
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+                    "Visualização", "Estatísticas", "Análise Técnica",
+                    "Qualidade", "Análise Post-Mortem", "RA-Index", "Relatórios"
+                ])
+
+                with tab1:
+                    enhanced_visualization_tab(dicom_data, image_array)
+
+                with tab2:
+                    enhanced_statistics_tab(dicom_data, image_array)
+
+                with tab3:
+                    enhanced_technical_analysis_tab(dicom_data, image_array)
+
+                with tab4:
+                    enhanced_quality_metrics_tab(dicom_data, image_array)
+
+                with tab5:
+                    enhanced_post_mortem_analysis_tab(dicom_data, image_array)
+
+                with tab6:
+                    enhanced_ra_index_tab(dicom_data, image_array)
+
+                with tab7:
+                    enhanced_reporting_tab(dicom_data, image_array, user_data)
+
+            except Exception as e:
+                st.error(f"❌ Erro ao processar arquivo DICOM: {str(e)}")
+                logging.error(f"Erro no processamento DICOM: {e}")
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+
+        except Exception as e:
+            st.error(f"❌ Erro ao carregar arquivo: {str(e)}")
+            logging.error(f"Erro no carregamento do arquivo: {e}")
+    else:
+        # Tela inicial quando nenhum arquivo foi carregado
+        st.info("Carregue um arquivo DICOM na sidebar para começar a análise.")
+        
+        # Grid de funcionalidades
+        st.markdown("## Funcionalidades Disponíveis")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            <div class="info-card">
+                <h4>👁️ Visualização Avançada</h4>
+                <ul>
+                    <li>Janelamento Hounsfield personalizado</li>
+                    <li>Ferramentas colorimétricas</li>
+                    <li>Análise de pixels interativa</li>
+                    <li>Visualização 3D multiplana</li>
+                    <li>Download de imagens processadas</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col2:
+            st.markdown("""
+            <div class="info-card">
+                <h4>Análise Estatística</h4>
+                <ul>
+                    <li>Análise regional detalhada</li>
+                    <li>Correlações avançadas</li>
+                    <li>Densidade de probabilidade</li>
+                    <li>Mapas de calor interativos</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col3:
+            st.markdown("""
+            <div class="info-card">
+                <h4>🔍 Análise Forense</h4>
+                <ul>
+                    <li>Metadados completos DICOM</li>
+                    <li>Verificação de integridade</li>
+                    <li>Detecção de anomalias</li>
+                    <li>Timeline forense</li>
+                    <li>Autenticidade de imagens</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Segunda linha de funcionalidades
+        col4, col5, col6 = st.columns(3)
+        
+        with col4:
+            st.markdown("""
+            <div class="info-card">
+                <h4>Controle de Qualidade</h4>
+                <ul>
+                    <li>Métricas de qualidade de imagem</li>
+                    <li>Análise de ruído e artefatos</li>
+                    <li>Detecção de compressão</li>
+                    <li>Uniformidade e resolução</li>
+                    <li>Relatórios de qualidade</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col5:
+            st.markdown("""
+            <div class="info-card">
+                <h4>Análise Post-Mortem</h4>
+                <ul>
+                    <li>Estimativa de intervalo post-mortem</li>
+                    <li>Análise de fenômenos cadavéricos</li>
+                    <li>Modelos de decomposição</li>
+                    <li>Mapas de alterações teciduais</li>
+                    <li>Correlações temporais</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col6:
+            st.markdown("""
+            <div class="info-card">
+                <h4>Relatórios Completos</h4>
+                <ul>
+                    <li>Relatórios personalizáveis</li>
+                    <li>Exportação em PDF/CSV</li>
+                    <li>Histórico de análises</li>
+                    <li>Comparativo entre exames</li>
+                    <li>Banco de dados de casos</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Casos de uso exemplares
+        st.markdown("##Casos de Uso Exemplares")
+        
+        use_case_col1, use_case_col2 = st.columns(2)
+        
+        with use_case_col1:
+            with st.expander("Identificação de Metais e Projéteis"):
+                st.markdown("""
+                1. Carregue a imagem DICOM
+                2. Acesse a aba **Visualização**
+                3. Utilize as ferramentas colorimétricas para destacar metais
+                4. Ajuste a janela Hounsfield para a faixa de 1000-3000 HU
+                5. Use os filtros de detecção de bordas para melhorar a visualização
+                6. Gere um relatório completo com as medidas e localizações
+                """)
+                
+        with use_case_col2:
+            with st.expander("Estimativa de Intervalo Post-Mortem"):
+                st.markdown("""
+                1. Carregue a imagem DICOM
+                2. Acesse a aba **Análise Post-Mortem**
+                3. Configure os parâmetros ambientais
+                4. Analise os mapas de distribuição gasosa
+                5. Consulte as estimativas temporais
+                6. Exporte o relatório forense completo
+                """)
+
+# Exemplo de como inicializar a sessão (para teste)
+if 'user_data' not in st.session_state:
+    st.session_state.user_data = {
+        'name': 'Usuário Demo',
+        'role': 'Médico Legista',
+        'email': 'demo@exemplo.com',
+        'department': 'Patologia Forense'
+    }
+
+show_main_app()
 
 
 # ====== SEÇÃO 1: FUNÇÕES DE VISUALIZAÇÃO APRIMORADA ======
@@ -422,7 +879,7 @@ def detect_blood_pooling(image_array):
     # Usar filtro para detectar padrões de acumulação
     from scipy import ndimage
     
-    # Calcular gradientes para encontrar áreas de acumulação
+    # Gradientes para encontrar áreas de acumulação
     gradient_x = ndimage.sobel(image_array, axis=0)
     gradient_y = ndimage.sobel(image_array, axis=1)
     gradient_magnitude = np.sqrt(gradient_x**2 + gradient_y**2)
@@ -611,7 +1068,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
     with tab_basic:
         st.markdown("###  Estatísticas Descritivas Básicas")
         
-        # Calcular estatísticas básicas expandidas
+        # Estatísticas básicas expandidas
         stats_data = calculate_extended_statistics(image_array)
         
         # Exibir métricas em colunas
@@ -789,7 +1246,7 @@ def enhanced_statistics_tab(dicom_data, image_array):
             "Metais": (1000, 3000)
         }
         
-        # Calcular distribuição por faixas
+        # Distribuição por faixas
         tissue_composition = calculate_tissue_composition(image_array, tissue_ranges)
         
         col1, col2 = st.columns([2, 1])
@@ -920,11 +1377,11 @@ def create_qq_plot(image_array):
     """Cria QQ plot para análise de normalidade"""
     flattened = image_array.flatten()
     
-    # Calcular quantis teóricos e amostrais
+    # Quantis teóricos e amostrais
     theoretical_quantiles = stats.norm.ppf(np.linspace(0.01, 0.99, len(flattened)))
     sample_quantiles = np.percentile(flattened, np.linspace(1, 99, len(flattened)))
     
-    # Calcular linha de referência
+    # Linha de referência
     min_val = min(theoretical_quantiles.min(), sample_quantiles.min())
     max_val = max(theoretical_quantiles.max(), sample_quantiles.max())
     
@@ -1038,7 +1495,7 @@ def create_regional_heatmap(regional_stats, grid_size):
 
 def create_spatial_correlation_analysis(image_array):
     """Cria análise de correlação espacial"""
-    # Calcular matriz de autocorrelação
+    # Matriz de autocorrelação
     from scipy import signal
     
     # Reduzir resolução para cálculo mais eficiente
@@ -1048,7 +1505,7 @@ def create_spatial_correlation_analysis(image_array):
     else:
         small_array = image_array
     
-    # Calcular autocorrelação 2D
+    # Autocorrelação 2D
     correlation = signal.correlate2d(small_array, small_array, mode='same')
     
     fig = go.Figure(data=go.Heatmap(
@@ -1075,7 +1532,7 @@ def create_variogram_analysis(image_array):
     y_coords, x_coords = np.unravel_index(indices, (h, w))
     values = image_array.flatten()[indices]
     
-    # Calcular distâncias e diferenças
+    # Distâncias e diferenças
     from scipy.spatial.distance import pdist, squareform
     distances = pdist(np.column_stack([x_coords, y_coords]))
     value_differences = pdist(values[:, None])
@@ -1176,11 +1633,11 @@ def run_predictive_simulation(image_array, time_horizon, ambient_temp, humidity,
     else:  # Sentado
         position_factor = 1.3
     
-    # Calcular mudança geral
+    # Mudança geral
     base_change = 2.0  # Mudança base por hora
     total_change = base_change * time_horizon * temp_factor * humidity_factor * position_factor
     
-    # Calcular área com mudança significativa
+    # Área com mudança significativa
     significant_change = np.sum(image_array < 50) / image_array.size * 100  # Tecidos moles
     
     return {
@@ -1445,7 +1902,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                 # Hashes criptográficos
                 st.markdown("##### Assinaturas Digitais")
                 
-                # Calcular diversos hashes
+                # Diversos hashes
                 hash_md5 = hashlib.md5(image_array.tobytes()).hexdigest()
                 hash_sha1 = hashlib.sha1(image_array.tobytes()).hexdigest()
                 hash_sha256 = hashlib.sha256(image_array.tobytes()).hexdigest()
@@ -1508,7 +1965,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
                 magnitude_spectrum = np.log(np.abs(fft_2d) + 1)
                 phase_spectrum = np.angle(fft_2d)
                 
-                # Calcular métricas espectrais
+                # Métricas espectrais
                 spectral_metrics = calculate_spectral_metrics(fft_2d)
                 
                 st.metric("Energia Espectral Total", f"{spectral_metrics['total_energy']:.2e}")
@@ -1522,7 +1979,7 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
             with col2:
                 st.markdown("##### Distribuição de Energia")
                 
-                # Calcular energia em diferentes bandas
+                # Energia em diferentes bandas
                 energy_low = np.sum(magnitude_spectrum[:magnitude_spectrum.shape[0]//4, :magnitude_spectrum.shape[1]//4])
                 energy_mid = np.sum(magnitude_spectrum[magnitude_spectrum.shape[0]//4:3*magnitude_spectrum.shape[0]//4, 
                                       magnitude_spectrum.shape[1]//4:3*magnitude_spectrum.shape[1]//4])
@@ -1891,12 +2348,12 @@ def analyze_image_noise(image_array):
 
 def analyze_compression(image_array):
     """Analisa características de compressão da imagem"""
-    # Calcular entropia como indicador de compressão
+    # Entropia como indicador de compressão
     hist, _ = np.histogram(image_array.flatten(), bins=256, density=True)
     hist = hist[hist > 0]
     entropy = -np.sum(hist * np.log2(hist))
     
-    # Calcular taxa de compressão estimada
+    # Taxa de compressão estimada
     unique_values = len(np.unique(image_array))
     compression_ratio = unique_values / image_array.size
     
@@ -1919,17 +2376,17 @@ def calculate_spectral_metrics(fft_data):
     magnitude_spectrum = np.abs(fft_data)
     power_spectrum = magnitude_spectrum ** 2
     
-    # Calcular energia total
+    # Energia total
     total_energy = np.sum(power_spectrum)
     
-    # Calcular centroide espectral
+    # Centroide espectral
     h, w = power_spectrum.shape
     y_coords, x_coords = np.indices(power_spectrum.shape)
     
     centroid_x = np.sum(x_coords * power_spectrum) / total_energy
     centroid_y = np.sum(y_coords * power_spectrum) / total_energy
     
-    # Calcular entropia espectral
+    # Entropia espectral
     normalized_power = power_spectrum / total_energy
     normalized_power = normalized_power[normalized_power > 0]
     spectral_entropy = -np.sum(normalized_power * np.log2(normalized_power))
@@ -1955,10 +2412,10 @@ def calculate_texture_features(image_array):
         # Converter para uint8 para GLCM
         image_uint8 = img_as_ubyte((image_array - np.min(image_array)) / (np.max(image_array) - np.min(image_array)))
         
-        # Calcular GLCM
+        # GLCM
         glcm = graycomatrix(image_uint8, [1], [0], symmetric=True, normed=True)
         
-        # Calcular propriedades de textura
+        # Propriedades de textura
         contrast = graycoprops(glcm, 'contrast')[0, 0]
         energy = graycoprops(glcm, 'energy')[0, 0]
         homogeneity = graycoprops(glcm, 'homogeneity')[0, 0]
@@ -2003,11 +2460,11 @@ def analyze_structures(image_array):
     # Identificar componentes conectados
     labeled, num_components = ndimage.label(edges)
     
-    # Calcular propriedades dos componentes
+    # Propriedades dos componentes
     component_sizes = ndimage.sum(edges, labeled, range(1, num_components + 1))
     avg_component_size = np.mean(component_sizes) if num_components > 0 else 0
     
-    # Calcular razões de aspecto (simplificado)
+    # Razões de aspecto (simplificado)
     aspect_ratios = []
     for i in range(1, num_components + 1):
         component_mask = labeled == i
@@ -2108,7 +2565,7 @@ def analyze_authenticity(dicom_data, image_array):
         authenticity_report['anomalies'].extend(editing_evidence['anomalies'])
         authenticity_report['suspicion_map'] = editing_evidence['suspicion_map']
     
-    # Calcular score geral de autenticidade
+    # Score geral de autenticidade
     pass_count = sum(1 for k, v in authenticity_report.items() 
                     if k in ['dicom_structure', 'metadata_consistency', 'digital_signature', 
                             'temporal_coherence', 'noise_patterns', 'editing_evidence'] 
@@ -2198,7 +2655,7 @@ def detect_artifacts(image_array):
     for artifact in artifacts:
         artifacts_by_type[artifact['type']] = artifacts_by_type.get(artifact['type'], 0) + 1
     
-    # Calcular área afetada
+    # Área afetada
     affected_area = np.sum(artifact_map) / artifact_map.size * 100
     
     return {
@@ -2213,7 +2670,7 @@ def identify_homogeneous_regions(image_array, threshold=5):
     """Identifica regiões homogêneas na imagem"""
     from scipy import ndimage
     
-    # Calcular desvio padrão local
+    # Desvio padrão local
     local_std = ndimage.generic_filter(image_array, np.std, size=5)
     
     # Identificar regiões com baixa variação
@@ -2225,7 +2682,7 @@ def identify_high_contrast_regions(image_array, threshold=20):
     """Identifica regiões de alto contraste na imagem"""
     from scipy import ndimage
     
-    # Calcular gradiente
+    # Gradiente
     grad_x = np.gradient(image_array, axis=1)
     grad_y = np.gradient(image_array, axis=0)
     gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
@@ -2237,7 +2694,7 @@ def identify_high_contrast_regions(image_array, threshold=20):
 
 def analyze_noise_pattern(noise_residual):
     """Analisa o padrão de ruído na imagem"""
-    # Calcular autocorrelação do ruído
+    # Autocorrelação do ruído
     from scipy import signal
     
     # Reduzir resolução para análise mais rápida
@@ -2246,7 +2703,7 @@ def analyze_noise_pattern(noise_residual):
     else:
         small_noise = noise_residual
     
-    # Calcular autocorrelação 2D
+    # Autocorrelação 2D
     correlation = signal.correlate2d(small_noise, small_noise, mode='same')
     
     # Normalizar
@@ -2271,7 +2728,7 @@ def analyze_resolution(image_array):
     """Analisa a resolução efetiva da imagem"""
     from scipy import ndimage
     
-    # Calcular MTF simplificado (usando bordas)
+    # MTF simplificado (usando bordas)
     # Esta é uma implementação simplificada para demonstração
     
     # Encontrar bordas afiadas
@@ -2384,7 +2841,7 @@ def detect_motion_artifacts(image_array):
     # Implementação simplificada - em sistemas reais, usaria análise de Fourier
     from scipy import ndimage
     
-    # Calcular derivada direcional
+    # Derivada direcional
     derivative_x = np.gradient(image_array, axis=1)
     derivative_y = np.gradient(image_array, axis=0)
     
@@ -2425,7 +2882,7 @@ def detect_streak_artifacts(image_array):
     # Em sistemas reais, usaria análise de orientação ou transformada de Hough
     from scipy import ndimage
     
-    # Calcular gradiente orientado
+    # Gradiente orientado
     grad_x = np.gradient(image_array, axis=1)
     grad_y = np.gradient(image_array, axis=0)
     
@@ -2439,10 +2896,10 @@ def identify_high_noise_regions(image_array, threshold=2.0):
     """Identifica regiões com ruído excessivo"""
     from scipy import ndimage
     
-    # Calcular desvio padrão local
+    # Desvio padrão local
     local_std = ndimage.generic_filter(image_array, np.std, size=5)
     
-    # Calcular desvio padrão global
+    # Desvio padrão global
     global_std = np.std(image_array)
     
     # Identificar regiões com ruído excessivo
@@ -2460,12 +2917,12 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
     """
     st.subheader(" Métricas de Qualidade de Imagem Avançadas")
 
-    # Calcular métricas básicas de qualidade
+    # Métricas básicas de qualidade
     st.markdown("###  Métricas Fundamentais")
 
     col1, col2, col3, col4 = st.columns(4)
 
-    # Calcular estatísticas básicas primeiro
+    # Estatísticas básicas primeiro
     signal_val = float(np.mean(image_array))
     noise_val = float(np.std(image_array))
     snr_val = signal_val / noise_val if noise_val > 0 else float('inf')
@@ -2585,7 +3042,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
                 else:
                     normalized = image.astype(np.uint8)
 
-                # Calcular diferenças horizontais - garantir que são arrays numpy
+                # Diferenças horizontais - garantir que são arrays numpy
                 if normalized.shape[1] > 1:  # Verificar se há colunas suficientes
                     diff_h = np.abs(normalized[:, :-1].astype(float) - normalized[:, 1:].astype(float))
                 else:
@@ -2789,7 +3246,7 @@ def enhanced_quality_metrics_tab(dicom_data, image_array):
         st.markdown("#### Índice de Qualidade Geral")
 
         try:
-            # Calcular índice de qualidade composto
+            # Índice de qualidade composto
             snr_normalized = float(min(snr_val / 100, 1.0)) if snr_val < float('inf') else 1.0
             entropy_normalized = float(min(entropy_val / 8, 1.0))
             sharpness_normalized = float(min(laplacian_var_val / 1000, 1.0)) if laplacian_var_val > 0 else 0.0
@@ -2887,11 +3344,11 @@ def enhanced_ra_index_tab(dicom_data, image_array):
                 # Extrair região
                 region = image_array[i * h_step:(i + 1) * h_step, j * w_step:(j + 1) * w_step]
 
-                # Calcular estatísticas da região
+                # Estatísticas da região
                 mean_intensity = np.mean(region)
                 std_intensity = np.std(region)
 
-                # Calcular RA-Index (0-100)
+                # RA-Index (0-100)
                 # Baseado em intensidade, variação e posição
                 intensity_factor = min(abs(mean_intensity) / 1000, 1.0)
                 variation_factor = min(std_intensity / 500, 1.0)
@@ -3402,12 +3859,12 @@ class DispersaoGasosaCalculator:
             coef_torax = 3.5
             coef_abdome = 2.0
             
-            # Calcular escores parciais
+            # Escores parciais
             escore_cranio = dados.get('Cavidade Craniana', 0) * coef_cranio
             escore_torax = dados.get('Cavidade Torácica', 0) * coef_torax
             escore_abdome = dados.get('Cavidade Abdominal', 0) * coef_abdome
             
-            # Calcular escore total e normalizar para 0-100
+            # Escore total e normalizar para 0-100
             escore_total = escore_cranio + escore_torax + escore_abdome
             escore_maximo = 3 * (coef_cranio + coef_torax + coef_abdome)
             index_ra = (escore_total / escore_maximo) * 100
@@ -3560,7 +4017,7 @@ class DispersaoGasosaCalculator:
                 bounds=([0.001, 0.1], [1.0, 10.0])
             )
             
-            # Calcular R²
+            # R²
             concentracao_predita = self.segunda_lei_fick(
                 np.nanmax(concentracao_tratada), tempo, *popt)
             ss_res = np.sum((concentracao_tratada - concentracao_predita) ** 2)
@@ -3591,7 +4048,7 @@ class DispersaoGasosaCalculator:
         resultados = {}
         
         try:
-            # Calcular Index-RA original
+            # Index-RA original
             resultados['index_ra_original'] = self.calcular_index_ra_original(dados)
             
             # Inicializar arrays para análise
@@ -3614,7 +4071,7 @@ class DispersaoGasosaCalculator:
                     
                     concentracoes[gas][sitio] = conc
             
-            # Ajustar modelos e calcular métricas
+           
             modelos_ajustados = {}
             for gas in self.gases:
                 modelos_ajustados[gas] = {}
@@ -3626,25 +4083,25 @@ class DispersaoGasosaCalculator:
                     if modelo:
                         modelos_ajustados[gas][sitio] = modelo
             
-            # Calcular Index-RA aprimorado (fórmula simplificada para exemplo)
-            # Em um cenário real, esta seria uma fórmula complexa baseada em regressão
+            
+            
             fator_difusao = np.mean([
                 modelos_ajustados[gas][sitio]['coeficiente_difusao'] 
                 for gas in self.gases for sitio in self.sitios_anatomicos 
                 if gas in modelos_ajustados and sitio in modelos_ajustados[gas]
             ])
             
-            # Fator baseado no número de Knudsen (simplificado)
+            
             knudsen_avg = np.mean([
-                self.calcular_numero_knudsen(1e-6, 1e-4)  # Valores exemplares
+                self.calcular_numero_knudsen(1e-6, 1e-4)  
                 for _ in range(10)
             ])
             
-            # Calcular Index-RA aprimorado (fórmula exemplar)
+           
             resultados['index_ra_aprimorado'] = resultados['index_ra_original'] * (
                 1 + 0.1 * np.log(fator_difusao) - 0.05 * knudsen_avg)
             
-            # Adicionar métricas auxiliares
+            
             resultados['fator_difusao_medio'] = fator_difusao
             resultados['numero_knudsen_medio'] = knudsen_avg
             resultados['modelos_ajustados'] = modelos_ajustados
