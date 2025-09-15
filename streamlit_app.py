@@ -4961,6 +4961,101 @@ def generate_csv_report(report_data, report_name):
     return output
 
 
+def show_user_form():
+    """
+    Mostra o formulário de registro de usuário com um design profissional.
+    """
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #000000; font-size: 2.8rem; margin-bottom: 0.5rem; font-weight: 700;">
+            DICOM Autopsy Viewer PRO
+        </h1>
+        <h2 style="color: #333333; font-weight: 500; margin-top: 0;">
+            Sistema Avançado de Análise Forense Digital
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.image("https://via.placeholder.com/300x300/FFFFFF/000000?text=DICOM+Viewer",
+                 use_container_width=True, caption="Sistema de Análise de Imagens Forenses")
+
+    with col2:
+        with st.form("user_registration"):
+            st.markdown("### Registro de Usuário")
+            
+            name = st.text_input("Nome Completo *", placeholder="Dr. João Silva",
+                                 help="Informe seu nome completo")
+            email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com",
+                                  help="Utilize email institucional para registro")
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                role = st.selectbox("Função *", [
+                    "Radiologista", "Médico Legista", "Técnico em Radiologia",
+                    "Pesquisador", "Estudante", "Outro"
+                ], help="Selecione sua função principal")
+            
+            with col_b:
+                department = st.text_input("Departamento/Instituição",
+                                            placeholder="Departamento de Radiologia",
+                                            help="Informe seu departamento ou instituição")
+            
+            with st.expander(" Termos de Uso e Política de Privacidade"):
+                st.markdown("""
+                **Termos de Uso:**
+                
+                1. Utilização autorizada apenas para fins educacionais e de pesquisa
+                2. Proibido o carregamento de dados de pacientes reais não autorizados
+                3. Compromisso com a confidencialidade das informações processadas
+                4. Os relatórios gerados são de responsabilidade do usuário
+                5. O sistema não armazena imagens médicas, apenas metadados anônimos
+                
+                **Política de Privacidade:**
+                
+                - Seus dados de registro são armazenados de forma segura
+                - As análises realizadas são confidenciais
+                - Metadados das imagens são anonimizados para análise estatística
+                - Relatórios gerados podem ser excluídos a qualquer momento
+                """)
+                
+                terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
+            
+            submitted = st.form_submit_button("Iniciar Sistema →", use_container_width=True)
+
+            if submitted:
+                if not all([name, email, terms_accepted]):
+                    st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
+                else:
+                    try:
+                        conn = sqlite3.connect("dicom_viewer.db")
+                        cursor = conn.cursor()
+
+                        cursor.execute("""
+                            INSERT INTO users (name, email, role, department)
+                            VALUES (?, ?, ?, ?)
+                        """, (name, email, role, department))
+
+                        conn.commit()
+                        conn.close()
+
+                        st.session_state.user_data = {
+                            'name': name,
+                            'email': email,
+                            'role': role,
+                            'department': department
+                        }
+
+                        log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
+
+                        st.success("Usuário registrado com sucesso!")
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Erro ao registrar usuário: {e}")
+
 def main():
     """
     Função principal da aplicação
@@ -4998,4 +5093,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
