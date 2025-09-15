@@ -1273,15 +1273,15 @@ def enhanced_reporting_tab(dicom_data, image_array, user_data):
 def extract_dicom_metadata(dicom_data):
     return {"Exemplo":"Valor"}
 def perform_technical_analysis(image_array):
-    return {"Exemplo": "Valor"}
+    return {"Exemplo":"Valor"}
 def calculate_quality_metrics(image_array):
-    return {"Exemplo": "Valor"}
+    return {"Exemplo":"Valor"}
 def perform_post_mortem_analysis(image_array):
-    return {"Exemplo": "Valor"}
+    return {"Exemplo":"Valor"}
 def calculate_ra_index_data(image_array):
-    return {"Exemplo": "Valor"}
+    return {"Exemplo":"Valor"}
 def generate_report_visualizations(image_array, include_3d, include_heatmaps, include_graphs):
-    return {"Exemplo": "Valor"}
+    return {"Exemplo":"Valor"}
 def generate_comprehensive_report(dicom_data, image_array, include_sections, include_3d, include_heatmaps,
                                   include_graphs):
     report_data = {
