@@ -917,37 +917,37 @@ def enhanced_technical_analysis_tab(dicom_data, image_array):
         # Seu código da aba Artefatos aqui
         pass
     with tab_metadata:
-    st.markdown("### Metadados DICOM Completos")
-    categories = {
-        'Informações do Paciente': {
-            'keywords': ['patient', 'name', 'id', 'birth', 'sex', 'age', 'weight'],
-            'items': []
-        },
-        'Parâmetros de Aquisição': {
-            'keywords': ['kv', 'ma', 'exposure', 'dose', 'current', 'time'],
-            'items': []
-        },
-        'Configurações do Equipamento': {
-            'keywords': ['manufacturer', 'model', 'software', 'station', 'device', 'serial'],
-            'items': []
-        },
-        'Dados de Imagem': {
-            'keywords': ['rows', 'columns', 'spacing', 'thickness', 'pixel', 'size', 'resolution'],
-            'items': []
-        },
-        'Informações Temporais': {
-            'keywords': ['date', 'time', 'acquisition', 'study', 'series', 'content'],
-            'items': []
-        },
-        'Parâmetros de Reconstrução': {
-            'keywords': ['kernel', 'algorithm', 'filter', 'reconstruction', 'slice'],
-            'items': []
-        },
-        'Dados Técnicos Forenses': {
-            'keywords': ['forensic', 'legal', 'postmortem', 'autopsy', 'examination'],
-            'items': []
+        st.markdown("###  Metadados DICOM Completos")
+        categories = {
+            'Informações do Paciente': {
+                'keywords': ['patient', 'name', 'id', 'birth', 'sex', 'age', 'weight'],
+                'items': []
+            },
+            'Parâmetros de Aquisição': {
+                'keywords': ['kv', 'ma', 'exposure', 'dose', 'current', 'time'],
+                'items': []
+            },
+            'Configurações do Equipamento': {
+                'keywords': ['manufacturer', 'model', 'software', 'station', 'device', 'serial'],
+                'items': []
+            },
+            'Dados de Imagem': {
+                'keywords': ['rows', 'columns', 'spacing', 'thickness', 'pixel', 'size', 'resolution'],
+                'items': []
+            },
+            'Informações Temporais': {
+                'keywords': ['date', 'time', 'acquisition', 'study', 'series', 'content'],
+                'items': []
+            },
+            'Parâmetros de Reconstrução': {
+                'keywords': ['kernel', 'algorithm', 'filter', 'reconstruction', 'slice'],
+                'items': []
+            },
+            'Dados Técnicos Forenses': {
+                'keywords': ['forensic', 'legal', 'postmortem', 'autopsy', 'examination'],
+                'items': []
+            }
         }
-    }
         metadata_summary = {}
         for elem in dicom_data:
             if elem.tag.group != 0x7fe0:
