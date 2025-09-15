@@ -4183,9 +4183,9 @@ def show_user_form():
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            # Recomenda-se usar um arquivo de imagem local para evitar problemas de carregamento
-            st.image("https://via.placeholder.com/300x300/FFFFFF/000000?text=DICOM+Viewer",
-                     use_container_width=True, caption="Sistema de Análise de Imagens Forenses")
+            # Substituindo a imagem por um espaço em branco para manter o alinhamento.
+            st.empty() 
+            st.markdown("<br><br>", unsafe_allow_html=True) # Adiciona um espaçamento
         
         with col2:
             st.markdown("### Registro de Usuário")
