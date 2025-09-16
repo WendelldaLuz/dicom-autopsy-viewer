@@ -79,7 +79,6 @@ def apply_hounsfield_windowing(image, window_center, window_width):
 def enhanced_visualization_tab(dicom_data, image_array):
     st.subheader("Visualização Avançada de Imagem DICOM")
     
-    # Implementação da visualização aqui
     col1, col2 = st.columns([2, 1])
     
     with col1:
@@ -500,7 +499,7 @@ def show_user_form():
     
     with col1:
         st.image("https://via.placeholder.com/300x300/FFFFFF/000000?text=DICOM+Viewer",
-                 use_column_width=True, caption="Sistema de Análise de Imagens Forenses")
+                 use_container_width=True, caption="Sistema de Análise de Imagens Forenses")
     
     with col2:
         with st.form("user_registration"):
@@ -535,7 +534,7 @@ def show_user_form():
                 - Seus dados de registro são armazenados de forma segura
                 - As análises realizadas são confidenciais
                 - Metadados das imagens são anonimizados para análise estatística
-                - Relatórios gerados podem ser excluídos a qualquer momento
+                - Relatórios gerados podem be excluídos a qualquer momento
                 """)
                 terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
             
