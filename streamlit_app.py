@@ -1,60 +1,78 @@
 import streamlit as st
-import tempfile
 import pydicom
-from pages import (
-    visualizacao,
-    estatisticas,
-    analise_tecnica,
-    qualidade,
-    analise_post_mortem,
-    ra_index,
-    relatorios
-)  # Importar todas as páginas
+import tempfile
+import os
+
+from analysis import post_mortem, statistics, technical, quality, ra_index, report
+from utils import db, security
+
+# Configuração da página
+st.set_page_config(
+    page_title="DICOM Autopsy Viewer PRO",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 def main():
-    st.set_page_config(page_title="DICOM Autopsy Viewer PRO", layout="wide")
+    st.sidebar.title("DICOM Autopsy Viewer PRO")
+    uploaded_files = st.sidebar.file_uploader(
+        "Selecione até 10 arquivos DICOM:",
+        type=['dcm', 'dicom'],
+        accept_multiple_files=True
+    )
 
-    st.title("DICOM Autopsy Viewer PRO")
+    if uploaded_files:
+        if len(uploaded_files) > 10:
+            st.sidebar.error("Selecione no máximo 10 arquivos.")
+            uploaded_files = uploaded_files[:10]
 
-    uploaded_file = st.sidebar.file_uploader("Carregue um arquivo DICOM", type=['dcm', 'dicom'])
-
-    if uploaded_file:
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".dcm") as tmp:
-                tmp.write(uploaded_file.read())
-                tmp.flush()
-                dicom_data = pydicom.dcmread(tmp.name)
+        dicom_datasets = []
+        image_arrays = []
+        for uploaded_file in uploaded_files:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_path = tmp_file.name
+            dicom_data = pydicom.dcmread(tmp_path)
             image_array = dicom_data.pixel_array
-        except Exception as e:
-            st.error(f"Erro ao ler o arquivo DICOM: {e}")
-            return
+            dicom_datasets.append(dicom_data)
+            image_arrays.append(image_array)
+            os.unlink(tmp_path)
 
-        page = st.sidebar.selectbox("Selecione a página", [
-            "Visualização",
-            "Estatísticas",
-            "Análise Técnica",
-            "Qualidade",
-            "Análise Post-Mortem",
-            "RA Index",
-            "Relatórios"
+        selected_index = st.sidebar.selectbox(
+            "Selecione a imagem para análise",
+            options=range(len(dicom_datasets)),
+            format_func=lambda i: uploaded_files[i].name
+        )
+
+        dicom_data = dicom_datasets[selected_index]
+        image_array = image_arrays[selected_index]
+
+        st.title(f"Análise da Imagem: {uploaded_files[selected_index].name}")
+        st.image(image_array, use_container_width=True)
+
+        # Chamar abas de análise
+        tabs = st.tabs([
+            "Visualização", "Estatísticas", "Análise Técnica",
+            "Qualidade", "Análise Post-Mortem", "RA-Index", "Relatórios"
         ])
 
-        if page == "Visualização":
-            visualizacao.show(dicom_data, image_array)
-        elif page == "Estatísticas":
-            estatisticas.show(dicom_data, image_array)
-        elif page == "Análise Técnica":
-            analise_tecnica.show(dicom_data, image_array)
-        elif page == "Qualidade":
-            qualidade.show(dicom_data, image_array)
-        elif page == "Análise Post-Mortem":
-            analise_post_mortem.show(dicom_data, image_array)
-        elif page == "RA Index":
-            ra_index.show(dicom_data, image_array)
-        elif page == "Relatórios":
-            relatorios.show(dicom_data, image_array)
+        with tabs[0]:
+            technical.enhanced_visualization_tab(dicom_data, image_array)
+        with tabs[1]:
+            statistics.enhanced_statistics_tab(dicom_data, image_array)
+        with tabs[2]:
+            technical.enhanced_technical_analysis_tab(dicom_data, image_array)
+        with tabs[3]:
+            quality.enhanced_quality_metrics_tab(dicom_data, image_array)
+        with tabs[4]:
+            post_mortem.enhanced_post_mortem_analysis_tab(dicom_data, image_array)
+        with tabs[5]:
+            ra_index.enhanced_ra_index_tab(dicom_data, image_array)
+        with tabs[6]:
+            report.enhanced_reporting_tab(dicom_data, image_array)
+
     else:
-        st.info("Por favor, carregue um arquivo DICOM para começar.")
+        st.info("Carregue até 10 arquivos DICOM na sidebar para começar a análise.")
 
 if __name__ == "__main__":
     main()
