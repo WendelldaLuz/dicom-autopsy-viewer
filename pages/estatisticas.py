@@ -1,26 +1,21 @@
 import streamlit as st
 import numpy as np
-import plotly.express as px
+import pandas as pd
 
-def calculate_extended_statistics(image_array):
-    flattened = image_array.flatten()
-    stats = {
-        'Média': np.mean(flattened),
-        'Mediana': np.median(flattened),
-        'Desvio Padrão': np.std(flattened),
-        'Mínimo': np.min(flattened),
-        'Máximo': np.max(flattened),
-    }
-    return stats
+def estatisticas_tab(dicom_data, image_array: np.ndarray):
+    st.header("📊 Estatísticas Detalhadas")
 
-def enhanced_statistics_tab(dicom_data, image_array):
-    st.subheader("Análise Estatística Avançada")
-    stats = calculate_extended_statistics(image_array)
-    for k, v in stats.items():
-        st.metric(k, f"{v:.2f}")
-    fig = px.histogram(image_array.flatten(), nbins=50, title="Histograma de Intensidades")
-    st.plotly_chart(fig, use_container_width=True)
-
-def show(dicom_data, image_array):
-    st.title("Estatísticas")
-    enhanced_statistics_tab(dicom_data, image_array)
+    try:
+        data = {
+            "Média": np.mean(image_array),
+            "Mediana": np.median(image_array),
+            "Desvio Padrão": np.std(image_array),
+            "Máximo": np.max(image_array),
+            "Mínimo": np.min(image_array),
+            "Percentil 25": np.percentile(image_array, 25),
+            "Percentil 75": np.percentile(image_array, 75),
+        }
+        df_stats = pd.DataFrame(data.items(), columns=["Métrica", "Valor"])
+        st.table(df_stats)
+    except Exception as e:
+        st.error(f"Erro ao calcular estatísticas: {e}")
