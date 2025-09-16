@@ -1,7 +1,7 @@
 import streamlit as st
 import tempfile
 import pydicom
-from pages import visualizacao, estatisticas  # Importar páginas que vamos criar
+from pages import visualizacao, estatisticas, analise_tecnica, qualidade  # Importar todas as páginas
 
 def main():
     st.set_page_config(page_title="DICOM Autopsy Viewer PRO", layout="wide")
@@ -16,12 +16,21 @@ def main():
             dicom_data = pydicom.dcmread(tmp.name)
         image_array = dicom_data.pixel_array
 
-        page = st.sidebar.selectbox("Selecione a página", ["Visualização", "Estatísticas"])
+        page = st.sidebar.selectbox("Selecione a página", [
+            "Visualização",
+            "Estatísticas",
+            "Análise Técnica",
+            "Qualidade"
+        ])
 
         if page == "Visualização":
             visualizacao.show(dicom_data, image_array)
         elif page == "Estatísticas":
             estatisticas.show(dicom_data, image_array)
+        elif page == "Análise Técnica":
+            analise_tecnica.show(dicom_data, image_array)
+        elif page == "Qualidade":
+            qualidade.show(dicom_data, image_array)
     else:
         st.info("Por favor, carregue um arquivo DICOM para começar.")
 
