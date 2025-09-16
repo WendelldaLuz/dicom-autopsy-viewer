@@ -2,7 +2,6 @@ import streamlit as st
 from io import BytesIO
 from datetime import datetime
 import csv
-import json
 
 def generate_csv_report(report_data):
     output = BytesIO()
@@ -29,10 +28,16 @@ def enhanced_reporting_tab(dicom_data, image_array):
     if st.button("Gerar Relatório Completo"):
         # Exemplo: coletar dados de análise (implemente conforme seu código)
         report_data = {
-            "Metadados": {"PatientName": getattr(dicom_data, "PatientName", "N/A")},
-            "Estatísticas": {"Média HU": float(image_array.mean())},
-            "Análise Post-Mortem": {"IPM Estimado": "Exemplo"},
-            # Adicione outras seções conforme implementado
+            "Metadados": {
+                "PatientName": getattr(dicom_data, "PatientName", "N/A"),
+                "PatientID": getattr(dicom_data, "PatientID", "N/A"),
+                "StudyDate": getattr(dicom_data, "StudyDate", "N/A")
+            },
+            "Estatísticas": {
+                "Média HU": float(image_array.mean()),
+                "Desvio Padrão HU": float(image_array.std())
+            },
+            # Adicione outras seções conforme implementado nas análises
         }
 
         if format_option == "CSV":
