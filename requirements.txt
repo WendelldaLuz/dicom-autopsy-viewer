@@ -20,3 +20,6 @@ plotly>=5.10.0,<6.0.0
 
 # Geração de PDFs
 reportlab>=3.6.12,<4.0.0
+
+# Outras dependências comuns para Streamlit Cloud
+typing-extensions>=4.0.0
