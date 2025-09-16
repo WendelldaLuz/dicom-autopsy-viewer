@@ -9,6 +9,13 @@ import plotly.graph_objects as go
 from datetime import datetime
 from scipy import ndimage, stats
 from skimage import feature
+from skimage.feature import greycomatrix, greycoprops
+from scipy.stats import skew, kurtosis
+from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+import matplotlib.pyplot as plt
 
 # Configurações iniciais da página
 st.set_page_config(
@@ -138,7 +145,153 @@ def classify_conservation_type(image_array):
     else:
         return "none"
 
-# --- Aba Análise Post-Mortem ---
+# --- Visualização ---
+def enhanced_visualization_tab(dicom_data, image_array):
+    st.subheader("Visualização Avançada")
+    st.image(image_array, clamp=True, channels="L", use_column_width=True)
+    st.markdown("Ajuste a janela Hounsfield:")
+    window_center = st.slider("Centro da Janela", int(np.min(image_array)), int(np.max(image_array)), int(np.mean(image_array)))
+    window_width = st.slider("Largura da Janela", 1, int(np.ptp(image_array)), int(np.ptp(image_array)//2))
+    windowed = apply_hounsfield_windowing(image_array, window_center, window_width)
+    st.image(windowed, clamp=True, channels="L", caption="Imagem com Janelamento Hounsfield", use_column_width=True)
+
+def apply_hounsfield_windowing(image, center, width):
+    min_val = center - width // 2
+    max_val = center + width // 2
+    windowed = np.clip(image, min_val, max_val)
+    windowed = ((windowed - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+    return windowed
+
+# --- Estatísticas Avançadas ---
+def advanced_statistics(image_array):
+    flat = image_array.flatten()
+    stats_dict = {}
+
+    # Estatísticas básicas
+    stats_dict['mean'] = np.mean(flat)
+    stats_dict['median'] = np.median(flat)
+    stats_dict['std'] = np.std(flat)
+    stats_dict['min'] = np.min(flat)
+    stats_dict['max'] = np.max(flat)
+    stats_dict['skewness'] = skew(flat)
+    stats_dict['kurtosis'] = kurtosis(flat)
+
+    # Histogramas
+    hist, bin_edges = np.histogram(flat, bins=100, density=True)
+    cdf = np.cumsum(hist) * np.diff(bin_edges)
+
+    # Estatísticas regionais (dividir em 4x4 blocos)
+    grid_size = 4
+    h, w = image_array.shape
+    h_step, w_step = h // grid_size, w // grid_size
+    regional_means = []
+    regional_stds = []
+    for i in range(grid_size):
+        for j in range(grid_size):
+            region = image_array[i*h_step:(i+1)*h_step, j*w_step:(j+1)*w_step]
+            regional_means.append(np.mean(region))
+            regional_stds.append(np.std(region))
+    stats_dict['regional_mean_mean'] = np.mean(regional_means)
+    stats_dict['regional_mean_std'] = np.std(regional_means)
+    stats_dict['regional_std_mean'] = np.mean(regional_stds)
+    stats_dict['regional_std_std'] = np.std(regional_stds)
+
+    # Textura GLCM (níveis reduzidos para 64 para performance)
+    image_64 = np.uint8((image_array - stats_dict['min']) / (stats_dict['max'] - stats_dict['min']) * 63)
+    distances = [1, 2, 4]
+    angles = [0, np.pi/4, np.pi/2, 3*np.pi/4]
+    glcm = greycomatrix(image_64, distances=distances, angles=angles, levels=64, symmetric=True, normed=True)
+
+    contrast = greycoprops(glcm, 'contrast').mean()
+    dissimilarity = greycoprops(glcm, 'dissimilarity').mean()
+    homogeneity = greycoprops(glcm, 'homogeneity').mean()
+    energy = greycoprops(glcm, 'energy').mean()
+    correlation = greycoprops(glcm, 'correlation').mean()
+    ASM = greycoprops(glcm, 'ASM').mean()
+
+    stats_dict.update({
+        'glcm_contrast': contrast,
+        'glcm_dissimilarity': dissimilarity,
+        'glcm_homogeneity': homogeneity,
+        'glcm_energy': energy,
+        'glcm_correlation': correlation,
+        'glcm_ASM': ASM
+    })
+
+    # Guardar histogramas para plotagem
+    stats_dict['histogram'] = (hist, bin_edges)
+    stats_dict['cdf'] = (cdf, bin_edges[:-1])
+
+    return stats_dict
+
+def enhanced_statistics_tab(dicom_data, image_array):
+    st.subheader("Análise Estatística Avançada")
+
+    stats_dict = advanced_statistics(image_array)
+
+    # Mostrar métricas principais
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Média (HU)", f"{stats_dict['mean']:.2f}")
+    col1.metric("Mediana (HU)", f"{stats_dict['median']:.2f}")
+    col1.metric("Desvio Padrão", f"{stats_dict['std']:.2f}")
+    col2.metric("Assimetria", f"{stats_dict['skewness']:.2f}")
+    col2.metric("Curtose", f"{stats_dict['kurtosis']:.2f}")
+    col2.metric("Mínimo (HU)", f"{stats_dict['min']:.2f}")
+    col3.metric("Máximo (HU)", f"{stats_dict['max']:.2f}")
+    col3.metric("GLCM Contraste", f"{stats_dict['glcm_contrast']:.2f}")
+    col3.metric("GLCM Homogeneidade", f"{stats_dict['glcm_homogeneity']:.2f}")
+
+    # Histogramas
+    hist, bin_edges = stats_dict['histogram']
+    cdf, cdf_bins = stats_dict['cdf']
+
+    fig_hist = px.bar(x=bin_edges[:-1], y=hist, labels={'x':'Intensidade HU', 'y':'Densidade'}, title="Histograma de Intensidades")
+    st.plotly_chart(fig_hist, use_container_width=True)
+
+    fig_cdf = px.line(x=cdf_bins, y=cdf, labels={'x':'Intensidade HU', 'y':'CDF'}, title="Função de Distribuição Acumulada (CDF)")
+    st.plotly_chart(fig_cdf, use_container_width=True)
+
+    # Boxplot regional
+    regional_means = []
+    regional_stds = []
+    grid_size = 4
+    h, w = image_array.shape
+    h_step, w_step = h // grid_size, w // grid_size
+    for i in range(grid_size):
+        for j in range(grid_size):
+            region = image_array[i*h_step:(i+1)*h_step, j*w_step:(j+1)*w_step]
+            regional_means.append(np.mean(region))
+            regional_stds.append(np.std(region))
+
+    fig_box = go.Figure()
+    fig_box.add_trace(go.Box(y=regional_means, name='Médias Regionais'))
+    fig_box.add_trace(go.Box(y=regional_stds, name='Desvios Regionais'))
+    fig_box.update_layout(title="Boxplot de Estatísticas Regionais")
+    st.plotly_chart(fig_box, use_container_width=True)
+
+    # Salvar no session_state para relatório
+    st.session_state['advanced_stats'] = stats_dict
+
+# --- Análise Técnica ---
+def enhanced_technical_analysis_tab(dicom_data, image_array):
+    st.subheader("Análise Técnica")
+    st.markdown("### Metadados DICOM básicos")
+    patient_name = getattr(dicom_data, 'PatientName', 'Desconhecido')
+    study_date = getattr(dicom_data, 'StudyDate', 'Desconhecido')
+    modality = getattr(dicom_data, 'Modality', 'Desconhecido')
+    st.write(f"Paciente: {patient_name}")
+    st.write(f"Data do Estudo: {study_date}")
+    st.write(f"Modalidade: {modality}")
+
+# --- Qualidade ---
+def enhanced_quality_metrics_tab(dicom_data, image_array):
+    st.subheader("Métricas de Qualidade")
+    noise = np.std(image_array - ndimage.median_filter(image_array, size=3))
+    st.metric("Ruído Estimado", f"{noise:.2f}")
+    contrast = np.percentile(image_array, 75) - np.percentile(image_array, 25)
+    st.metric("Contraste Interquartil", f"{contrast:.2f}")
+
+# --- Análise Post-Mortem ---
 def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
     st.subheader("Análise Avançada Post-Mortem")
 
@@ -205,117 +358,9 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
     else:
         st.write("Nenhuma observação adicional.")
 
-# --- Aba RA-Index simplificada ---
+# --- RA-Index simplificada ---
 def enhanced_ra_index_tab(dicom_data, image_array):
     st.subheader("RA-Index - Análise de Risco Aprimorada")
-    # Exemplo simples: risco baseado em intensidade média regional
     grid_size = 8
     h, w = image_array.shape
-    h_step, w_step = h // grid_size, w // grid_size
-    ra_values = []
-    for i in range(grid_size):
-        for j in range(grid_size):
-            region = image_array[i*h_step:(i+1)*h_step, j*w_step:(j+1)*w_step]
-            mean_intensity = np.mean(region)
-            ra_values.append(mean_intensity)
-    ra_array = np.array(ra_values).reshape(grid_size, grid_size)
-    fig = go.Figure(data=go.Heatmap(z=ra_array, colorscale='RdYlBu_r', showscale=True))
-    fig.update_layout(title="Mapa RA-Index (média regional de HU)")
-    st.plotly_chart(fig, use_container_width=True)
-
-# --- Aba Relatórios (placeholder) ---
-def enhanced_reporting_tab(dicom_data, image_array, user_data):
-    st.subheader("Relatórios")
-    st.info("Funcionalidade de geração e download de relatórios será implementada aqui.")
-
-# --- Outras abas básicas ---
-def enhanced_visualization_tab(dicom_data, image_array):
-    st.subheader("Visualização Avançada")
-    st.image(image_array, clamp=True, channels="L", use_column_width=True)
-    st.markdown("Ajuste a janela Hounsfield:")
-    window_center = st.slider("Centro da Janela", int(np.min(image_array)), int(np.max(image_array)), int(np.mean(image_array)))
-    window_width = st.slider("Largura da Janela", 1, int(np.ptp(image_array)), int(np.ptp(image_array)//2))
-    windowed = apply_hounsfield_windowing(image_array, window_center, window_width)
-    st.image(windowed, clamp=True, channels="L", caption="Imagem com Janelamento Hounsfield", use_column_width=True)
-
-def apply_hounsfield_windowing(image, center, width):
-    min_val = center - width // 2
-    max_val = center + width // 2
-    windowed = np.clip(image, min_val, max_val)
-    windowed = ((windowed - min_val) / (max_val - min_val) * 255).astype(np.uint8)
-    return windowed
-
-def enhanced_statistics_tab(dicom_data, image_array):
-    st.subheader("Análise Estatística")
-    flat = image_array.flatten()
-    st.metric("Média (HU)", f"{np.mean(flat):.2f}")
-    st.metric("Mediana (HU)", f"{np.median(flat):.2f}")
-    st.metric("Desvio Padrão", f"{np.std(flat):.2f}")
-    st.metric("Mínimo (HU)", f"{np.min(flat):.2f}")
-    st.metric("Máximo (HU)", f"{np.max(flat):.2f}")
-    fig = px.histogram(flat, nbins=100, title="Histograma de Intensidades HU")
-    st.plotly_chart(fig, use_container_width=True)
-
-def enhanced_technical_analysis_tab(dicom_data, image_array):
-    st.subheader("Análise Técnica")
-    st.markdown("### Metadados DICOM básicos")
-    patient_name = getattr(dicom_data, 'PatientName', 'Desconhecido')
-    study_date = getattr(dicom_data, 'StudyDate', 'Desconhecido')
-    modality = getattr(dicom_data, 'Modality', 'Desconhecido')
-    st.write(f"Paciente: {patient_name}")
-    st.write(f"Data do Estudo: {study_date}")
-    st.write(f"Modalidade: {modality}")
-
-def enhanced_quality_metrics_tab(dicom_data, image_array):
-    st.subheader("Métricas de Qualidade")
-    noise = np.std(image_array - ndimage.median_filter(image_array, size=3))
-    st.metric("Ruído Estimado", f"{noise:.2f}")
-    contrast = np.percentile(image_array, 75) - np.percentile(image_array, 25)
-    st.metric("Contraste Interquartil", f"{contrast:.2f}")
-
-def display_basic_info(dicom_data, image_array):
-    st.header("Informações do Arquivo DICOM")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
-    with col2:
-        st.metric("Tipo de Dados", str(image_array.dtype))
-    with col3:
-        st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
-    with col4:
-        size_kb = len(dicom_data.PixelData) / 1024 if hasattr(dicom_data, 'PixelData') else 0
-        st.metric("Tamanho da Imagem", f"{size_kb:.1f} KB")
-
-def main():
-    st.title("DICOM Autopsy Viewer PRO - Enhanced")
-
-    dicom_data, image_array = upload_and_read_dicom()
-
-    if dicom_data is not None and image_array is not None:
-        display_basic_info(dicom_data, image_array)
-
-        tabs = st.tabs([
-            "Visualização", "Estatísticas", "Análise Técnica",
-            "Qualidade", "Análise Post-Mortem", "RA-Index", "Relatórios"
-        ])
-
-        with tabs[0]:
-            enhanced_visualization_tab(dicom_data, image_array)
-        with tabs[1]:
-            enhanced_statistics_tab(dicom_data, image_array)
-        with tabs[2]:
-            enhanced_technical_analysis_tab(dicom_data, image_array)
-        with tabs[3]:
-            enhanced_quality_metrics_tab(dicom_data, image_array)
-        with tabs[4]:
-            enhanced_post_mortem_analysis_tab(dicom_data, image_array)
-        with tabs[5]:
-            enhanced_ra_index_tab(dicom_data, image_array)
-        with tabs[6]:
-            enhanced_reporting_tab(dicom_data, image_array, st.session_state.get('user_data', {}))
-
-    else:
-        st.info("Por favor, carregue um arquivo DICOM válido na barra lateral para começar.")
-
-if __name__ == "__main__":
-    main()
+    h_step, w
