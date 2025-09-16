@@ -19,10 +19,15 @@ def main():
     uploaded_file = st.sidebar.file_uploader("Carregue um arquivo DICOM", type=['dcm', 'dicom'])
 
     if uploaded_file:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".dcm") as tmp:
-            tmp.write(uploaded_file.read())
-            dicom_data = pydicom.dcmread(tmp.name)
-        image_array = dicom_data.pixel_array
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".dcm") as tmp:
+                tmp.write(uploaded_file.read())
+                tmp.flush()
+                dicom_data = pydicom.dcmread(tmp.name)
+            image_array = dicom_data.pixel_array
+        except Exception as e:
+            st.error(f"Erro ao ler o arquivo DICOM: {e}")
+            return
 
         page = st.sidebar.selectbox("Selecione a página", [
             "Visualização",
