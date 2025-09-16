@@ -4,11 +4,6 @@ import plotly.graph_objects as go
 from datetime import datetime
 
 def simulate_body_cooling(image_array: np.ndarray) -> np.ndarray:
-    """
-    Simula a distribuição térmica corporal baseada na imagem DICOM.
-    :param image_array: Matriz 2D da imagem DICOM (HU).
-    :return: Matriz 2D simulando temperatura corporal (°C).
-    """
     hu_min, hu_max = np.min(image_array), np.max(image_array)
     normalized = (image_array - hu_min) / (hu_max - hu_min + 1e-8)
     center_y, center_x = np.array(image_array.shape) / 2
@@ -20,14 +15,6 @@ def simulate_body_cooling(image_array: np.ndarray) -> np.ndarray:
     return simulated_temp
 
 def estimate_pmi_from_cooling(thermal_map: np.ndarray, ambient_temp: float, body_mass: float, clothing: str) -> float:
-    """
-    Estima o intervalo post-mortem (IPM) baseado na simulação térmica.
-    :param thermal_map: Matriz 2D da temperatura simulada.
-    :param ambient_temp: Temperatura ambiente em °C.
-    :param body_mass: Massa corporal em kg.
-    :param clothing: Tipo de vestuário ("Leve", "Moderado", "Abrigado").
-    :return: Estimativa do IPM em horas.
-    """
     core_temp = np.max(thermal_map)
     temp_difference = core_temp - ambient_temp
     mass_factor = body_mass / 70
@@ -36,11 +23,6 @@ def estimate_pmi_from_cooling(thermal_map: np.ndarray, ambient_temp: float, body
     return max(0, min(pmi_hours, 48))
 
 def enhanced_post_mortem_analysis_tab(dicom_data, image_array: np.ndarray):
-    """
-    Aba Streamlit para análise post-mortem avançada.
-    :param dicom_data: Objeto pydicom com metadados.
-    :param image_array: Matriz 2D da imagem DICOM.
-    """
     st.header("🔬 Análise Avançada Post-Mortem")
 
     with st.expander("📚 Referências Científicas (Normas ABNT)"):
@@ -69,7 +51,6 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array: np.ndarray):
 
     st.markdown("---")
 
-    # Simulação térmica
     thermal_simulation = simulate_body_cooling(image_array)
 
     st.subheader("🌡️ Simulação de Distribuição Térmica Corporal")
@@ -82,12 +63,10 @@ def enhanced_post_mortem_analysis_tab(dicom_data, image_array: np.ndarray):
     fig.update_layout(height=450, margin=dict(l=20, r=20, t=40, b=20))
     st.plotly_chart(fig, use_container_width=True)
 
-    # Estimativa IPM
     if st.button("Calcular Intervalo Post-Mortem (IPM)"):
         ipm_estimate = estimate_pmi_from_cooling(thermal_simulation, ambient_temp, body_mass, clothing)
         st.success(f"Estimativa de IPM: **{ipm_estimate:.1f} horas**")
 
-        # Exibir gráfico de curva teórica de resfriamento
         hours = np.linspace(0, 48, 100)
         cooling_curve = ambient_temp + (thermal_simulation.max() - ambient_temp) * np.exp(-hours / (ipm_estimate + 1e-8))
         fig_curve = go.Figure()
