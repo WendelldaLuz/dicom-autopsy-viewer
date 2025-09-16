@@ -1,361 +1,161 @@
-import sqlite3
-import logging
-import pydicom
 import streamlit as st
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import pydicom
 import tempfile
 import os
-import json
+import logging
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime
-from io import BytesIO
-import hashlib
-import uuid
-import csv
-from scipy import stats
-from scipy.optimize import curve_fit
-from scipy import ndimage
-from skimage import feature
 
-# Optional imports with warnings
-try:
-    import cv2
-except ImportError:
-    st.warning("OpenCV não instalado. Algumas funcionalidades limitadas.")
-
-try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.utils import ImageReader
-except ImportError:
-    st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
-
-# --- Configurações iniciais ---
+# Configurações iniciais da página
 st.set_page_config(
-    page_title="DICOM Autopsy Viewer PRO - Enhanced",
+    page_title="DICOM Autopsy Viewer PRO",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# --- Banco de dados ---
-def safe_init_database():
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                role TEXT NOT NULL,
-                department TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS security_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_email TEXT,
-                action TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ip_address TEXT,
-                details TEXT
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_email TEXT,
-                report_name TEXT,
-                report_data BLOB,
-                generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                parameters TEXT
-            )
-        """)
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        logging.error(f"Erro ao inicializar base de dados: {e}")
-        return False
-
-def log_security_event(user_email, action, details=""):
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        ip_address = "127.0.0.1"
-        cursor.execute("""
-            INSERT INTO security_logs (user_email, action, ip_address, details)
-            VALUES (?, ?, ?, ?)
-        """, (user_email, action, ip_address, details))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        logging.error(f"Erro ao registrar evento de segurança: {e}")
-
-def save_report_to_db(user_email, report_name, report_data, parameters):
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO reports (user_email, report_name, report_data, parameters)
-            VALUES (?, ?, ?, ?)
-        """, (user_email, report_name, report_data, json.dumps(parameters)))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        logging.error(f"Erro ao salvar relatório: {e}")
-        return False
-
-def get_user_reports(user_email):
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, report_name, generated_at
-            FROM reports
-            WHERE user_email = ?
-            ORDER BY generated_at DESC
-        """, (user_email,))
-        reports = cursor.fetchall()
-        conn.close()
-        return reports
-    except Exception as e:
-        logging.error(f"Erro ao recuperar relatórios: {e}")
-        return []
-
-def save_user(name, email, role, department):
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO users (name, email, role, department)
-            VALUES (?, ?, ?, ?)
-        """, (name, email, role, department))
-        conn.commit()
-        conn.close()
-        return True
-    except sqlite3.IntegrityError:
-        st.error("Email já cadastrado. Por favor, use outro email.")
-        return False
-    except Exception as e:
-        st.error(f"Erro ao salvar usuário: {e}")
-        return False
-
-# --- CSS Tema ---
-def update_css_theme():
-    st.markdown("""
-    <style>
-    body, .main, .stApp {
-        background-color: #FFFFFF;
-        color: #000000;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6 {
-        color: #000000 !important;
-        font-weight: 600;
-    }
-    .stButton > button {
-        background-color: #000000 !important;
-        color: #FFFFFF !important;
-        border-radius: 4px;
-        padding: 0.5rem 1rem;
-        transition: all 0.3s ease;
-    }
-    .stButton > button:hover {
-        background-color: #333333 !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #000000 !important;
-        color: #FFFFFF !important;
-        border-bottom: 2px solid #000000;
-    }
-    .footer {
-        position: fixed;
-        bottom: 0;
-        right: 0;
-        background-color: #000000;
-        color: #FFFFFF;
-        padding: 8px 16px;
-        border-radius: 4px 0 0 0;
-        font-size: 0.8rem;
-        z-index: 1000;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-    <div class="footer">
-        DICOM Autopsy Viewer PRO v3.0 | Interface Profissional | © 2025
-    </div>
-    """, unsafe_allow_html=True)
-
-# --- Formulário de registro ---
-def show_user_form():
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1>DICOM Autopsy Viewer PRO</h1>
-        <h3>Sistema Avançado de Análise Forense Digital</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    with st.form("user_registration"):
-        name = st.text_input("Nome Completo *", placeholder="Dr. João Silva")
-        email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com")
-        col1, col2 = st.columns(2)
-        with col1:
-            role = st.selectbox("Função *", ["Radiologista", "Médico Legista", "Técnico em Radiologia", "Pesquisador", "Estudante", "Outro"])
-        with col2:
-            department = st.text_input("Departamento/Instituição", placeholder="Departamento de Radiologia")
-        with st.expander("Termos de Uso e Política de Privacidade"):
-            st.markdown("""
-            **Termos de Uso:**
-            1. Utilização autorizada apenas para fins educacionais e de pesquisa
-            2. Proibido o carregamento de dados de pacientes reais sem autorização apropriada
-            3. Compromisso com a confidencialidade das informações processadas
-            4. Os relatórios gerados são de responsabilidade do usuário
-            5. O sistema não armazena imagens médicas, apenas metadados anônimos
-
-            **Política de Privacidade:**
-            - Seus dados de registro são armazenados de forma segura
-            - As análises realizadas são confidenciais
-            - Metadados das imagens são anonimizados para análise estatística
-            - Relatórios gerados podem ser excluídos a qualquer momento
-            """)
-            terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
-        submitted = st.form_submit_button("Iniciar Sistema →")
-        if submitted:
-            if not all([name, email, terms_accepted]):
-                st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
-            else:
-                if save_user(name, email, role, department):
-                    st.session_state.user_data = {'name': name, 'email': email, 'role': role, 'department': department}
-                    log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
-                    st.success("Usuário registrado com sucesso!")
-                    st.experimental_rerun()
-
-# --- Função principal da aplicação ---
-def show_main_app():
-    user_data = st.session_state.user_data
-    with st.sidebar:
-        st.markdown(f"""
-        <div style="padding: 1rem; border-bottom: 1px solid #E0E0E0; margin-bottom: 1rem;">
-            <h3>{user_data['name']}</h3>
-            <p><strong>Função:</strong> {user_data['role']}</p>
-            <p><strong>Email:</strong> {user_data['email']}</p>
-            {f'<p><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("### Navegação")
-        uploaded_file = st.file_uploader(
-            "Selecione um arquivo DICOM:",
-            type=['dcm', 'dicom'],
-            help="Carregue um arquivo DICOM para análise forense avançada"
-        )
-        st.markdown("---")
-        st.markdown("### Relatórios Salvos")
-        user_reports = get_user_reports(user_data['email'])
-        if user_reports:
-            for report_id, report_name, generated_at in user_reports:
-                if st.button(f"{report_name} - {generated_at.split()[0]}", key=f"report_{report_id}"):
-                    st.session_state.selected_report = report_id
-        else:
-            st.info("Nenhum relatório salvo ainda.")
-        st.markdown("---")
-        with st.expander("Informações do Sistema"):
-            st.write("**Versão:** 3.0 Professional")
-            st.write("**Última Atualização:** 2025-09-15")
-            st.write("**Status:** Online")
-            st.write("**Armazenamento:** 2.5 GB disponíveis")
-        if st.button("Trocar Usuário", use_container_width=True):
-            st.session_state.user_data = None
-            st.experimental_rerun()
-
-    st.markdown(f"""
-    <div style="display: flex; align-items: center; margin-bottom: 2rem;">
-        <h1>DICOM Autopsy Viewer</h1>
-        <span style="background-color: #000; color: #fff; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
-            v3.0 Professional
-        </span>
-    </div>
-    <p>Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>
-    """, unsafe_allow_html=True)
-
+# --- Upload e leitura DICOM ---
+def upload_and_read_dicom():
+    uploaded_file = st.sidebar.file_uploader("Selecione um arquivo DICOM:", type=['dcm', 'dicom'])
     if uploaded_file is not None:
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".dcm") as tmp_file:
                 tmp_file.write(uploaded_file.read())
                 tmp_path = tmp_file.name
 
-            log_security_event(user_data['email'], "FILE_UPLOAD", f"Filename: {uploaded_file.name}")
+            dicom_data = pydicom.dcmread(tmp_path)
+            image_array = dicom_data.pixel_array
+
+            st.session_state['dicom_data'] = dicom_data
+            st.session_state['image_array'] = image_array
+            st.session_state['uploaded_file_name'] = uploaded_file.name
 
             try:
-                dicom_data = pydicom.dcmread(tmp_path)
-                image_array = dicom_data.pixel_array
+                os.unlink(tmp_path)
+            except Exception:
+                pass
 
-                st.session_state.dicom_data = dicom_data
-                st.session_state.image_array = image_array
-                st.session_state.uploaded_file_name = uploaded_file.name
+            return dicom_data, image_array
 
-                st.markdown("### Informações do Arquivo")
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
-                with col2:
-                    st.metric("Tipo de Dados", str(image_array.dtype))
-                with col3:
-                    st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
-                with col4:
-                    st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
-
-                # Aqui você pode chamar as funções para as abas, ex:
-                # enhanced_visualization_tab(dicom_data, image_array)
-                # enhanced_statistics_tab(dicom_data, image_array)
-                # enhanced_technical_analysis_tab(dicom_data, image_array)
-                # enhanced_quality_metrics_tab(dicom_data, image_array)
-                # enhanced_post_mortem_analysis_tab(dicom_data, image_array)
-                # enhanced_ra_index_tab(dicom_data, image_array)
-                # enhanced_reporting_tab(dicom_data, image_array, user_data)
-
-                st.info("Funcionalidades das abas devem ser implementadas conforme necessidade.")
-
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except Exception:
-                    pass
         except Exception as e:
-            st.error(f"Erro ao processar arquivo DICOM: {e}")
-            logging.error(f"Erro no processamento DICOM: {e}")
+            st.sidebar.error(f"Erro ao processar arquivo DICOM: {e}")
+            logging.error(f"Erro ao processar arquivo DICOM: {e}")
+            return None, None
     else:
-        st.info("Carregue um arquivo DICOM na sidebar para começar a análise.")
+        return None, None
+
+# --- Visualização ---
+def enhanced_visualization_tab(dicom_data, image_array):
+    st.subheader("Visualização Avançada")
+    st.image(image_array, clamp=True, channels="L", use_column_width=True)
+    st.markdown("Ajuste a janela Hounsfield:")
+    window_center = st.slider("Centro da Janela", int(np.min(image_array)), int(np.max(image_array)), int(np.mean(image_array)))
+    window_width = st.slider("Largura da Janela", 1, int(np.ptp(image_array)), int(np.ptp(image_array)//2))
+    windowed = apply_hounsfield_windowing(image_array, window_center, window_width)
+    st.image(windowed, clamp=True, channels="L", caption="Imagem com Janelamento Hounsfield", use_column_width=True)
+
+def apply_hounsfield_windowing(image, center, width):
+    min_val = center - width // 2
+    max_val = center + width // 2
+    windowed = np.clip(image, min_val, max_val)
+    windowed = ((windowed - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+    return windowed
+
+# --- Estatísticas ---
+def enhanced_statistics_tab(dicom_data, image_array):
+    st.subheader("Análise Estatística")
+    flat = image_array.flatten()
+    st.metric("Média (HU)", f"{np.mean(flat):.2f}")
+    st.metric("Mediana (HU)", f"{np.median(flat):.2f}")
+    st.metric("Desvio Padrão", f"{np.std(flat):.2f}")
+    st.metric("Mínimo (HU)", f"{np.min(flat):.2f}")
+    st.metric("Máximo (HU)", f"{np.max(flat):.2f}")
+    fig = px.histogram(flat, nbins=100, title="Histograma de Intensidades HU")
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- Análise Técnica ---
+def enhanced_technical_analysis_tab(dicom_data, image_array):
+    st.subheader("Análise Técnica")
+    st.write("Aqui você pode implementar análises técnicas detalhadas, como análise de ruído, compressão, etc.")
+    # Exemplo simples: mostrar metadados básicos
+    st.markdown("### Metadados DICOM básicos")
+    patient_name = getattr(dicom_data, 'PatientName', 'Desconhecido')
+    study_date = getattr(dicom_data, 'StudyDate', 'Desconhecido')
+    modality = getattr(dicom_data, 'Modality', 'Desconhecido')
+    st.write(f"Paciente: {patient_name}")
+    st.write(f"Data do Estudo: {study_date}")
+    st.write(f"Modalidade: {modality}")
+
+# --- Qualidade ---
+def enhanced_quality_metrics_tab(dicom_data, image_array):
+    st.subheader("Métricas de Qualidade")
+    noise = np.std(image_array - ndimage.median_filter(image_array, size=3))
+    st.metric("Ruído Estimado", f"{noise:.2f}")
+    contrast = np.percentile(image_array, 75) - np.percentile(image_array, 25)
+    st.metric("Contraste Interquartil", f"{contrast:.2f}")
+
+# --- Análise Post-Mortem ---
+def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
+    st.subheader("Análise Post-Mortem")
+    st.info("Funcionalidade avançada de análise post-mortem será implementada aqui.")
+
+# --- RA-Index ---
+def enhanced_ra_index_tab(dicom_data, image_array):
+    st.subheader("RA-Index")
+    st.info("Cálculo e visualização do RA-Index serão implementados aqui.")
+
+# --- Relatórios ---
+def enhanced_reporting_tab(dicom_data, image_array, user_data):
+    st.subheader("Relatórios")
+    st.info("Geração, visualização e download de relatórios serão implementados aqui.")
 
 # --- Main ---
 def main():
-    if 'user_data' not in st.session_state:
-        st.session_state.user_data = None
-    if 'dicom_data' not in st.session_state:
-        st.session_state.dicom_data = None
-    if 'image_array' not in st.session_state:
-        st.session_state.image_array = None
-    if 'current_report' not in st.session_state:
-        st.session_state.current_report = None
+    st.title("DICOM Autopsy Viewer PRO - Enhanced")
 
-    if not safe_init_database():
-        st.error("Erro crítico: Não foi possível inicializar o sistema. Contate o administrador.")
-        return
+    dicom_data, image_array = upload_and_read_dicom()
 
-    update_css_theme()
+    if dicom_data is not None and image_array is not None:
+        display_basic_info(dicom_data, image_array)
 
-    if st.session_state.user_data is None:
-        show_user_form()
+        tabs = st.tabs([
+            "Visualização", "Estatísticas", "Análise Técnica",
+            "Qualidade", "Análise Post-Mortem", "RA-Index", "Relatórios"
+        ])
+
+        with tabs[0]:
+            enhanced_visualization_tab(dicom_data, image_array)
+        with tabs[1]:
+            enhanced_statistics_tab(dicom_data, image_array)
+        with tabs[2]:
+            enhanced_technical_analysis_tab(dicom_data, image_array)
+        with tabs[3]:
+            enhanced_quality_metrics_tab(dicom_data, image_array)
+        with tabs[4]:
+            enhanced_post_mortem_analysis_tab(dicom_data, image_array)
+        with tabs[5]:
+            enhanced_ra_index_tab(dicom_data, image_array)
+        with tabs[6]:
+            enhanced_reporting_tab(dicom_data, image_array, st.session_state.get('user_data', {}))
+
     else:
-        show_main_app()
+        st.info("Por favor, carregue um arquivo DICOM válido na barra lateral para começar.")
+
+def display_basic_info(dicom_data, image_array):
+    st.header("Informações do Arquivo DICOM")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
+    with col2:
+        st.metric("Tipo de Dados", str(image_array.dtype))
+    with col3:
+        st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
+    with col4:
+        size_kb = len(dicom_data.PixelData) / 1024 if hasattr(dicom_data, 'PixelData') else 0
+        st.metric("Tamanho da Imagem", f"{size_kb:.1f} KB")
 
 if __name__ == "__main__":
     main()
