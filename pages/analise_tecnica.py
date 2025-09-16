@@ -1,9 +1,13 @@
 import streamlit as st
-import numpy as np
+
+def enhanced_technical_analysis_tab(dicom_data, image_array):
+    st.subheader("Análise Técnica Forense Avançada")
+    st.write("Aqui você pode implementar análise técnica detalhada, incluindo metadados, integridade e artefatos.")
+    if hasattr(dicom_data, 'PatientName'):
+        st.write(f"Paciente: {dicom_data.PatientName}")
+    else:
+        st.write("Metadados do paciente não disponíveis.")
 
 def show(dicom_data, image_array):
-    st.header("Análise Técnica Forense")
-    st.write("Aqui você pode adicionar análises técnicas avançadas da imagem DICOM.")
-    # Exemplo simples: mostrar estatísticas básicas técnicas
-    st.metric("Média da Imagem", f"{np.mean(image_array):.2f}")
-    st.metric("Desvio Padrão", f"{np.std(image_array):.2f}")
+    st.title("Análise Técnica")
+    enhanced_technical_analysis_tab(dicom_data, image_array)
