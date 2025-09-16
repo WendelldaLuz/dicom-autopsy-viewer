@@ -3,64 +3,21 @@ import logging
 import pydicom
 import streamlit as st
 import numpy as np
-import pandas as pd
-from PIL import Image
-import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import tempfile
 import os
 import json
 from datetime import datetime
-from io import BytesIO
-import hashlib
-import uuid
-import csv
-from skimage import feature
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.application import MIMEApplication
-import warnings
-import socket
-import base64
-import colorsys
-import scipy.stats as stats
-from scipy.optimize import curve_fit
-from scipy import ndimage
-import matplotlib.cm as cm
-from matplotlib.colors import LinearSegmentedColormap
 
-try:
-    import cv2
-except ImportError:
-    st.warning("OpenCV não instalado. Algumas funcionalidades de processamento de imagem limitadas.")
+# Configurações iniciais
+st.set_page_config(
+    page_title="DICOM Autopsy Viewer PRO",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.utils import ImageReader
-except ImportError:
-    st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
+# Configura logging básico
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-warnings.filterwarnings('ignore')
-plt.style.use('seaborn-v0_8-whitegrid')
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Times New Roman']
-plt.rcParams['font.size'] = 12
-
-# --- Funções auxiliares e principais (exemplos simplificados) ---
-
-def setup_matplotlib_for_plotting():
-    import matplotlib
-    matplotlib.use("Agg")
-    plt.rcParams["axes.unicode_minus"] = False
-
-# Funções para análise, visualização, relatórios, banco de dados, etc.
-# (Use as funções do seu código original, corrigidas e organizadas)
-
-# Exemplo: função para inicializar banco de dados SQLite
 def safe_init_database():
     try:
         conn = sqlite3.connect("dicom_viewer.db")
@@ -69,7 +26,7 @@ def safe_init_database():
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                email TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
                 role TEXT NOT NULL,
                 department TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -106,7 +63,7 @@ def log_security_event(user_email, action, details=""):
     try:
         conn = sqlite3.connect("dicom_viewer.db")
         cursor = conn.cursor()
-        ip_address = "127.0.0.1"  # Pode ser substituído por IP real se desejado
+        ip_address = "127.0.0.1"  # Pode ser substituído por IP real
         cursor.execute("""
             INSERT INTO security_logs (user_email, action, ip_address, details)
             VALUES (?, ?, ?, ?)
@@ -115,21 +72,6 @@ def log_security_event(user_email, action, details=""):
         conn.close()
     except Exception as e:
         logging.error(f"Erro ao registrar evento de segurança: {e}")
-
-def save_report_to_db(user_email, report_name, report_data, parameters):
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO reports (user_email, report_name, report_data, parameters)
-            VALUES (?, ?, ?, ?)
-        """, (user_email, report_name, report_data, json.dumps(parameters)))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        logging.error(f"Erro ao salvar relatório: {e}")
-        return False
 
 def get_user_reports(user_email):
     try:
@@ -148,63 +90,27 @@ def get_user_reports(user_email):
         logging.error(f"Erro ao recuperar relatórios: {e}")
         return []
 
-# Funções para interface Streamlit (formulário, upload, abas, etc.)
-
-def show_user_form():
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: #000000; font-size: 2.5rem; margin-bottom: 0.5rem;">DICOM Autopsy Viewer PRO</h1>
-        <h3 style="color: #666666; font-weight: 400;">Sistema Avançado de Análise Forense Digital</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    with st.form("user_registration"):
-        name = st.text_input("Nome Completo *", placeholder="Dr. João Silva", help="Informe seu nome completo")
-        email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com", help="Utilize email institucional para registro")
-        col1, col2 = st.columns(2)
-        with col1:
-            role = st.selectbox("Função *", ["Radiologista", "Médico Legista", "Técnico em Radiologia", "Pesquisador", "Estudante", "Outro"], help="Selecione sua função principal")
-        with col2:
-            department = st.text_input("Departamento/Instituição", placeholder="Departamento de Radiologia", help="Informe seu departamento ou instituição")
-        with st.expander("Termos de Uso e Política de Privacidade"):
-            st.markdown("""
-            **Termos de Uso:**
-            1. Utilização autorizada apenas para fins educacionais e de pesquisa
-            2. Proibido o carregamento de dados de pacientes reais sem autorização apropriada
-            3. Compromisso com a confidencialidade das informações processadas
-            4. Os relatórios gerados são de responsabilidade do usuário
-            5. O sistema não armazena imagens médicas, apenas metadados anônimos
-            **Política de Privacidade:**
-            - Seus dados de registro são armazenados de forma segura
-            - As análises realizadas são confidenciais
-            - Metadados das imagens são anonimizados para análise estatística
-            - Relatórios gerados podem ser excluídos a qualquer momento
-            """)
-            terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
-        submitted = st.form_submit_button("Iniciar Sistema →")
-        if submitted:
-            if not all([name, email, terms_accepted]):
-                st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
-            else:
-                try:
-                    conn = sqlite3.connect("dicom_viewer.db")
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO users (name, email, role, department)
-                        VALUES (?, ?, ?, ?)
-                    """, (name, email, role, department))
-                    conn.commit()
-                    conn.close()
-                    st.session_state.user_data = {'name': name, 'email': email, 'role': role, 'department': department}
-                    log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
-                    st.success("Usuário registrado com sucesso!")
-                    st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"Erro ao registrar usuário: {e}")
+def save_user(name, email, role, department):
+    try:
+        conn = sqlite3.connect("dicom_viewer.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO users (name, email, role, department)
+            VALUES (?, ?, ?, ?)
+        """, (name, email, role, department))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        st.error("Email já cadastrado. Por favor, use outro email.")
+        return False
+    except Exception as e:
+        st.error(f"Erro ao salvar usuário: {e}")
+        return False
 
 def update_css_theme():
     st.markdown("""
     <style>
-    /* CSS para tema claro e profissional */
     body, .main, .stApp {
         background-color: #FFFFFF;
         color: #000000;
@@ -248,15 +154,57 @@ def update_css_theme():
     </div>
     """, unsafe_allow_html=True)
 
+def show_user_form():
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1>DICOM Autopsy Viewer PRO</h1>
+        <h3>Sistema Avançado de Análise Forense Digital</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    with st.form("user_registration"):
+        name = st.text_input("Nome Completo *", placeholder="Dr. João Silva")
+        email = st.text_input("Email Institucional *", placeholder="joao.silva@hospital.com")
+        col1, col2 = st.columns(2)
+        with col1:
+            role = st.selectbox("Função *", ["Radiologista", "Médico Legista", "Técnico em Radiologia", "Pesquisador", "Estudante", "Outro"])
+        with col2:
+            department = st.text_input("Departamento/Instituição", placeholder="Departamento de Radiologia")
+        with st.expander("Termos de Uso e Política de Privacidade"):
+            st.markdown("""
+            **Termos de Uso:**
+            1. Utilização autorizada apenas para fins educacionais e de pesquisa
+            2. Proibido o carregamento de dados de pacientes reais sem autorização apropriada
+            3. Compromisso com a confidencialidade das informações processadas
+            4. Os relatórios gerados são de responsabilidade do usuário
+            5. O sistema não armazena imagens médicas, apenas metadados anônimos
+
+            **Política de Privacidade:**
+            - Seus dados de registro são armazenados de forma segura
+            - As análises realizadas são confidenciais
+            - Metadados das imagens são anonimizados para análise estatística
+            - Relatórios gerados podem ser excluídos a qualquer momento
+            """)
+            terms_accepted = st.checkbox("Eu concordo com os termos de uso e política de privacidade")
+        submitted = st.form_submit_button("Iniciar Sistema →")
+        if submitted:
+            if not all([name, email, terms_accepted]):
+                st.error("Por favor, preencha todos os campos obrigatórios e aceite os termos de uso.")
+            else:
+                if save_user(name, email, role, department):
+                    st.session_state.user_data = {'name': name, 'email': email, 'role': role, 'department': department}
+                    log_security_event(email, "USER_REGISTRATION", f"Role: {role}")
+                    st.success("Usuário registrado com sucesso!")
+                    st.experimental_rerun()
+
 def show_main_app():
     user_data = st.session_state.user_data
     with st.sidebar:
         st.markdown(f"""
         <div style="padding: 1rem; border-bottom: 1px solid #E0E0E0; margin-bottom: 1rem;">
-            <h3 style="color: #000000; margin-bottom: 0.5rem;">{user_data['name']}</h3>
-            <p style="color: #666666; margin: 0;"><strong>Função:</strong> {user_data['role']}</p>
-            <p style="color: #666666; margin: 0;"><strong>Email:</strong> {user_data['email']}</p>
-            {f'<p style="color: #666666; margin: 0;"><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
+            <h3>{user_data['name']}</h3>
+            <p><strong>Função:</strong> {user_data['role']}</p>
+            <p><strong>Email:</strong> {user_data['email']}</p>
+            {f'<p><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
         </div>
         """, unsafe_allow_html=True)
         st.markdown("### Navegação")
@@ -286,12 +234,12 @@ def show_main_app():
 
     st.markdown(f"""
     <div style="display: flex; align-items: center; margin-bottom: 2rem;">
-        <h1 style="color: #000000; margin-right: 1rem; margin-bottom: 0;">DICOM Autopsy Viewer</h1>
-        <span style="background-color: #000000; color: #FFFFFF; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+        <h1>DICOM Autopsy Viewer</h1>
+        <span style="background-color: #000; color: #fff; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
             v3.0 Professional
         </span>
     </div>
-    <p style="color: #666666; margin-bottom: 2rem;">Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>
+    <p>Bem-vindo, <strong>{user_data['name']}</strong>! Utilize as ferramentas abaixo para análise forense avançada de imagens DICOM.</p>
     """, unsafe_allow_html=True)
 
     if uploaded_file is not None:
@@ -306,6 +254,7 @@ def show_main_app():
                 st.session_state.dicom_data = dicom_data
                 st.session_state.image_array = image_array
                 st.session_state.uploaded_file_name = uploaded_file.name
+
                 st.markdown("### Informações do Arquivo")
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
@@ -316,15 +265,13 @@ def show_main_app():
                     st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
                 with col4:
                     st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
-                # Aqui você pode chamar as funções para as abas, por exemplo:
+
+                st.info("Funcionalidades das abas devem ser implementadas conforme necessidade.")
+                # Aqui você pode chamar as funções para as abas, ex:
                 # enhanced_visualization_tab(dicom_data, image_array)
                 # enhanced_statistics_tab(dicom_data, image_array)
-                # enhanced_technical_analysis_tab(dicom_data, image_array)
-                # enhanced_quality_metrics_tab(dicom_data, image_array)
-                # enhanced_post_mortem_analysis_tab(dicom_data, image_array)
-                # enhanced_ra_index_tab(dicom_data, image_array)
-                # enhanced_reporting_tab(dicom_data, image_array, user_data)
-                st.info("Funcionalidades das abas devem ser implementadas conforme necessidade.")
+                # etc.
+
             finally:
                 try:
                     os.unlink(tmp_path)
@@ -345,8 +292,6 @@ def main():
         st.session_state.image_array = None
     if 'current_report' not in st.session_state:
         st.session_state.current_report = None
-
-    setup_matplotlib_for_plotting()
 
     if not safe_init_database():
         st.error("Erro crítico: Não foi possível inicializar o sistema. Contate o administrador.")
