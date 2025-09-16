@@ -153,7 +153,7 @@ def get_user_reports(user_email):
         return []
 
 def enhanced_reporting_tab(dicom_data, image_array, user_data):
-    st.header(" Relatórios Completos")
+    st.header("📄 Relatórios Completos")
 
     report_tab1, report_tab2, report_tab3 = st.tabs(["Gerar Relatório", "Relatórios Salvos", "Configurações"])
 
