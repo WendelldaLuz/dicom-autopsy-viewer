@@ -1,7 +1,15 @@
 import streamlit as st
 import tempfile
 import pydicom
-from pages import visualizacao, estatisticas, analise_tecnica, qualidade, analise_post_mortem  # Importar todas as páginas
+from pages import (
+    visualizacao,
+    estatisticas,
+    analise_tecnica,
+    qualidade,
+    analise_post_mortem,
+    ra_index,
+    relatorios
+)  # Importar todas as páginas
 
 def main():
     st.set_page_config(page_title="DICOM Autopsy Viewer PRO", layout="wide")
@@ -21,7 +29,9 @@ def main():
             "Estatísticas",
             "Análise Técnica",
             "Qualidade",
-            "Análise Post-Mortem"
+            "Análise Post-Mortem",
+            "RA Index",
+            "Relatórios"
         ])
 
         if page == "Visualização":
@@ -34,6 +44,10 @@ def main():
             qualidade.show(dicom_data, image_array)
         elif page == "Análise Post-Mortem":
             analise_post_mortem.show(dicom_data, image_array)
+        elif page == "RA Index":
+            ra_index.show(dicom_data, image_array)
+        elif page == "Relatórios":
+            relatorios.show(dicom_data, image_array)
     else:
         st.info("Por favor, carregue um arquivo DICOM para começar.")
 
