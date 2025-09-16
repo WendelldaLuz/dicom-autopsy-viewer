@@ -6,16 +6,10 @@ import logging
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
-from scipy import ndimage, stats
+from scipy import ndimage
 from skimage import feature
 from skimage.feature import greycomatrix, greycoprops
 from scipy.stats import skew, kurtosis
-from io import BytesIO
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-import matplotlib.pyplot as plt
 
 # Configurações iniciais da página
 st.set_page_config(
@@ -272,95 +266,14 @@ def enhanced_statistics_tab(dicom_data, image_array):
     # Salvar no session_state para relatório
     st.session_state['advanced_stats'] = stats_dict
 
-# --- Análise Técnica ---
-def enhanced_technical_analysis_tab(dicom_data, image_array):
-    st.subheader("Análise Técnica")
-    st.markdown("### Metadados DICOM básicos")
-    patient_name = getattr(dicom_data, 'PatientName', 'Desconhecido')
-    study_date = getattr(dicom_data, 'StudyDate', 'Desconhecido')
-    modality = getattr(dicom_data, 'Modality', 'Desconhecido')
-    st.write(f"Paciente: {patient_name}")
-    st.write(f"Data do Estudo: {study_date}")
-    st.write(f"Modalidade: {modality}")
+# --- Função principal do app ---
+def main():
+    dicom_data, image_array = upload_and_read_dicom()
+    if dicom_data is not None and image_array is not None:
+        st.title("DICOM Autopsy Viewer PRO")
+        enhanced_visualization_tab(dicom_data, image_array)
+        enhanced_statistics_tab(dicom_data, image_array)
+        # Aqui você pode chamar outras abas e funções conforme desejar
 
-# --- Qualidade ---
-def enhanced_quality_metrics_tab(dicom_data, image_array):
-    st.subheader("Métricas de Qualidade")
-    noise = np.std(image_array - ndimage.median_filter(image_array, size=3))
-    st.metric("Ruído Estimado", f"{noise:.2f}")
-    contrast = np.percentile(image_array, 75) - np.percentile(image_array, 25)
-    st.metric("Contraste Interquartil", f"{contrast:.2f}")
-
-# --- Análise Post-Mortem ---
-def enhanced_post_mortem_analysis_tab(dicom_data, image_array):
-    st.subheader("Análise Avançada Post-Mortem")
-
-    ambient_temp = st.slider("Temperatura Ambiente (°C)", 10, 40, 25)
-    body_mass = st.slider("Massa Corporal (kg)", 40, 120, 70)
-    clothing = st.select_slider("Vestuário", options=["Leve", "Moderado", "Abrigado"], value="Moderado")
-
-    thermal_simulation = simulate_body_cooling(image_array)
-    blood_pooling_map = detect_blood_pooling(image_array)
-    muscle_mask = segment_muscle_tissue(image_array)
-    muscle_density = calculate_muscle_density(image_array, muscle_mask)
-    gas_map = detect_putrefaction_gases(image_array)
-    conservation_map = analyze_conservation_features(image_array)
-
-    ipm_algor = estimate_pmi_from_cooling(thermal_simulation, ambient_temp, body_mass, clothing)
-    fixation_ratio = assess_livor_fixation(blood_pooling_map)
-    rigor_stage = estimate_rigor_stage(muscle_density)
-    putrefaction_stage = classify_putrefaction_stage(image_array)
-    conservation_type = classify_conservation_type(image_array)
-
-    st.markdown(f"### Estimativa de Intervalo Post-Mortem (IPM)")
-    st.metric("Por Algor Mortis (Esfriamento)", f"{ipm_algor:.1f} horas")
-
-    st.markdown(f"### Fenômenos Cadavéricos")
-    st.write(f"- Livor Mortis (fixação): {fixation_ratio:.2f}")
-    st.write(f"- Rigor Mortis (estágio): {rigor_stage}")
-    st.write(f"- Putrefação (estágio): {putrefaction_stage}")
-    st.write(f"- Fenômenos Conservadores: {conservation_type}")
-
-    st.markdown("### Mapas de Análise")
-    col1, col2 = st.columns(2)
-    with col1:
-        fig1 = go.Figure(data=go.Heatmap(z=thermal_simulation, colorscale='jet', showscale=True))
-        fig1.update_layout(title="Simulação de Distribuição Térmica")
-        st.plotly_chart(fig1, use_container_width=True)
-    with col2:
-        fig2 = go.Figure(data=go.Heatmap(z=blood_pooling_map, colorscale='hot', showscale=True))
-        fig2.update_layout(title="Mapa de Acúmulo Sanguíneo (Livor Mortis)")
-        st.plotly_chart(fig2, use_container_width=True)
-
-    col3, col4 = st.columns(2)
-    with col3:
-        fig3 = go.Figure(data=go.Heatmap(z=muscle_mask, colorscale='gray', showscale=False))
-        fig3.update_layout(title="Segmentação de Tecido Muscular")
-        st.plotly_chart(fig3, use_container_width=True)
-    with col4:
-        fig4 = go.Figure(data=go.Heatmap(z=gas_map, colorscale='viridis', showscale=True))
-        fig4.update_layout(title="Mapa de Gases de Putrefação")
-        st.plotly_chart(fig4, use_container_width=True)
-
-    st.markdown("### Observações")
-    notes = []
-    if ipm_algor > 24:
-        notes.append("Esfriamento sugere IPM prolongado.")
-    if fixation_ratio > 0.7:
-        notes.append("Hipóstase fixa indica corpo não movido após 12h.")
-    if putrefaction_stage == "gasoso":
-        notes.append("Presença significativa de gases de putrefação.")
-    if conservation_type != "none":
-        notes.append(f"Evidências de {conservation_type} detectadas.")
-    if notes:
-        for note in notes:
-            st.write(f"- {note}")
-    else:
-        st.write("Nenhuma observação adicional.")
-
-# --- RA-Index simplificada ---
-def enhanced_ra_index_tab(dicom_data, image_array):
-    st.subheader("RA-Index - Análise de Risco Aprimorada")
-    grid_size = 8
-    h, w = image_array.shape
-    h_step, w
+if __name__ == "__main__":
+    main()
