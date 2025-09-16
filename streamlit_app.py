@@ -5,18 +5,19 @@ import streamlit as st
 import numpy as np
 import tempfile
 import os
-import json
 from datetime import datetime
 
-# Configurações iniciais
+# Configurações iniciais da página
 st.set_page_config(
     page_title="DICOM Autopsy Viewer PRO",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Configura logging básico
+# Configuração básica de logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# --- Banco de dados ---
 
 def safe_init_database():
     try:
@@ -73,23 +74,6 @@ def log_security_event(user_email, action, details=""):
     except Exception as e:
         logging.error(f"Erro ao registrar evento de segurança: {e}")
 
-def get_user_reports(user_email):
-    try:
-        conn = sqlite3.connect("dicom_viewer.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, report_name, generated_at
-            FROM reports
-            WHERE user_email = ?
-            ORDER BY generated_at DESC
-        """, (user_email,))
-        reports = cursor.fetchall()
-        conn.close()
-        return reports
-    except Exception as e:
-        logging.error(f"Erro ao recuperar relatórios: {e}")
-        return []
-
 def save_user(name, email, role, department):
     try:
         conn = sqlite3.connect("dicom_viewer.db")
@@ -107,6 +91,25 @@ def save_user(name, email, role, department):
     except Exception as e:
         st.error(f"Erro ao salvar usuário: {e}")
         return False
+
+def get_user_reports(user_email):
+    try:
+        conn = sqlite3.connect("dicom_viewer.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, report_name, generated_at
+            FROM reports
+            WHERE user_email = ?
+            ORDER BY generated_at DESC
+        """, (user_email,))
+        reports = cursor.fetchall()
+        conn.close()
+        return reports
+    except Exception as e:
+        logging.error(f"Erro ao recuperar relatórios: {e}")
+        return []
+
+# --- CSS para tema claro e profissional ---
 
 def update_css_theme():
     st.markdown("""
@@ -154,6 +157,8 @@ def update_css_theme():
     </div>
     """, unsafe_allow_html=True)
 
+# --- Formulário de registro de usuário ---
+
 def show_user_form():
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
@@ -196,6 +201,8 @@ def show_user_form():
                     st.success("Usuário registrado com sucesso!")
                     st.experimental_rerun()
 
+# --- Tela principal após login ---
+
 def show_main_app():
     user_data = st.session_state.user_data
     with st.sidebar:
@@ -207,12 +214,14 @@ def show_main_app():
             {f'<p><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
         </div>
         """, unsafe_allow_html=True)
+
         st.markdown("### Navegação")
         uploaded_file = st.file_uploader(
             "Selecione um arquivo DICOM:",
             type=['dcm', 'dicom'],
             help="Carregue um arquivo DICOM para análise forense avançada"
         )
+
         st.markdown("---")
         st.markdown("### Relatórios Salvos")
         user_reports = get_user_reports(user_data['email'])
@@ -222,12 +231,14 @@ def show_main_app():
                     st.session_state.selected_report = report_id
         else:
             st.info("Nenhum relatório salvo ainda.")
+
         st.markdown("---")
         with st.expander("Informações do Sistema"):
             st.write("**Versão:** 3.0 Professional")
             st.write("**Última Atualização:** 2025-09-15")
             st.write("**Status:** Online")
             st.write("**Armazenamento:** 2.5 GB disponíveis")
+
         if st.button("Trocar Usuário", use_container_width=True):
             st.session_state.user_data = None
             st.experimental_rerun()
@@ -247,10 +258,13 @@ def show_main_app():
             with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
                 tmp_file.write(uploaded_file.read())
                 tmp_path = tmp_file.name
+
             log_security_event(user_data['email'], "FILE_UPLOAD", f"Filename: {uploaded_file.name}")
+
             try:
                 dicom_data = pydicom.dcmread(tmp_path)
                 image_array = dicom_data.pixel_array
+
                 st.session_state.dicom_data = dicom_data
                 st.session_state.image_array = image_array
                 st.session_state.uploaded_file_name = uploaded_file.name
@@ -266,22 +280,26 @@ def show_main_app():
                 with col4:
                     st.metric("Tamanho do Arquivo", f"{uploaded_file.size / 1024:.1f} KB")
 
-                st.info("Funcionalidades das abas devem ser implementadas conforme necessidade.")
                 # Aqui você pode chamar as funções para as abas, ex:
                 # enhanced_visualization_tab(dicom_data, image_array)
                 # enhanced_statistics_tab(dicom_data, image_array)
                 # etc.
+
+                st.info("Funcionalidades das abas devem ser implementadas conforme necessidade.")
 
             finally:
                 try:
                     os.unlink(tmp_path)
                 except Exception:
                     pass
+
         except Exception as e:
             st.error(f"Erro ao processar arquivo DICOM: {e}")
             logging.error(f"Erro no processamento DICOM: {e}")
     else:
         st.info("Carregue um arquivo DICOM na sidebar para começar a análise.")
+
+# --- Main ---
 
 def main():
     if 'user_data' not in st.session_state:
