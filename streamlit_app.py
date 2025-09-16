@@ -7,6 +7,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+from scipy import ndimage  # Import corrigido para evitar NameError
 
 # Configurações iniciais da página
 st.set_page_config(
@@ -112,6 +113,20 @@ def enhanced_reporting_tab(dicom_data, image_array, user_data):
     st.subheader("Relatórios")
     st.info("Geração, visualização e download de relatórios serão implementados aqui.")
 
+# --- Exibir informações básicas ---
+def display_basic_info(dicom_data, image_array):
+    st.header("Informações do Arquivo DICOM")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
+    with col2:
+        st.metric("Tipo de Dados", str(image_array.dtype))
+    with col3:
+        st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
+    with col4:
+        size_kb = len(dicom_data.PixelData) / 1024 if hasattr(dicom_data, 'PixelData') else 0
+        st.metric("Tamanho da Imagem", f"{size_kb:.1f} KB")
+
 # --- Main ---
 def main():
     st.title("DICOM Autopsy Viewer PRO - Enhanced")
@@ -143,19 +158,6 @@ def main():
 
     else:
         st.info("Por favor, carregue um arquivo DICOM válido na barra lateral para começar.")
-
-def display_basic_info(dicom_data, image_array):
-    st.header("Informações do Arquivo DICOM")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Dimensões", f"{image_array.shape[0]} × {image_array.shape[1]}")
-    with col2:
-        st.metric("Tipo de Dados", str(image_array.dtype))
-    with col3:
-        st.metric("Faixa de Valores", f"{image_array.min()} → {image_array.max()}")
-    with col4:
-        size_kb = len(dicom_data.PixelData) / 1024 if hasattr(dicom_data, 'PixelData') else 0
-        st.metric("Tamanho da Imagem", f"{size_kb:.1f} KB")
 
 if __name__ == "__main__":
     main()
