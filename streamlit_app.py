@@ -28,14 +28,22 @@ def load_dicom_files(uploaded_files):
     dicom_datasets = []
     image_arrays = []
     for uploaded_file in uploaded_files:
+        # Cria arquivo temporário para leitura com pydicom
         with tempfile.NamedTemporaryFile(delete=False, suffix='.dcm') as tmp_file:
             tmp_file.write(uploaded_file.read())
             tmp_path = tmp_file.name
-        dicom_data = pydicom.dcmread(tmp_path)
-        image_array = dicom_data.pixel_array
+        try:
+            dicom_data = pydicom.dcmread(tmp_path)
+            image_array = dicom_data.pixel_array
+        except Exception as e:
+            st.error(f"Erro ao ler arquivo DICOM {uploaded_file.name}: {e}")
+            continue
+        finally:
+            os.unlink(tmp_path)  # Remove arquivo temporário
+
         dicom_datasets.append(dicom_data)
         image_arrays.append(image_array)
-        os.unlink(tmp_path)
+
     return dicom_datasets, image_arrays
 
 def main():
@@ -53,6 +61,10 @@ def main():
             uploaded_files = uploaded_files[:10]
 
         dicom_datasets, image_arrays = load_dicom_files(uploaded_files)
+
+        if not dicom_datasets:
+            st.warning("Nenhum arquivo DICOM válido foi carregado.")
+            return
 
         selected_index = st.sidebar.selectbox(
             "Selecione a imagem para análise",
