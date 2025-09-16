@@ -176,3 +176,34 @@ def enhanced_reporting_tab(dicom_data, image_array, user_data):
 
         if st.button("Gerar Relatório Completo", type="primary", use_container_width=True):
             with st.spinner("Gerando relatório..."):
+                # Exemplo de geração de relatório (substitua pela sua lógica real)
+                report_data = {
+                    "report_id": str(uuid.uuid4()),
+                    "generated_at": datetime.now().isoformat(),
+                    "Metadados": dicom_data.get("metadata", {}),
+                    "Estatísticas": dicom_data.get("statistics", {}),
+                    "Análise Técnica": dicom_data.get("technical_analysis", {}),
+                    "Qualidade": dicom_data.get("quality", {}),
+                    "Análise Post-Mortem": dicom_data.get("post_mortem_analysis", {}),
+                    "RA-Index": dicom_data.get("ra_index", {}),
+                }
+
+                # Gerar arquivo conforme formato escolhido
+                if format_option == "PDF":
+                    report_file = generate_pdf_report(report_data, report_name)
+                    file_ext = "pdf"
+                elif format_option == "HTML":
+                    report_file = generate_html_report(report_data, report_name)
+                    file_ext = "html"
+                else:
+                    report_file = generate_csv_report(report_data, report_name)
+                    file_ext = "csv"
+
+                # Botão para download
+                st.download_button(
+                    label=f"Download do Relatório ({file_ext.upper()})",
+                    data=report_file,
+                    file_name=f"{report_name}.{file_ext}",
+                    mime=f"application/{file_ext}"
+                )
+                st.success("Relatório gerado com sucesso!")
