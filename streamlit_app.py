@@ -3,22 +3,47 @@ import logging
 import pydicom
 import streamlit as st
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import tempfile
 import os
+import json
 from datetime import datetime
+from io import BytesIO
+import hashlib
+import uuid
+import csv
+from scipy import stats
+from scipy.optimize import curve_fit
+from scipy import ndimage
+from skimage import feature
 
-# Configurações iniciais da página
+# Optional imports with warnings
+try:
+    import cv2
+except ImportError:
+    st.warning("OpenCV não instalado. Algumas funcionalidades limitadas.")
+
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.utils import ImageReader
+except ImportError:
+    st.warning("ReportLab não instalado. Funcionalidade de PDF limitada.")
+
+# --- Configurações iniciais ---
 st.set_page_config(
-    page_title="DICOM Autopsy Viewer PRO",
+    page_title="DICOM Autopsy Viewer PRO - Enhanced",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Configuração básica de logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Banco de dados ---
-
 def safe_init_database():
     try:
         conn = sqlite3.connect("dicom_viewer.db")
@@ -64,7 +89,7 @@ def log_security_event(user_email, action, details=""):
     try:
         conn = sqlite3.connect("dicom_viewer.db")
         cursor = conn.cursor()
-        ip_address = "127.0.0.1"  # Pode ser substituído por IP real
+        ip_address = "127.0.0.1"
         cursor.execute("""
             INSERT INTO security_logs (user_email, action, ip_address, details)
             VALUES (?, ?, ?, ?)
@@ -74,22 +99,19 @@ def log_security_event(user_email, action, details=""):
     except Exception as e:
         logging.error(f"Erro ao registrar evento de segurança: {e}")
 
-def save_user(name, email, role, department):
+def save_report_to_db(user_email, report_name, report_data, parameters):
     try:
         conn = sqlite3.connect("dicom_viewer.db")
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO users (name, email, role, department)
+            INSERT INTO reports (user_email, report_name, report_data, parameters)
             VALUES (?, ?, ?, ?)
-        """, (name, email, role, department))
+        """, (user_email, report_name, report_data, json.dumps(parameters)))
         conn.commit()
         conn.close()
         return True
-    except sqlite3.IntegrityError:
-        st.error("Email já cadastrado. Por favor, use outro email.")
-        return False
     except Exception as e:
-        st.error(f"Erro ao salvar usuário: {e}")
+        logging.error(f"Erro ao salvar relatório: {e}")
         return False
 
 def get_user_reports(user_email):
@@ -109,8 +131,25 @@ def get_user_reports(user_email):
         logging.error(f"Erro ao recuperar relatórios: {e}")
         return []
 
-# --- CSS para tema claro e profissional ---
+def save_user(name, email, role, department):
+    try:
+        conn = sqlite3.connect("dicom_viewer.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO users (name, email, role, department)
+            VALUES (?, ?, ?, ?)
+        """, (name, email, role, department))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        st.error("Email já cadastrado. Por favor, use outro email.")
+        return False
+    except Exception as e:
+        st.error(f"Erro ao salvar usuário: {e}")
+        return False
 
+# --- CSS Tema ---
 def update_css_theme():
     st.markdown("""
     <style>
@@ -157,8 +196,7 @@ def update_css_theme():
     </div>
     """, unsafe_allow_html=True)
 
-# --- Formulário de registro de usuário ---
-
+# --- Formulário de registro ---
 def show_user_form():
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
@@ -201,8 +239,7 @@ def show_user_form():
                     st.success("Usuário registrado com sucesso!")
                     st.experimental_rerun()
 
-# --- Tela principal após login ---
-
+# --- Função principal da aplicação ---
 def show_main_app():
     user_data = st.session_state.user_data
     with st.sidebar:
@@ -214,14 +251,12 @@ def show_main_app():
             {f'<p><strong>Departamento:</strong> {user_data["department"]}</p>' if user_data['department'] else ''}
         </div>
         """, unsafe_allow_html=True)
-
         st.markdown("### Navegação")
         uploaded_file = st.file_uploader(
             "Selecione um arquivo DICOM:",
             type=['dcm', 'dicom'],
             help="Carregue um arquivo DICOM para análise forense avançada"
         )
-
         st.markdown("---")
         st.markdown("### Relatórios Salvos")
         user_reports = get_user_reports(user_data['email'])
@@ -231,14 +266,12 @@ def show_main_app():
                     st.session_state.selected_report = report_id
         else:
             st.info("Nenhum relatório salvo ainda.")
-
         st.markdown("---")
         with st.expander("Informações do Sistema"):
             st.write("**Versão:** 3.0 Professional")
             st.write("**Última Atualização:** 2025-09-15")
             st.write("**Status:** Online")
             st.write("**Armazenamento:** 2.5 GB disponíveis")
-
         if st.button("Trocar Usuário", use_container_width=True):
             st.session_state.user_data = None
             st.experimental_rerun()
@@ -283,7 +316,11 @@ def show_main_app():
                 # Aqui você pode chamar as funções para as abas, ex:
                 # enhanced_visualization_tab(dicom_data, image_array)
                 # enhanced_statistics_tab(dicom_data, image_array)
-                # etc.
+                # enhanced_technical_analysis_tab(dicom_data, image_array)
+                # enhanced_quality_metrics_tab(dicom_data, image_array)
+                # enhanced_post_mortem_analysis_tab(dicom_data, image_array)
+                # enhanced_ra_index_tab(dicom_data, image_array)
+                # enhanced_reporting_tab(dicom_data, image_array, user_data)
 
                 st.info("Funcionalidades das abas devem ser implementadas conforme necessidade.")
 
@@ -292,7 +329,6 @@ def show_main_app():
                     os.unlink(tmp_path)
                 except Exception:
                     pass
-
         except Exception as e:
             st.error(f"Erro ao processar arquivo DICOM: {e}")
             logging.error(f"Erro no processamento DICOM: {e}")
@@ -300,7 +336,6 @@ def show_main_app():
         st.info("Carregue um arquivo DICOM na sidebar para começar a análise.")
 
 # --- Main ---
-
 def main():
     if 'user_data' not in st.session_state:
         st.session_state.user_data = None
